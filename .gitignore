@@ -1,0 +1,35 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories (remove the comment below to include it)
+vendor/
+
+# emacs backup files
+*~
+
+# build binary files
+bin
+
+.vscode
+
+.tmp
+.idea
+
+
+# Test
+test/resources/kubeconfig
+test/resources/controlplane
+!test/resources/controlplane/service-template.yaml
+test/resources/integration
+
+.embedded-etcd
