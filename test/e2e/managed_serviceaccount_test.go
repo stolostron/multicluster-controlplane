@@ -103,7 +103,7 @@ var _ = ginkgo.Describe("ManagedServiceAccount", ginkgo.Label("addon"), ginkgo.O
 				return fmt.Errorf("the ManagedServiceAccount not associated any token secret")
 			}
 			return nil
-		}).WithTimeout(30 * time.Second).ShouldNot(gomega.HaveOccurred())
+		}).WithTimeout(2 * time.Minute).ShouldNot(gomega.HaveOccurred())
 	})
 
 	ginkgo.It("validity of the signing token", func() {
@@ -152,7 +152,7 @@ var _ = ginkgo.Describe("ManagedServiceAccount", ginkgo.Label("addon"), ginkgo.O
 			}
 			klog.V(5).Infof("reported token is authenticated by calling the TokenReview from mc(%s)", managedCluster.Name)
 			return nil
-		}).WithTimeout(30 * time.Second).ShouldNot(gomega.HaveOccurred())
+		}).WithTimeout(2 * time.Minute).ShouldNot(gomega.HaveOccurred())
 	})
 
 	ginkgo.AfterAll(func() {
@@ -174,7 +174,7 @@ var _ = ginkgo.Describe("ManagedServiceAccount", ginkgo.Label("addon"), ginkgo.O
 				Name:      msa.Status.TokenSecretRef.Name,
 			}, secret)
 			return errors.IsNotFound(err)
-		}, time.Minute, time.Second).Should(gomega.BeTrue())
+		}, 2*time.Minute, time.Second).Should(gomega.BeTrue())
 
 		ginkgo.By("ServiceAccount should be deleted on managed cluster")
 		gomega.Eventually(func() bool {
@@ -184,6 +184,6 @@ var _ = ginkgo.Describe("ManagedServiceAccount", ginkgo.Label("addon"), ginkgo.O
 				Name:      msaName,
 			}, serviceAccount)
 			return errors.IsNotFound(err)
-		}, time.Minute, time.Second).Should(gomega.BeTrue())
+		}, 2*time.Minute, time.Second).Should(gomega.BeTrue())
 	})
 })
