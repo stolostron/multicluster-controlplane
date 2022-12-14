@@ -13,8 +13,8 @@ import (
 	logsapi "k8s.io/component-base/logs/api/v1"
 	"k8s.io/component-base/version/verflag"
 
-	"github.com/stolostron/multicluster-controlplane/pkg/controplane/options"
-	"github.com/stolostron/multicluster-controlplane/pkg/controplane/servers"
+	"github.com/stolostron/multicluster-controlplane/pkg/options"
+	"github.com/stolostron/multicluster-controlplane/pkg/servers"
 )
 
 func init() {

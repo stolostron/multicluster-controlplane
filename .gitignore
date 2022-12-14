@@ -27,9 +27,6 @@ bin
 
 
 # Test
-test/resources/kubeconfig
-test/resources/controlplane
-!test/resources/controlplane/service-template.yaml
-test/resources/integration
+test/resources
 
 .embedded-etcd

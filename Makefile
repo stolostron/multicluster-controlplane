@@ -27,8 +27,13 @@ build:
 	go build -o bin/multicluster-controlplane cmd/controlplane/main.go 
 .PHONY: build
 
-image:
+build-image:
 	docker build -f Dockerfile -t $(IMAGE_NAME) .
+.PHONY: build-image
+
+push-image:
+	docker push $(IMAGE_NAME)
+.PHONY: push-image
 
 clean:
 	rm -rf bin .embedded-etcd vendor
