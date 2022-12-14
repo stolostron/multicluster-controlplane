@@ -1,27 +1,41 @@
 package servers
 
 import (
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"os"
+
 	genericapifilters "k8s.io/apiserver/pkg/endpoints/filters"
 	genericapiserver "k8s.io/apiserver/pkg/server"
-	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/apiserver/pkg/util/notfoundhandler"
 	"k8s.io/apiserver/pkg/util/webhook"
+	"k8s.io/component-base/version"
+	"k8s.io/klog/v2"
 	aggregatorapiserver "k8s.io/kube-aggregator/pkg/apiserver"
-	ocmfeature "open-cluster-management.io/api/feature"
 
 	"github.com/stolostron/multicluster-controlplane/pkg/controplane/options"
 )
 
-func init() {
-	utilruntime.Must(utilfeature.DefaultMutableFeatureGate.Add(ocmfeature.DefaultHubWorkFeatureGates))
-	utilruntime.Must(utilfeature.DefaultMutableFeatureGate.Add(ocmfeature.DefaultHubRegistrationFeatureGates))
-	utilruntime.Must(utilfeature.DefaultMutableFeatureGate.Add(ocmfeature.DefaultSpokeRegistrationFeatureGates))
+// Run runs the specified APIServer.  This should never exit.
+func Run(completeOptions options.CompletedOptions, stopCh <-chan struct{}) error {
+	// To help debugging, immediately log version
+	klog.Infof("Version: %+v", version.Get())
+	klog.InfoS("Golang settings", "GOGC", os.Getenv("GOGC"), "GOMAXPROCS", os.Getenv("GOMAXPROCS"), "GOTRACEBACK", os.Getenv("GOTRACEBACK"))
+
+	server, err := CreateServerChain(completeOptions)
+	if err != nil {
+		return err
+	}
+
+	prepared, err := server.PrepareRun()
+	if err != nil {
+		return err
+	}
+
+	return prepared.Run(stopCh)
 }
 
 // CreateServerChain creates the apiservers connected via delegation.
 func CreateServerChain(completedOptions options.CompletedOptions) (*aggregatorapiserver.APIAggregator, error) {
-	kubeAPIServerConfig, serviceResolver, pluginInitializer, err := createKubeAPIServerConfig(completedOptions)
+	kubeAPIServerConfig, serviceResolver, pluginInitializer, err := CreateKubeAPIServerConfig(completedOptions)
 	if err != nil {
 		return nil, err
 	}

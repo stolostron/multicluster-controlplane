@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
@@ -14,7 +15,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/admission"
 	genericfeatures "k8s.io/apiserver/pkg/features"
 	genericapiserver "k8s.io/apiserver/pkg/server"
@@ -42,8 +45,15 @@ import (
 	"open-cluster-management.io/multicluster-controlplane/pkg/controllers/kubecontroller"
 	"open-cluster-management.io/multicluster-controlplane/pkg/controllers/ocmcontroller"
 
+	"github.com/stolostron/multicluster-controlplane/config/crds"
 	"github.com/stolostron/multicluster-controlplane/pkg/controplane/options"
 )
+
+func init() {
+	utilruntime.Must(utilfeature.DefaultMutableFeatureGate.Add(ocmfeature.DefaultHubWorkFeatureGates))
+	utilruntime.Must(utilfeature.DefaultMutableFeatureGate.Add(ocmfeature.DefaultHubRegistrationFeatureGates))
+	utilruntime.Must(utilfeature.DefaultMutableFeatureGate.Add(ocmfeature.DefaultSpokeRegistrationFeatureGates))
+}
 
 func createAggregatorConfig(
 	kubeAPIServerConfig genericapiserver.Config,
@@ -155,7 +165,7 @@ func createAggregatorServer(aggregatorConfig *aggregatorapiserver.Config, delega
 			if err != nil {
 				klog.Errorf("run kube controller error: %v", err)
 			}
-			klog.Infof("Finished bootstrapping kube controllers")
+			klog.Infof("finished bootstrapping kube controllers")
 		}()
 		return nil
 	})
@@ -174,7 +184,7 @@ func createAggregatorServer(aggregatorConfig *aggregatorapiserver.Config, delega
 		return nil, err
 	}
 	// Add PostStartHook to install ocm crds
-	err = aggregatorServer.GenericAPIServer.AddPostStartHook("multicluster-controlplane-registration-crd", func(context genericapiserver.PostStartHookContext) error {
+	err = aggregatorServer.GenericAPIServer.AddPostStartHook("multicluster-controlplane-crd", func(context genericapiserver.PostStartHookContext) error {
 		// bootstrap ocm crd
 		if err := ocmcrds.Bootstrap(
 			goContext(context),
@@ -186,7 +196,7 @@ func createAggregatorServer(aggregatorConfig *aggregatorapiserver.Config, delega
 			// nolint:nilerr
 			return nil // don't klog.Fatal. This only happens when context is cancelled.
 		}
-		klog.Infof("Finished bootstrapping ocm CRDs")
+		klog.Infof("finished bootstrapping ocm CRDs")
 		return nil
 	})
 	if err != nil {
@@ -213,7 +223,7 @@ func createAggregatorServer(aggregatorConfig *aggregatorapiserver.Config, delega
 			return nil // don't klog.Fatal. This only happens when context is cancelled.
 		}
 
-		klog.Infof("Finished bootstrapping ocm hub resources")
+		klog.Infof("finished bootstrapping ocm hub resources")
 
 		return nil
 	})
@@ -221,22 +231,23 @@ func createAggregatorServer(aggregatorConfig *aggregatorapiserver.Config, delega
 		return nil, err
 	}
 
+	controllerConfig := rest.CopyConfig(aggregatorConfig.GenericConfig.LoopbackClientConfig)
+	controllerConfig.ContentType = "application/json"
+
 	// Add PostStartHook to install ocm controllers
 	err = aggregatorServer.GenericAPIServer.AddPostStartHook("multicluster-controlplane-controllers", func(context genericapiserver.PostStartHookContext) error {
-		// Start controllers
-		controllerConfig := rest.CopyConfig(aggregatorConfig.GenericConfig.LoopbackClientConfig)
-		controllerConfig.ContentType = "application/json"
-
 		go func() {
+			ctx := goContext(context)
+			waitForOCMCRDsReady(ctx, dynamicClient)
 			if err := ocmcontroller.InstallOCMControllers(
-				goContext(context),
+				ctx,
 				controllerConfig,
 				kubeClient,
 				aggregatorConfig.GenericConfig.SharedInformerFactory,
 			); err != nil {
 				klog.Errorf("failed to bootstrap ocm controllers: %v", err)
 			} else {
-				klog.Infof("Finished bootstrapping ocm controllers")
+				klog.Infof("finished bootstrapping ocm controllers")
 			}
 		}()
 		return nil
@@ -245,10 +256,32 @@ func createAggregatorServer(aggregatorConfig *aggregatorapiserver.Config, delega
 		return nil, err
 	}
 
+	// Add PostStartHook to install ocm management addons
 	if utilfeature.DefaultMutableFeatureGate.Enabled(ocmfeature.AddonManagement) {
-		klog.Info("### Enable feature gate AddonManagement")
+		klog.Info("enable addon management")
+		// Add PostStartHook to install ocm addon crds
+		if err := aggregatorServer.GenericAPIServer.AddPostStartHook("multicluster-controlplane-ocm-addon-crd", func(context genericapiserver.PostStartHookContext) error {
+			// bootstrap ocm addon crd
+			if err := crds.Bootstrap(
+				goContext(context),
+				apiextensionsClient,
+				apiextensionsClient.Discovery(),
+				dynamicClient,
+			); err != nil {
+				klog.Errorf("failed to bootstrap ocm CRDs: %v", err)
+				return nil // don't klog.Fatal. This only happens when context is cancelled.
+			}
+			klog.Infof("finished bootstrapping ocm CRDs")
+			return nil
+		}); err != nil {
+			return nil, err
+		}
+		klog.Infof("finished bootstrapping ocm addon CRDs")
+
+		// TODO: install ocm cluster-management-addon-controller
+		// TODO: install ocm managed-cluster-addon-controller
 	} else {
-		klog.Info("### Not enable feature gate AddonManagement")
+		klog.Info("not enable addon management")
 	}
 	return aggregatorServer, nil
 }
@@ -388,4 +421,35 @@ func goContext(parent genericapiserver.PostStartHookContext) context.Context {
 		cancel()
 	}(parent.StopCh)
 	return ctx
+}
+
+func waitForOCMCRDsReady(ctx context.Context, dynamicClient dynamic.Interface) bool {
+	ocmCRDs := []string{
+		"addondeploymentconfigs.addon.open-cluster-management.io",
+		"addonplacementscores.cluster.open-cluster-management.io",
+		"clustermanagementaddons.addon.open-cluster-management.io",
+		"managedclusteraddons.addon.open-cluster-management.io",
+		"managedclusters.cluster.open-cluster-management.io",
+		"managedclustersetbindings.cluster.open-cluster-management.io",
+		"managedclustersets.cluster.open-cluster-management.io",
+		"manifestworks.work.open-cluster-management.io",
+		"placementdecisions.cluster.open-cluster-management.io",
+		"placements.cluster.open-cluster-management.io",
+	}
+	if err := wait.PollUntil(1*time.Second, func() (bool, error) {
+		for _, crdName := range ocmCRDs {
+			_, err := dynamicClient.Resource(schema.GroupVersionResource{
+				Group:    apiextensionsv1.SchemeGroupVersion.Group,
+				Version:  apiextensionsv1.SchemeGroupVersion.Version,
+				Resource: "customresourcedefinitions",
+			}).Get(ctx, crdName, metav1.GetOptions{})
+			if err != nil {
+				return false, nil
+			}
+		}
+		return true, nil
+	}, ctx.Done()); err != nil {
+		return false
+	}
+	return true
 }

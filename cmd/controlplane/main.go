@@ -11,9 +11,7 @@ import (
 	"k8s.io/component-base/cli"
 	cliflag "k8s.io/component-base/cli/flag"
 	logsapi "k8s.io/component-base/logs/api/v1"
-	"k8s.io/component-base/version"
 	"k8s.io/component-base/version/verflag"
-	"k8s.io/klog/v2"
 
 	"github.com/stolostron/multicluster-controlplane/pkg/controplane/options"
 	"github.com/stolostron/multicluster-controlplane/pkg/controplane/servers"
@@ -48,7 +46,7 @@ func newControlPlaneCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return Run(completedOptions, stopChan)
+			return servers.Run(completedOptions, stopChan)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {
 			for _, arg := range args {
@@ -62,23 +60,4 @@ func newControlPlaneCommand() *cobra.Command {
 	fs := cmd.Flags()
 	options.AddFlags(fs)
 	return cmd
-}
-
-// Run runs the specified APIServer.  This should never exit.
-func Run(completeOptions options.CompletedOptions, stopCh <-chan struct{}) error {
-	// To help debugging, immediately log version
-	klog.Infof("Version: %+v", version.Get())
-	klog.InfoS("Golang settings", "GOGC", os.Getenv("GOGC"), "GOMAXPROCS", os.Getenv("GOMAXPROCS"), "GOTRACEBACK", os.Getenv("GOTRACEBACK"))
-
-	server, err := servers.CreateServerChain(completeOptions)
-	if err != nil {
-		return err
-	}
-
-	prepared, err := server.PrepareRun()
-	if err != nil {
-		return err
-	}
-
-	return prepared.Run(stopCh)
 }

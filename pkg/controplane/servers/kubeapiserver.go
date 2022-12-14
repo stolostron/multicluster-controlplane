@@ -51,7 +51,7 @@ func CreateKubeAPIServer(kubeAPIServerConfig *controlplane.Config, delegateAPISe
 }
 
 // CreateKubeAPIServerConfig creates all the resources for running the API server, but runs none of them
-func createKubeAPIServerConfig(completedOptions options.CompletedOptions) (
+func CreateKubeAPIServerConfig(completedOptions options.CompletedOptions) (
 	*controlplane.Config,
 	aggregatorapiserver.ServiceResolver,
 	[]admission.PluginInitializer,
@@ -64,16 +64,7 @@ func createKubeAPIServerConfig(completedOptions options.CompletedOptions) (
 		return nil, nil, nil, err
 	}
 
-	capabilities.Initialize(capabilities.Capabilities{
-		AllowPrivileged: completedOptions.Generic.AllowPrivileged,
-		// TODO: Implement support for HostNetworkSources.
-		PrivilegedSources: capabilities.PrivilegedSources{
-			HostNetworkSources: []string{},
-			HostPIDSources:     []string{},
-			HostIPCSources:     []string{},
-		},
-		PerConnectionBandwidthLimitBytesPerSec: completedOptions.Generic.MaxConnectionBytesPerSec,
-	})
+	capabilities.Setup(completedOptions.Generic.AllowPrivileged, completedOptions.Generic.MaxConnectionBytesPerSec)
 
 	completedOptions.Generic.Metrics.Apply()
 	serviceaccount.RegisterMetrics()
