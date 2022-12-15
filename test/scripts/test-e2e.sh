@@ -51,8 +51,16 @@ while getopts ":f:v:" opt; do
   esac
 done
 
+echo "Build E2E Test ..."
+go test -c ${project_dir}/test/e2e -mod=vendor -o ${project_dir}/test/e2e/e2e.test
+
+echo "Run E2E Test ..."
+cd ${project_dir}/test/e2e
+
 if [ -z "${filter}" ]; then
-  ginkgo ${project_dir}/test/e2e -- -options=$options_file -v=$verbose
+  ./e2e.test --options=$options_file -v=$verbose
 else
-  ginkgo --label-filter=${filter} ${project_dir}/test/e2e -- -options=$options_file -v=$verbose
+  ./e2e.test --ginkgo.label-filter=${filter} --ginkgo.v --options=$options_file -v=$verbose 
 fi
+
+rm ${project_dir}/test/e2e/e2e.test

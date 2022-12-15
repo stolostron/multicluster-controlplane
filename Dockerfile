@@ -3,7 +3,7 @@ FROM golang:1.19 AS builder
 
 ARG OS=linux
 ARG ARCH=amd64
-ENV DIRPATH /go/src/open-cluster-management.io/multicluster-controlplane
+ENV DIRPATH /workspace/multicluster-controlplane
 WORKDIR ${DIRPATH}
 
 COPY . .
@@ -16,6 +16,6 @@ RUN GOOS=${OS} \
 FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
 ENV USER_UID=10001
 
-COPY --from=builder /go/src/open-cluster-management.io/multicluster-controlplane/bin/multicluster-controlplane /
+COPY --from=builder /workspace/multicluster-controlplane/bin/multicluster-controlplane /
 
 USER ${USER_UID}

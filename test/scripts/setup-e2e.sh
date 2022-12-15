@@ -39,11 +39,11 @@ for i in $(seq 1 "${number}"); do
   printf "\033[0;32m%s\n\033[0m" "## Deploy standalone controlplane in namespace $namespace"
 
   deploy_dir=$project_dir/test/resources/$namespace && check_dir $deploy_dir
-  certs_dir=${CERT_DIR:-"$deploy_dir/cert"} && check_dir $certs_dir
   external_host_port="3008$i" # each controlpalne need different nodeport to expose it's server
   
   # generate certs and kubeconfig
   if [[ "${reuse_certs}" != true ]]; then
+    certs_dir=$deploy_dir/cert && check_dir $certs_dir
     generate_certs $certs_dir $external_host_ip $external_host_port
     set_service_accounts "${certs_dir}/kube-serviceaccount.key"
     cp ${certs_dir}/kube-aggregator.kubeconfig ${kubeconfig_dir}/$namespace
@@ -59,7 +59,7 @@ for i in $(seq 1 "${number}"); do
   cd $deploy_dir
   $KUSTOMIZE edit set namespace $namespace 
   echo "## Using the Controlplane Image: $image"
-  $KUSTOMIZE edit set image quay.io/open-cluster-management/controlplane=$image
+  $KUSTOMIZE edit set image quay.io/open-cluster-management/multicluster-controlplane=$image
   $KUSTOMIZE build $deploy_dir | $KUBECTL apply -f -
   kube::util::wait_for_url "https://${external_host_ip}:${external_host_port}/healthz" "apiserver: " 1 120 1 || { echo "Controlplane $namespace is not ready!" ; exit 1 ; }
 

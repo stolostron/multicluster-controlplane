@@ -17,7 +17,7 @@ spec:
       containers:
       - name: controlplane
         image: quay.io/open-cluster-management/multicluster-controlplane
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         args:
           - "/multicluster-controlplane"
           - "--authorization-mode=RBAC"
@@ -37,7 +37,7 @@ spec:
           - "--secure-port=9443"
           - "--tls-cert-file=/controlplane/cert/serving-kube-apiserver.crt"
           - "--tls-private-key-file=/controlplane/cert/serving-kube-apiserver.key"
-          - "--feature-gates=DefaultClusterSet=true,OpenAPIV3=false"
+          - "--feature-gates=DefaultClusterSet=true,OpenAPIV3=false,AddonManagement=true"
           - "--enable-embedded-etcd=true"
           - "--etcd-servers=https://127.0.0.1:2379"
           - "--service-cluster-ip-range=10.0.0.0/24"
@@ -66,8 +66,8 @@ spec:
           readOnly: true
         - mountPath: /.embedded-etcd
           name: embedded-etcd 
-        - mountPath: /.ocmconfig
-          name: ocmconfig 
+        # - mountPath: /.ocmconfig
+        #   name: ocmconfig 
       volumes:
       - name: controlplane-cert
         secret:
@@ -75,7 +75,7 @@ spec:
       - name: embedded-etcd 
         emptyDir:
           sizeLimit: 500Mi
-      - name: ocmconfig 
-        emptyDir:
-          sizeLimit: 500Mi
+      # - name: ocmconfig 
+      #   emptyDir:
+      #     sizeLimit: 500Mi
 
