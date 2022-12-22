@@ -20,7 +20,6 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/klog/v2"
@@ -44,7 +43,7 @@ var addonCRDs = []string{
 	"0000_08_action.open-cluster-management.io_managedclusteractions.crd.yaml",
 }
 
-func Bootstrap(ctx context.Context, crdClient apiextensionsclient.Interface, discoveryClient discovery.DiscoveryInterface, dynamicClient dynamic.Interface) error {
+func Bootstrap(ctx context.Context, crdClient apiextensionsclient.Interface) error {
 	// poll here, call create to create base crds
 	if err := wait.PollImmediateInfiniteWithContext(ctx, time.Second, func(ctx context.Context) (bool, error) {
 		if err := CreateFromFile(ctx, crdClient.ApiextensionsV1().CustomResourceDefinitions(), addonCRDs, raw); err != nil {
@@ -188,6 +187,7 @@ func WaitForOcmAddonCrdsReady(ctx context.Context, dynamicClient dynamic.Interfa
 		"managedclusterviews.view.open-cluster-management.io",
 		"managedclusteractions.action.open-cluster-management.io",
 	}
+	klog.Infof("wait addon crds are installed")
 	if err := wait.PollUntil(1*time.Second, func() (bool, error) {
 		for _, crdName := range ocmAddonCrds {
 			_, err := dynamicClient.Resource(schema.GroupVersionResource{
@@ -196,13 +196,14 @@ func WaitForOcmAddonCrdsReady(ctx context.Context, dynamicClient dynamic.Interfa
 				Resource: "customresourcedefinitions",
 			}).Get(ctx, crdName, metav1.GetOptions{})
 			if err != nil {
-				return false, fmt.Errorf("failed to get CRD(%s): %v", crdName, err)
+				return false, nil
 			}
+			klog.Infof("addon crd(%s) is ready", crdName)
 		}
 		return true, nil
 	}, ctx.Done()); err != nil {
-		klog.Errorf("wait for ocm addon crd ready error: %v", err)
 		return false
 	}
+	klog.Infof("addon crds are ready")
 	return true
 }

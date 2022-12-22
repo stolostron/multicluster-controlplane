@@ -7,7 +7,6 @@ require (
 	github.com/onsi/gomega v1.24.1
 	github.com/openshift/library-go v0.0.0-20220727134723-6802b30e83ba
 	github.com/spf13/cobra v1.5.0
-	github.com/spf13/pflag v1.0.5
 	github.com/stolostron/cluster-lifecycle-api v0.0.0-20221107031926-6f0a02d2aaf5
 	github.com/stolostron/kubernetes-dependency-watches v0.1.0
 	k8s.io/api v0.25.4
@@ -19,16 +18,13 @@ require (
 	k8s.io/klog v1.0.0
 	k8s.io/klog/v2 v2.80.1
 	k8s.io/kube-aggregator v0.25.4
-	k8s.io/kube-openapi v0.0.0-20220803162953-67bda5d908f1
-	k8s.io/kubernetes v1.25.4
-	k8s.io/utils v0.0.0-20221011040102-427025108f67
 	open-cluster-management.io/addon-framework v0.5.0
 	open-cluster-management.io/api v0.9.0
 	open-cluster-management.io/governance-policy-addon-controller v0.9.0
 	open-cluster-management.io/governance-policy-propagator v0.9.1-0.20221201165426-f610c4b09b06
 	open-cluster-management.io/managed-serviceaccount v0.2.1-0.20221125051317-2ebb47b67877
 	open-cluster-management.io/multicloud-operators-subscription v0.9.0
-	open-cluster-management.io/multicluster-controlplane v0.1.0
+	open-cluster-management.io/multicluster-controlplane v0.0.0-20221219025100-23ee8a857eb7
 	sigs.k8s.io/controller-runtime v0.13.1
 )
 
@@ -193,6 +189,7 @@ require (
 	github.com/jonboulle/clockwork v0.3.0 // indirect
 	github.com/pquerna/cachecontrol v0.1.0 // indirect
 	github.com/prometheus/client_golang v1.13.0 // indirect
+	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20220101234140-673ab2c3ae75 // indirect
 	go.opentelemetry.io/contrib v1.9.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.34.0 // indirect
@@ -208,13 +205,16 @@ require (
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.22.0 // indirect
-	golang.org/x/crypto v0.0.0-20220817201139-bc19a97f63c8 // indirect
+	golang.org/x/crypto v0.1.0 // indirect
 	golang.org/x/net v0.2.0 // indirect
 	golang.org/x/sys v0.2.0 // indirect
 	golang.org/x/time v0.0.0-20220722155302-e5dcc9cfc0b9 // indirect
 	golang.org/x/tools v0.2.0 // indirect
 	k8s.io/controller-manager v0.25.4 // indirect
 	k8s.io/kube-controller-manager v0.0.0 // indirect
+	k8s.io/kube-openapi v0.0.0-20220803162953-67bda5d908f1 // indirect
+	k8s.io/kubernetes v1.25.4 // indirect
+	k8s.io/utils v0.0.0-20221011040102-427025108f67 // indirect
 )
 
 replace (

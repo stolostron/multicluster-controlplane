@@ -59,7 +59,7 @@ function start_apiserver {
     echo "$apiserver_pid" > ${project_dir}/test/resources/integration/controlpane_pid
 
     # echo "Waiting for apiserver to come up"
-    kube::util::wait_for_url "https://${api_host_ip}:${api_secure_port}/healthz" "apiserver: " 1 60 1 \
+    kube::util::wait_for_url "https://${api_host_ip}:${api_secure_port}/healthz" "apiserver: " 1 120 1 \
     || { echo "check apiserver logs: $apiserver_log" ; exit 1 ; }
     
     cp ${cert_dir}/kube-aggregator.kubeconfig ${kubeconfig_dir}/integration-cp

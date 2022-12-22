@@ -1,5 +1,5 @@
 # Copyright Contributors to the Open Cluster Management project
-FROM golang:1.19 AS builder
+FROM registry.ci.openshift.org/stolostron/builder:go1.19-linux AS builder
 
 ARG OS=linux
 ARG ARCH=amd64
@@ -8,8 +8,9 @@ WORKDIR ${DIRPATH}
 
 COPY . .
 
-RUN apt-get update && apt-get install net-tools && make vendor 
-RUN GOOS=${OS} \
+# RUN apt-get update && apt-get install net-tools && make vendor 
+RUN make vendor && \
+    GOOS=${OS} \
     GOARCH=${ARCH} \
     make build
 
