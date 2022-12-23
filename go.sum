@@ -1502,6 +1502,7 @@ open-cluster-management.io/governance-policy-propagator v0.9.1-0.20221201165426-
 open-cluster-management.io/governance-policy-propagator v0.9.1-0.20221201165426-f610c4b09b06/go.mod h1:x6fLeO/pWeUTc2d7WNCjDXXhs0xzMkhmgbousTBPAfI=
 open-cluster-management.io/managed-serviceaccount v0.2.1-0.20221125051317-2ebb47b67877 h1:LD/0xqqYpJtl7ia4CBWg1zuKVoyl/zga3KijRrmTf3I=
 open-cluster-management.io/managed-serviceaccount v0.2.1-0.20221125051317-2ebb47b67877/go.mod h1:XuTtJ373O5rb70sGAZY8SqsjRqio9zXTCtOEG9HFcvU=
+open-cluster-management.io/multicloud-operators-channel v0.8.1-0.20220830142938-f26e84e80456 h1:pQeDzn2Uu4swKhRh0ohBrky1LtOxUOhPVSOuE65sMAQ=
 open-cluster-management.io/multicloud-operators-subscription v0.9.0 h1:wpkvc25LluEqvk14smePArLED9hxI0gvSiKSuPbYzWI=
 open-cluster-management.io/multicloud-operators-subscription v0.9.0/go.mod h1:ZUyK1jDFqefZDQogJBMBFu6/5x3YLQN/V37XBTUsm4s=
 open-cluster-management.io/multicluster-controlplane v0.0.0-20221219025100-23ee8a857eb7 h1:aRgUMYLbYjHIdwP1G5sM29GTXy+9kh0WIY3Rmnpk3tY=

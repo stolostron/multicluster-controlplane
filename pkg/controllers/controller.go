@@ -23,7 +23,8 @@ import (
 	policyv1 "open-cluster-management.io/governance-policy-propagator/api/v1"
 	policyv1beta1 "open-cluster-management.io/governance-policy-propagator/api/v1beta1"
 	authv1alpha1 "open-cluster-management.io/managed-serviceaccount/api/v1alpha1"
-	appsv1 "open-cluster-management.io/multicloud-operators-subscription/pkg/apis/apps/placementrule/v1"
+	placementrulev1 "open-cluster-management.io/multicloud-operators-subscription/pkg/apis/apps/placementrule/v1"
+	placementrulecontroller "open-cluster-management.io/multicloud-operators-subscription/pkg/placementrule/controller"
 	ocmcrds "open-cluster-management.io/multicluster-controlplane/config/crds"
 	"open-cluster-management.io/multicluster-controlplane/pkg/controllers/ocmcontroller"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -77,7 +78,6 @@ func InstallManagedClusterAddons(stopCh <-chan struct{}, aggregatorConfig *aggre
 
 		if !crds.WaitForOcmAddonCrdsReady(ctx, dynamicClient) {
 			klog.Errorf("ocm addon crds is not ready")
-			return
 		}
 
 		addonManager, err := addonmanager.New(restConfig)
@@ -136,11 +136,12 @@ func InstallClusterManagmentAddons(stopCh <-chan struct{}, aggregatorConfig *agg
 		// policy propagator required
 		utilruntime.Must(clusterv1.AddToScheme(scheme))
 		utilruntime.Must(clusterv1beta1.AddToScheme(scheme))
-		utilruntime.Must(appsv1.AddToScheme(scheme))
 		utilruntime.Must(policyv1.AddToScheme(scheme))
 		utilruntime.Must(policyv1beta1.AddToScheme(scheme))
 		// managed cluster info
 		utilruntime.Must(clusterinfov1beta1.AddToScheme(scheme))
+		// placementrule
+		utilruntime.Must(placementrulev1.AddToScheme(scheme))
 
 		ctrl.SetLogger(klogr.New())
 
@@ -162,6 +163,11 @@ func InstallClusterManagmentAddons(stopCh <-chan struct{}, aggregatorConfig *agg
 		}
 
 		if err := clustermanagementaddons.SetupPolicyWithManager(ctx, mgr, restConfig, kubeClient, dynamicClient); err != nil {
+			klog.Error(err)
+		}
+
+		// placementrule controller
+		if err := placementrulecontroller.AddToManager(mgr); err != nil {
 			klog.Error(err)
 		}
 
