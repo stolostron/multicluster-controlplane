@@ -57,7 +57,6 @@ func newControlPlaneCommand() *cobra.Command {
 				server.AddController("multicluster-controlplane-ocm-addon-crd", controller.InstallAddonCrds)
 				server.AddController("multicluster-controlplane-cluster-management-addons", controller.InstallClusterManagmentAddons)
 				server.AddController("multicluster-controlplane-managed-cluster-addons", controller.InstallManagedClusterAddons)
-				// server.AddController("multicluster-controlplane-placements", controller.InstallPlacements)
 			}
 
 			return server.Start(stopChan)

@@ -9,6 +9,7 @@ require (
 	github.com/spf13/cobra v1.5.0
 	github.com/stolostron/cluster-lifecycle-api v0.0.0-20221107031926-6f0a02d2aaf5
 	github.com/stolostron/kubernetes-dependency-watches v0.1.0
+	github.com/stolostron/multicloud-operators-foundation v0.0.0-20221212015215-f8043f62d6f7
 	k8s.io/api v0.25.4
 	k8s.io/apiextensions-apiserver v0.25.4
 	k8s.io/apimachinery v0.25.4
@@ -18,8 +19,8 @@ require (
 	k8s.io/klog v1.0.0
 	k8s.io/klog/v2 v2.80.1
 	k8s.io/kube-aggregator v0.25.4
-	open-cluster-management.io/addon-framework v0.5.0
-	open-cluster-management.io/api v0.9.0
+	open-cluster-management.io/addon-framework v0.5.1-0.20221206033210-55b40b1bc8c6
+	open-cluster-management.io/api v0.9.1-0.20221107101616-fde10e6996f6
 	open-cluster-management.io/governance-policy-addon-controller v0.9.0
 	open-cluster-management.io/governance-policy-propagator v0.9.1-0.20221201165426-f610c4b09b06
 	open-cluster-management.io/managed-serviceaccount v0.2.1-0.20221125051317-2ebb47b67877
@@ -107,7 +108,7 @@ require (
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/selinux v1.10.0 // indirect
-	github.com/openshift/api v0.0.0-20220525145417-ee5b62754c68 // indirect
+	github.com/openshift/api v0.0.0-20220531073726-6c4f186339a7 // indirect
 	github.com/openshift/client-go v0.0.0-20220525160904-9e1acff93e4a // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/pkg/profile v1.3.0 // indirect
@@ -166,7 +167,6 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.57.0 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
-	github.com/stolostron/go-template-utils/v3 v3.0.1 // indirect
 	go.etcd.io/etcd/server/v3 v3.5.4 // indirect
 	golang.org/x/oauth2 v0.0.0-20220822191816-0ebed06d0094 // indirect
 	google.golang.org/genproto v0.0.0-20220822174746-9e6da59bd2fc // indirect
@@ -190,6 +190,7 @@ require (
 	github.com/pquerna/cachecontrol v0.1.0 // indirect
 	github.com/prometheus/client_golang v1.13.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
+	github.com/stolostron/go-template-utils/v3 v3.0.1 // indirect
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20220101234140-673ab2c3ae75 // indirect
 	go.opentelemetry.io/contrib v1.9.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.34.0 // indirect

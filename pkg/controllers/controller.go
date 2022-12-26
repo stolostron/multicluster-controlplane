@@ -154,7 +154,7 @@ func InstallClusterManagmentAddons(stopCh <-chan struct{}, aggregatorConfig *agg
 
 		klog.Info("finish new InstallClusterManagmentAddons")
 
-		if err := clustermanagementaddons.SetupClusterInfoWithManager(mgr, kubeClient); err != nil {
+		if err := clustermanagementaddons.SetupClusterInfoWithManager(mgr); err != nil {
 			klog.Error(err)
 		}
 

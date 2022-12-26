@@ -617,8 +617,9 @@ github.com/opencontainers/go-digest v1.0.0 h1:apOUWs51W5PlhuyGyz9FCeeBIOUDA/6nW8
 github.com/opencontainers/go-digest v1.0.0/go.mod h1:0JzlMkj0TRzQZfJkVvzbP0HBR3IKzErnv2BNG4W4MAM=
 github.com/opencontainers/selinux v1.10.0 h1:rAiKF8hTcgLI3w0DHm6i0ylVVcOrlgR1kK99DRLDhyU=
 github.com/opencontainers/selinux v1.10.0/go.mod h1:2i0OySw99QjzBBQByd1Gr9gSjvuho1lHsJxIJ3gGbJI=
-github.com/openshift/api v0.0.0-20220525145417-ee5b62754c68 h1:G4GBjFvaGlHc1dMFfJY8Z0LhMa0leRG75DvQ33PAgdY=
 github.com/openshift/api v0.0.0-20220525145417-ee5b62754c68/go.mod h1:LEnw1IVscIxyDnltE3Wi7bQb/QzIM8BfPNKoGA1Qlxw=
+github.com/openshift/api v0.0.0-20220531073726-6c4f186339a7 h1:bkBOsI/Yd+cBT+/aXkbbNo+imvq4VKRusoCluIGOBBg=
+github.com/openshift/api v0.0.0-20220531073726-6c4f186339a7/go.mod h1:LEnw1IVscIxyDnltE3Wi7bQb/QzIM8BfPNKoGA1Qlxw=
 github.com/openshift/build-machinery-go v0.0.0-20211213093930-7e33a7eb4ce3/go.mod h1:b1BuldmJlbA/xYtdZvKi+7j5YGB44qJUJDZ9zwiNCfE=
 github.com/openshift/client-go v0.0.0-20220525160904-9e1acff93e4a h1:ylsEgoC8Dlg4A0C1TLH0A4x/TZao7k1YveLwROhRUdk=
 github.com/openshift/client-go v0.0.0-20220525160904-9e1acff93e4a/go.mod h1:eDO5QeVi2IiXmDwB0e2z1DpAznWroZKe978pzZwFBzg=
@@ -742,6 +743,8 @@ github.com/stolostron/go-template-utils/v3 v3.0.1 h1:E+BcQZubHmHWepXjqcSXUNPmzXo
 github.com/stolostron/go-template-utils/v3 v3.0.1/go.mod h1:k9qoQ/OH/jOQI5ovfC11QJ6ApWsa3E5rmbkfUAEUF3g=
 github.com/stolostron/kubernetes-dependency-watches v0.1.0 h1:GfqzY6dHhksE0+f3a6oM6ykkUvuS6/qyupzSO/KXBbs=
 github.com/stolostron/kubernetes-dependency-watches v0.1.0/go.mod h1:jGnjY4g8N1PaBqt35EjqNRjymjG0DWqki/2JOLMN1Pg=
+github.com/stolostron/multicloud-operators-foundation v0.0.0-20221212015215-f8043f62d6f7 h1:pwmHDVNpbPRGqHnRE308gNxkb2GTl2ldCaPFXjpoQFk=
+github.com/stolostron/multicloud-operators-foundation v0.0.0-20221212015215-f8043f62d6f7/go.mod h1:LZ9Q1iyf4bgKLiD8ryT2d3ZKMSZnfT7IuXAdStfQ3Bg=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.1.1/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.2.0/go.mod h1:qt09Ya8vawLte6SNmTgCsAVtYtaKzEcn8ATUoHMkEqE=
@@ -1490,10 +1493,10 @@ k8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9/go.mod h1:jPW/WVKK9YHAvNhRxK0md/
 k8s.io/utils v0.0.0-20220728103510-ee6ede2d64ed/go.mod h1:jPW/WVKK9YHAvNhRxK0md/EJ228hCsBRufyofKtW8HA=
 k8s.io/utils v0.0.0-20221011040102-427025108f67 h1:ZmUY7x0cwj9e7pGyCTIalBi5jpNfigO5sU46/xFoF/w=
 k8s.io/utils v0.0.0-20221011040102-427025108f67/go.mod h1:OLgZIPagt7ERELqWJFomSt595RzquPNLL48iOWgYOg0=
-open-cluster-management.io/addon-framework v0.5.0 h1:JsjzbS7gRvTbjxJdYGLJzJUO99zLQuOkyXL1fppcd5s=
-open-cluster-management.io/addon-framework v0.5.0/go.mod h1:Fymctw1tnmCTXnmAMgc0zdHetAw6UaiAsj1S6w5VW6s=
-open-cluster-management.io/api v0.9.0 h1:JQidCTMY3RdS0m3UDP24j6ykNpxWJ20LEdNtbxJApxo=
-open-cluster-management.io/api v0.9.0/go.mod h1:+OEARSAl2jIhuLItUcS30UgLA3khmA9ihygLVxzEn+U=
+open-cluster-management.io/addon-framework v0.5.1-0.20221206033210-55b40b1bc8c6 h1:TnQDy3V7wkiblgR5tz1J+ASswcfnRB9gpVbmwCCecVo=
+open-cluster-management.io/addon-framework v0.5.1-0.20221206033210-55b40b1bc8c6/go.mod h1:Fymctw1tnmCTXnmAMgc0zdHetAw6UaiAsj1S6w5VW6s=
+open-cluster-management.io/api v0.9.1-0.20221107101616-fde10e6996f6 h1:jXx0C2GKScyZSxyyvswxmgspQgx7SnBic80EM57EdOw=
+open-cluster-management.io/api v0.9.1-0.20221107101616-fde10e6996f6/go.mod h1:9KkJPh/zpDevXj2P+zkvSVjC2pq2PQ1JDNLLEes8TEc=
 open-cluster-management.io/clusteradm v0.4.0 h1:UqTgXy7o/Tps1tJNNHbkjVRCFP+4cvn79w7tkoHEvAA=
 open-cluster-management.io/clusteradm v0.4.0/go.mod h1:nodp4RjHy/94guw4eLiYiZzpmk1D5ExXnZogGSHygoA=
 open-cluster-management.io/governance-policy-addon-controller v0.9.0 h1:QtB/nItXmfb2uItNtm1WMoQE8GfLLyqnnry/8ARkJVQ=
