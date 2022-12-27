@@ -108,7 +108,7 @@ func InstallManagedClusterAddons(stopCh <-chan struct{}, aggregatorConfig *aggre
 	return nil
 }
 
-// InstallClusterManagmentAddons installs managed-serviceaccount and policy addons in hub cluster
+// InstallClusterManagementAddons installs managed-serviceaccount and policy addons in hub cluster
 func InstallClusterManagementAddons(stopCh <-chan struct{}, aggregatorConfig *aggregatorapiserver.Config) error {
 	restConfig := aggregatorConfig.GenericConfig.LoopbackClientConfig
 	restConfig.ContentType = "application/json"
@@ -152,7 +152,7 @@ func InstallClusterManagementAddons(stopCh <-chan struct{}, aggregatorConfig *ag
 			klog.Errorf("unable to start manager %v", err)
 		}
 
-		klog.Info("finish new InstallClusterManagmentAddons")
+		klog.Info("finish new InstallClusterManagementAddons")
 
 		if err := clustermanagementaddons.SetupClusterInfoWithManager(mgr); err != nil {
 			klog.Error(err)
