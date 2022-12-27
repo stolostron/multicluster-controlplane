@@ -109,7 +109,7 @@ func InstallManagedClusterAddons(stopCh <-chan struct{}, aggregatorConfig *aggre
 }
 
 // InstallClusterManagmentAddons installs managed-serviceaccount and policy addons in hub cluster
-func InstallClusterManagmentAddons(stopCh <-chan struct{}, aggregatorConfig *aggregatorapiserver.Config) error {
+func InstallClusterManagementAddons(stopCh <-chan struct{}, aggregatorConfig *aggregatorapiserver.Config) error {
 	restConfig := aggregatorConfig.GenericConfig.LoopbackClientConfig
 	restConfig.ContentType = "application/json"
 

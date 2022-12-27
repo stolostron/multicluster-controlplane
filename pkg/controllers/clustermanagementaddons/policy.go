@@ -23,8 +23,8 @@ import (
 )
 
 func SetupPolicyWithManager(ctx context.Context, mgr ctrl.Manager, kubeconfig *rest.Config,
-	kubeClient kubernetes.Interface, dynamicClient dynamic.Interface) error {
-
+	kubeClient kubernetes.Interface, dynamicClient dynamic.Interface,
+) error {
 	dynamicWatcherReconciler, dynamicWatcherSource := k8sdepwatches.NewControllerRuntimeSource()
 
 	dynamicWatcher, err := k8sdepwatches.New(kubeconfig, dynamicWatcherReconciler, nil)
@@ -74,7 +74,7 @@ func SetupPolicyWithManager(ctx context.Context, mgr ctrl.Manager, kubeconfig *r
 		return err
 	}
 
-	//TODO: allow KeyRotationDays & MaxConcurrentReconciles configuration
+	// TODO: allow KeyRotationDays & MaxConcurrentReconciles configuration
 	if err = (&encryptionkeysctrl.EncryptionKeysReconciler{
 		Client:                  mgr.GetClient(),
 		KeyRotationDays:         30,

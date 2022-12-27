@@ -55,7 +55,7 @@ func newControlPlaneCommand() *cobra.Command {
 
 			if utilfeature.DefaultMutableFeatureGate.Enabled(ocmfeature.AddonManagement) {
 				server.AddController("multicluster-controlplane-ocm-addon-crd", controller.InstallAddonCrds)
-				server.AddController("multicluster-controlplane-cluster-management-addons", controller.InstallClusterManagmentAddons)
+				server.AddController("multicluster-controlplane-cluster-management-addons", controller.InstallClusterManagementAddons)
 				server.AddController("multicluster-controlplane-managed-cluster-addons", controller.InstallManagedClusterAddons)
 			}
 
