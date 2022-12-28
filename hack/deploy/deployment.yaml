@@ -1,0 +1,81 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: multicluster-controlplane
+  labels:
+    app: multicluster-controlplane
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: multicluster-controlplane
+  template:
+    metadata:
+      labels:
+        app: multicluster-controlplane
+    spec:
+      containers:
+      - name: controlplane
+        image: quay.io/open-cluster-management/multicluster-controlplane
+        imagePullPolicy: Always
+        args:
+          - "/multicluster-controlplane"
+          - "--authorization-mode=RBAC"
+          - "--enable-bootstrap-token-auth"
+          - "--service-account-key-file=/controlplane/cert/kube-serviceaccount.key"
+          - "--client-ca-file=/controlplane/cert/client-ca.crt"
+          - "--client-key-file=/controlplane/cert/client-ca.key"
+          - "--enable-bootstrap-token-auth"
+          - "--enable-priority-and-fairness=false"
+          - "--api-audiences="    
+          - "--storage-backend=etcd3"
+          - "--v=1"
+          - "--service-account-lookup=false"
+          - "--service-account-signing-key-file=/controlplane/cert/kube-serviceaccount.key"
+          - "--enable-admission-plugins=NamespaceLifecycle,ServiceAccount,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,ManagedClusterMutating,ManagedClusterValidating,ManagedClusterSetBindingValidating"
+          - "--bind-address=0.0.0.0"
+          - "--secure-port=9443"
+          - "--tls-cert-file=/controlplane/cert/serving-kube-apiserver.crt"
+          - "--tls-private-key-file=/controlplane/cert/serving-kube-apiserver.key"
+          - "--feature-gates=DefaultClusterSet=true,OpenAPIV3=false,AddonManagement=true"
+          - "--enable-embedded-etcd=true"
+          - "--etcd-servers=https://127.0.0.1:2379"
+          - "--service-cluster-ip-range=10.0.0.0/24"
+          - "--service-account-issuer=https://kubernetes.default.svc"
+          - "--external-hostname=API_HOST"
+          - "--profiling=false"
+        env:
+        - name: CONFIG_POLICY_CONTROLLER_IMAGE
+          value: quay.io/open-cluster-management/config-policy-controller:latest
+        - name: KUBE_RBAC_PROXY_IMAGE
+          value: registry.redhat.io/openshift4/ose-kube-rbac-proxy:v4.10
+        - name: GOVERNANCE_POLICY_FRAMEWORK_ADDON_IMAGE
+          value: quay.io/open-cluster-management/governance-policy-framework-addon:latest
+        - name: MANAGED_SERVICE_ACCOUNT_IMAGE
+          value: quay.io/open-cluster-management/managed-serviceaccount:latest
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+          privileged: false
+          runAsNonRoot: true
+        volumeMounts:
+        - name: controlplane-cert
+          mountPath: /controlplane/cert
+          readOnly: true
+        - mountPath: /.embedded-etcd
+          name: embedded-etcd 
+        # - mountPath: /.ocmconfig
+        #   name: ocmconfig 
+      volumes:
+      - name: controlplane-cert
+        secret:
+          secretName: controlplane-cert
+      - name: embedded-etcd 
+        emptyDir:
+          sizeLimit: 500Mi
+      # - name: ocmconfig 
+      #   emptyDir:
+      #     sizeLimit: 500Mi
+

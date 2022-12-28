@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: multicluster-controlplane
+  labels:
+    component: multicluster-controlplane
+spec:
+  type: ClusterIP
+  selector:
+    app: multicluster-controlplane
+  ports:
+    - name: app
+      port: 443
+      protocol: TCP
+      targetPort: 9443
