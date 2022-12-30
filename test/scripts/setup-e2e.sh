@@ -49,7 +49,7 @@ for i in $(seq 1 "${number}"); do
     cp ${certs_dir}/kube-aggregator.kubeconfig ${kubeconfig_dir}/$namespace
   fi
 
-  cp -r $project_dir/hack/deploy/* $deploy_dir
+  cp -r $project_dir/hack/deploy/controlplane/* $deploy_dir
   sed -i "s/API_HOST/${external_host_ip}/" $deploy_dir/deployment.yaml
   sed -i 's/ClusterIP/NodePort/' $deploy_dir/service.yaml
   sed -i '/route\.yaml/d' $deploy_dir/kustomization.yaml
