@@ -1,5 +1,13 @@
 # Get started
 
+## Difference with [multicluster-controlplane](https://github.com/open-cluster-management-io/multicluster-controlplane) in open-cluster-management
+
+This reposotiy is an extension to [open-cluster-management-io/multicluster-controlplane](https://github.com/open-cluster-management-io/multicluster-controlplane) with the following enhancements:
+1. Added managed cluster info addon
+2. Added policy addon
+3. Added managed service account addon
+4. The above addon components are covered in Integration/E2E test cases
+
 ## Install multicluster-controlplane
 
 ### Option 1: Run multicluster-controlplane as a local binary
@@ -17,5 +25,8 @@ $ make setup-integration
 ```bash
 $ make setup-e2e
 ```
+
+> **Warning**
+> clusteradm version should be v0.4.1 or later
 
 
