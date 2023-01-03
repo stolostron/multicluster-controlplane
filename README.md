@@ -14,36 +14,67 @@ In line with [open-cluster-management-io/multicluster-controlplane](https://gith
 
 ## Install multicluster-controlplane
 
-### Option 1: Run multicluster-controlplane as a local binary
+### Option 1: Start multicluster-controlplane with embedded etcd on Openshift Cluster
+#### Build image
+
+```bash
+$ export IMAGE_NAME=<customized image. default is quay.io/open-cluster-management/multicluster-controlplane:latest>
+$ make image
+```
+#### Install 
+Set environment variables firstly and then deploy controlplane.
+* `HUB_NAME` (optional) is the namespace where the controlplane is deployed in. The default is `multicluster-controlplane`.
+```bash
+$ export HUB_NAME=<hub name>
+$ make deploy
+```
+
+### Option 2: Start multicluster-controlplane with external etcd on Openshift Cluster 
+
+#### Install etcd
+Set environmrnt variables and deploy etcd.
+* `ETCD_NS` (optional) is the namespace where the etcd is deployed in. The default is `multicluster-controlplane-etcd`.
+
+For example:
+```bash
+$ export ETCD_NS=<etcd namespace>
+$ make deploy-etcd
+```
+
+#### Build image
+```bash
+$ export IMAGE_NAME=<customized image. default is quay.io/open-cluster-management/multicluster-controlplane:latest>
+$ make image
+```
+
+#### Install 
+Set environment variables and deploy controlplane.
+* `HUB_NAME` (optional) is the namespace where the controlplane is deployed in. The default is `multicluster-controlplane`.
+
+For example: 
+```bash
+$ export HUB_NAME=<hub name>
+$ make deploy-with-external-etcd
+```
+
+### Option 3: Start multicluster-controlplane in local
+
+There are two modes to run controlplane locally. One is as a local binary, which uses embedded etcd for its database, and the other is running on a KinD cluster, which uses the external etcd started by StatefulSets. You can choose whichever you like as shown below.
+
+#### Run multicluster-controlplane as a local binary
 - Setup a multicluster-controlplane from the binary
 - Join a KinD managed cluster for the controlplane
 ```bash
 $ make setup-integration
 ```
 
-### Option 2: Run multicluster-controlplane on a KinD cluster(hosting)
+#### Run multicluster-controlplane on a KinD cluster(hosting)
 - Setup a KinD cluster as the hosting cluster
 - Deploy controlplane1 and controlplane2 on the hosting cluster
 - Join KinD managed cluster controlplane1-mc1 for controlplane1 
 - Join KinD managed cluster controlplane2-mc1 for controlplane2
 ```bash
 $ make setup-e2e
-```
-
-### Option 3: Run the multicluster-controlplane binary with external etcd
-On KinD cluster(Option 2) we use external etcd by default, but we can also specify external etcd when starting binary multicluster-controlplane server.
-
-Start an etcd server first, then you need to update the following parameters in [setup-integration.sh](https://github.com/stolostron/multicluster-controlplane/blob/main/test/scripts/setup-integration.sh)
-```bash
-- "--enable-embedded-etcd=false"
-- "--etcd-servers=<etcd-servers>"
-- "--etcd-cafile=<etcd-cafile>"
-- "--etcd-certfile=<etcd-certfile>"
-- "--etcd-keyfile=<etcd-keyfile>"
-```
-After setting the parameters above, you can start the controlplane as you did in Option 1
-```bash
-$ make setup-integration
 ```
 
 > **Warning**
