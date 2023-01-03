@@ -6,7 +6,6 @@ This reposotiy is an extension to [open-cluster-management-io/multicluster-contr
 1. Added managed cluster info addon
 2. Added policy addon
 3. Added managed service account addon
-4. The above addon components are covered in Integration/E2E test cases
 
 In line with [open-cluster-management-io/multicluster-controlplane](https://github.com/open-cluster-management-io/multicluster-controlplane):
 1. Using the same API Server, it starts core kubernetes and enables open-cluster-management registration controllers
@@ -29,6 +28,22 @@ $ make setup-integration
 - Join KinD managed cluster controlplane2-mc1 for controlplane2
 ```bash
 $ make setup-e2e
+```
+
+### Option 3: Run the multicluster-controlplane binary with external etcd
+On KinD cluster(Option 2) we use external etcd by default, but we can also specify external etcd when starting binary multicluster-controlplane server.
+
+Start an etcd server first, then you need to update the following parameters in [setup-integration.sh](https://github.com/stolostron/multicluster-controlplane/blob/main/test/scripts/setup-integration.sh)
+```bash
+- "--enable-embedded-etcd=false"
+- "--etcd-servers=<etcd-servers>"
+- "--etcd-cafile=<etcd-cafile>"
+- "--etcd-certfile=<etcd-certfile>"
+- "--etcd-keyfile=<etcd-keyfile>"
+```
+After setting the parameters above, you can start the controlplane as you did in Option 1
+```bash
+$ make setup-integration
 ```
 
 > **Warning**
