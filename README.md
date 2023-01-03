@@ -8,6 +8,11 @@ This reposotiy is an extension to [open-cluster-management-io/multicluster-contr
 3. Added managed service account addon
 4. The above addon components are covered in Integration/E2E test cases
 
+In line with [open-cluster-management-io/multicluster-controlplane](https://github.com/open-cluster-management-io/multicluster-controlplane):
+1. Using the same API Server, it starts core kubernetes and enables open-cluster-management registration controllers
+2. Both embedded etcd and external etcd are supported
+3. Test scenarios in [open-cluster-management-io/multicluster-controlplane](https://github.com/open-cluster-management-io/multicluster-controlplane) are all covered in the current repository
+
 ## Install multicluster-controlplane
 
 ### Option 1: Run multicluster-controlplane as a local binary
