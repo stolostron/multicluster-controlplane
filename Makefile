@@ -48,6 +48,9 @@ update-crd:
 	bash -x hack/crd-update/copy-crds.sh
 .PHONY: update-crd
 
+deploy:
+	$(KUBECTL) get ns $(HUB_NAME); if [ $$? -ne 0 ] ; then $(KUBECTL) create ns $(HUB_NAME); fi
+	hack/deploy-multicluster-controlplane.sh
 
 # test
 export CONTROLPLANE_NUMBER ?= 2
