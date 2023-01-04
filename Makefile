@@ -9,6 +9,7 @@ HUB_NAME?=multicluster-controlplane
 IMAGE_REGISTRY?=quay.io/open-cluster-management
 IMAGE_TAG?=latest
 IMAGE_NAME?=$(IMAGE_REGISTRY)/multicluster-controlplane:$(IMAGE_TAG)
+ETCD_NS?=multicluster-controlplane-etcd
 
 check-copyright: 
 	@hack/check/check-copyright.sh
@@ -47,6 +48,14 @@ vendor:
 update-crd:
 	bash -x hack/crd-update/copy-crds.sh
 .PHONY: update-crd
+
+deploy-etcd: 
+	$(KUBECTL) get ns $(ETCD_NS); if [ $$? -ne 0 ] ; then $(KUBECTL) create ns $(ETCD_NS); fi
+	hack/deploy-etcd.sh
+
+deploy-with-external-etcd:
+	$(KUBECTL) get ns $(HUB_NAME); if [ $$? -ne 0 ] ; then $(KUBECTL) create ns $(HUB_NAME); fi
+	hack/deploy-multicluster-controlplane.sh false
 
 deploy:
 	$(KUBECTL) get ns $(HUB_NAME); if [ $$? -ne 0 ] ; then $(KUBECTL) create ns $(HUB_NAME); fi
