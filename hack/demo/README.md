@@ -9,11 +9,11 @@
 ## Install
 
 ```bash
-    ./next-generation.sh 2 (the number of control planes)
+    ./next-generation.sh 2 (the number of control planes) 1 (the number of managed cluster per control plane)
 ```
 
 ## Clean up
 
 ```bash
-    ./next-generation.sh 2 clean
+    ./next-generation.sh 2 1 clean
 ```
