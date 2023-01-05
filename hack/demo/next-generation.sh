@@ -21,7 +21,7 @@
 #
 # speed at which to simulate typing. bigger num = faster
 #
-TYPE_SPEED=40
+TYPE_SPEED=60
 
 #
 # custom prompt
@@ -30,7 +30,8 @@ TYPE_SPEED=40
 #
 DEMO_PROMPT="${GREEN}➜ ${CYAN}\W ${COLOR_RESET}"
 ROOT_DIR="$(pwd)"
-number=${1:-$1}
+controlplane_number=${1:-1}
+managedcluster_number=${2:-1}
 
 # this is needed for the controlplane deploy
 echo "* Testing connection"
@@ -44,11 +45,13 @@ fi
 DEFAULT_HOST_POSTFIX=${HOST_URL/#router-default./}
 HOST_POSTFIX=${HOST_POSTFIX:-$DEFAULT_HOST_POSTFIX}
 
-if [[ "$2" == "clean" ]]; then
-  for i in $(seq 1 "${number}"); do
+if [[ "$3" == "clean" ]]; then
+  for i in $(seq 1 "${controlplane_number}"); do
     namespace=multicluster-controlplane-$i
     oc delete ns $namespace
-    kind delete cluster --name $namespace-mc1
+    for j in $(seq 1 "$managedcluster_number"); do
+      kind delete cluster --name $namespace-mc-$j
+    done
     rm -rf ${ROOT_DIR}/../deploy/cert-${namespace}
   done
   oc delete -k multicluster-global-hub-lite/deploy/server -n default
@@ -57,16 +60,16 @@ if [[ "$2" == "clean" ]]; then
 fi
 
 # text color
-# DEMO_CMD_COLOR=$BLACK
+DEMO_CMD_COLOR=$BLACK
 
 # hide the evidence
 clear
 
-for i in $(seq 1 "${number}"); do
+for i in $(seq 1 "${controlplane_number}"); do
 
   # put your demo awesomeness here
   namespace=multicluster-controlplane-$i
-  p "deploy standalone controlplane and addons(workmgr and managedserviceaccount) in namespace ${namespace}"
+  p "deploy standalone controlplane and addons(policy and managedserviceaccount) in namespace ${namespace}"
   export HUB_NAME="${namespace}"
   API_HOST="multicluster-controlplane-${HUB_NAME}.${HOST_POSTFIX}"
   pei "cd ../.. && make deploy"
@@ -74,23 +77,22 @@ for i in $(seq 1 "${number}"); do
   pei "oc get pod -n ${namespace}"
 
   CERTS_DIR=${ROOT_DIR}/../deploy/cert-${namespace}
-  p "create a KinD cluster as a managedcluster"
-  pei "kind create cluster --name $namespace-mc1 --kubeconfig ${CERTS_DIR}/mc1-kubeconfig"
-
-  output=$(clusteradm --kubeconfig=${CERTS_DIR}/kubeconfig get token --use-bootstrap-token)
-  token=$(echo $output | awk -F ' ' '{print $1}' | awk -F '=' '{print $2}')
-  p "join to the control plane"
-  pei "clusteradm --kubeconfig=${CERTS_DIR}/mc1-kubeconfig join --hub-token $token --hub-apiserver https://$API_HOST --cluster-name $namespace-mc1"
-  PROMPT_TIMEOUT=10
-  wait
-  pei "clusteradm --kubeconfig=${CERTS_DIR}/kubeconfig accept --clusters $namespace-mc1"
-
-  pei "oc --kubeconfig=${CERTS_DIR}/kubeconfig get managedcluster"
+  for j in $(seq 1 "$managedcluster_number"); do
+    p "create a KinD cluster as a managedcluster"
+    pei "kind create cluster --name $namespace-mc-$j --kubeconfig ${CERTS_DIR}/mc-$j-kubeconfig"
   
-  PROMPT_TIMEOUT=10
-  wait
-  pei "oc --kubeconfig=${CERTS_DIR}/kubeconfig get managedclusteraddon -n $namespace-mc1"
-
+    output=$(clusteradm --kubeconfig=${CERTS_DIR}/kubeconfig get token --use-bootstrap-token)
+    token=$(echo $output | awk -F ' ' '{print $1}' | awk -F '=' '{print $2}')
+    p "join to the control plane"
+    pei "clusteradm --kubeconfig=${CERTS_DIR}/mc-$j-kubeconfig join --hub-token $token --hub-apiserver https://$API_HOST --cluster-name $namespace-mc-$j"
+    PROMPT_TIMEOUT=10
+    wait
+    pei "clusteradm --kubeconfig=${CERTS_DIR}/kubeconfig accept --clusters $namespace-mc-$j"
+  
+    pei "oc --kubeconfig=${CERTS_DIR}/kubeconfig get managedcluster"
+    oc --kubeconfig=${CERTS_DIR}/kubeconfig label managedcluster $namespace-mc-$j "cluster.open-cluster-management.io/clusterset"=default
+    
+  done
 done
 
 # show a prompt so as not to reveal our true nature after
@@ -101,12 +103,13 @@ rm -rf multicluster-global-hub-lite
 git clone git@github.com:clyang82/multicluster-global-hub-lite.git
 pei "cd multicluster-global-hub-lite && make deploy && cd .."
 
-for i in $(seq 1 "${number}"); do
+for i in $(seq 1 "${controlplane_number}"); do
 
   namespace=multicluster-controlplane-$i
   p "deploy syncer into namespace ${namespace}"
   oc create secret generic multicluster-global-hub-kubeconfig --from-file=kubeconfig=multicluster-global-hub-lite/deploy/server/certs/kube-aggregator.kubeconfig -n ${namespace}
   pei "oc apply -n ${namespace} -k multicluster-global-hub-lite/deploy/syncer"
+  oc --kubeconfig multicluster-global-hub-lite/deploy/server/certs/kube-aggregator.kubeconfig create ns ${namespace}
 
 done
 
