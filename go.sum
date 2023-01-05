@@ -1508,8 +1508,8 @@ open-cluster-management.io/managed-serviceaccount v0.2.1-0.20221125051317-2ebb47
 open-cluster-management.io/multicloud-operators-channel v0.7.1-0.20220413191652-67d1cc8d57fc h1:PVLeG9gab6YCC+ilbDaLJFGs2mgC/yEFQEarMLU6YmU=
 open-cluster-management.io/multicloud-operators-subscription v0.8.0 h1:0YRrUErVU6K6xwExGNaCMF//FOfJT6XyeHAvSbZNEiY=
 open-cluster-management.io/multicloud-operators-subscription v0.8.0/go.mod h1:R83lMSoaMfs3T1Z3ApRjfioA9AgPMzam+CS6XbO5FjU=
-open-cluster-management.io/multicluster-controlplane v0.0.0-20221219025100-23ee8a857eb7 h1:aRgUMYLbYjHIdwP1G5sM29GTXy+9kh0WIY3Rmnpk3tY=
-open-cluster-management.io/multicluster-controlplane v0.0.0-20221219025100-23ee8a857eb7/go.mod h1:NGOLx/KpDdbjyjdlGS/6d4Tqa4m+vY0lXXcW1Iggs/Y=
+open-cluster-management.io/multicluster-controlplane v0.1.1-0.20230103023919-4be4001b5657 h1:/gGwcGNoPzRWjj9jKKN06sqCOoLlDZGISfRrC8Kl5z8=
+open-cluster-management.io/multicluster-controlplane v0.1.1-0.20230103023919-4be4001b5657/go.mod h1:NGOLx/KpDdbjyjdlGS/6d4Tqa4m+vY0lXXcW1Iggs/Y=
 open-cluster-management.io/placement v0.9.0 h1:pLt8iUboxDdL++i0fcrJu/gm0pvdV5vIeJFJSddcs3w=
 open-cluster-management.io/placement v0.9.0/go.mod h1:SK7KuFptb3rj2che6FKjyjWj0w4VyDS1atHQcZVnX6U=
 open-cluster-management.io/registration v0.9.1-0.20221114013223-9878ed071a3b h1:UVMyYSjCn0VakSC/MGX2THCp0D1HjR7iferG4EhCxtA=

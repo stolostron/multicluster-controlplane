@@ -88,13 +88,18 @@ func InstallManagedClusterAddons(stopCh <-chan struct{}, aggregatorConfig *aggre
 		if err != nil {
 			klog.Error(err)
 		}
+
+		klog.Info("starting managedclusteraddon: policy")
 		if err := managedclusteraddons.AddPolicyAddons(addonManager, restConfig, kubeClient, addonClient); err != nil {
 			klog.Error(err)
 		}
 
+		klog.Info("starting managedclusteraddon: managedserviceaccount")
 		if err := managedclusteraddons.AddManagedServiceAccountAddon(addonManager, kubeClient, addonClient); err != nil {
 			klog.Error(err)
 		}
+
+		klog.Info("starting managedclusteraddon: managedclusterinfo")
 		if err := managedclusteraddons.AddManagedClusterInfoAddon(addonManager, kubeClient, addonClient); err != nil {
 			klog.Error(err)
 		}
@@ -102,6 +107,7 @@ func InstallManagedClusterAddons(stopCh <-chan struct{}, aggregatorConfig *aggre
 		if err := addonManager.Start(ctx); err != nil {
 			klog.Errorf("failed to start managedcluster addons: %v", err)
 		}
+		klog.Info("started managedclusteraddons")
 		<-ctx.Done()
 	}()
 
@@ -152,8 +158,7 @@ func InstallClusterManagementAddons(stopCh <-chan struct{}, aggregatorConfig *ag
 			klog.Errorf("unable to start manager %v", err)
 		}
 
-		klog.Info("finish new InstallClusterManagementAddons")
-
+		klog.Info("starting clustermanagedaddons")
 		if err := clustermanagementaddons.SetupClusterInfoWithManager(mgr); err != nil {
 			klog.Error(err)
 		}
@@ -167,6 +172,7 @@ func InstallClusterManagementAddons(stopCh <-chan struct{}, aggregatorConfig *ag
 		}
 
 		// placementrule controller
+		klog.Info("starting placementrule controller")
 		if err := placementrulecontroller.AddToManager(mgr); err != nil {
 			klog.Error(err)
 		}
@@ -175,6 +181,7 @@ func InstallClusterManagementAddons(stopCh <-chan struct{}, aggregatorConfig *ag
 			klog.Error(err)
 		}
 
+		klog.Info("started clustermanagedaddons/placementrule controller")
 		<-ctx.Done()
 	}()
 
