@@ -12,6 +12,7 @@ number=${CONTROLPLANE_NUMBER:-1}
 registry=${IMAGE_REGISTRY:-"quay.io/open-cluster-management"}
 image_tag=${IMAGE_TAG:-"latest"}
 image=${IMAGE_NAME:-"$registry/multicluster-controlplane:$image_tag"}
+etcdns=${ETCD_NS:-"multicluster-controlplane-etcd"}
 # Reuse certs will skip generate new ca/cert files under CERT_DIR
 # it's useful with PRESERVE_ETCD=true because new ca will make existed service account secrets invalided
 reuse_certs=${REUSE_CERTS:-false}

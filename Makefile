@@ -1,15 +1,14 @@
 # Copyright Contributors to the Open Cluster Management project
 BINARYDIR := bin
 
-KUBECTL?=kubectl
-KUSTOMIZE?=kustomize
+KUBECTL ?= kubectl
+KUSTOMIZE ?= kustomize
 
-HUB_NAME?=multicluster-controlplane
-
-IMAGE_REGISTRY?=quay.io/open-cluster-management
-IMAGE_TAG?=latest
-IMAGE_NAME?=$(IMAGE_REGISTRY)/multicluster-controlplane:$(IMAGE_TAG)
-ETCD_NS?=multicluster-controlplane-etcd
+HUB_NAME ?= multicluster-controlplane
+IMAGE_REGISTRY ?= quay.io/open-cluster-management
+IMAGE_TAG ?= latest
+IMAGE_NAME ?= $(IMAGE_REGISTRY)/multicluster-controlplane:$(IMAGE_TAG)
+ETCD_NS ?= multicluster-controlplane-etcd
 
 check-copyright: 
 	@hack/check/check-copyright.sh
@@ -64,6 +63,11 @@ deploy:
 # test
 export CONTROLPLANE_NUMBER ?= 2
 export VERBOSE ?= 5
+GO_TEST ?= go test -v
+
+test-unit:
+	${GO_TEST} `go list ./... | grep -v test`
+.PHONY: test-unit
 
 setup-dep:
 	./test/scripts/setup-dep.sh

@@ -31,3 +31,5 @@ test/resources
 
 .embedded-etcd
 .ocmconfig
+
+cert-etcd

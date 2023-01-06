@@ -26,7 +26,7 @@ spec:
           - "--secure-port=9443"
           - "--tls-cert-file=/controlplane/cert/serving-kube-apiserver.crt"
           - "--tls-private-key-file=/controlplane/cert/serving-kube-apiserver.key"
-          - "--feature-gates=DefaultClusterSet=true,OpenAPIV3=false"
+          - "--feature-gates=DefaultClusterSet=true,OpenAPIV3=false,AddonManagement=true"
           - "--enable-embedded-etcd=false"
           - "--etcd-servers=http://127.0.0.1:2379"
           - "--etcd-cafile=/controlplane/etcdconfig/ca.pem"
