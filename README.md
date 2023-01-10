@@ -19,7 +19,7 @@ In line with [open-cluster-management-io/multicluster-controlplane](https://gith
 
 ```bash
 $ export IMAGE_NAME=<customized image. default is quay.io/open-cluster-management/multicluster-controlplane:latest>
-$ make image
+$ make build-image push-image
 ```
 #### Install 
 Set environment variables firstly and then deploy controlplane.
@@ -44,7 +44,7 @@ $ make deploy-etcd
 #### Build image
 ```bash
 $ export IMAGE_NAME=<customized image. default is quay.io/open-cluster-management/multicluster-controlplane:latest>
-$ make image
+$ make build-image push-image
 ```
 
 #### Install 
