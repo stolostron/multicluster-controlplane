@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-bin_dir="$(go env GOPATH)/bin"
+bin_dir="/usr/bin"
 
 function check_kubectl() {
   if ! command -v kubectl >/dev/null 2>&1; then 
@@ -40,33 +40,8 @@ function check_clusteradm() {
 function check_ginkgo() {
   if ! command -v ginkgo >/dev/null 2>&1; then 
     go install github.com/onsi/ginkgo/v2/ginkgo@v2.5.0
-    # since the bin_dir is GOPATH
-    # mv $(go env GOPATH)/bin/ginkgo ${bin_dir}/ginkgo 
   fi 
   echo "ginkgo version: $(ginkgo version)"
-}
-
-function installDocker() {
-  sudo yum install -y yum-utils device-mapper-persistent-data lvm2
-  sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
-  sudo yum install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
-
-  sleep 5
-  sudo systemctl start docker
-  sudo systemctl enable docker
-}
-
-function check_docker() {
-  if ! command -v docker >/dev/null 2>&1; then 
-    installDocker
-  fi
-  if [ $(docker version --format '{{.Client.Version}}' | sed -e 's/\.//g') -lt 201017 ]; then
-    # upgrade
-    echo "remove old version of docker $(docker version --format '{{.Client.Version}}')"
-    sudo yum remove -y docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-selinux  docker-engine-selinux docker-engine 
-    installDocker
-  fi
-  echo "docker version: $(docker version --format '{{.Client.Version}}')"
 }
 
 function check_kind() {
@@ -103,7 +78,6 @@ function check_golang() {
 }
 
 check_golang
-check_docker
 check_kind
 check_kubectl
 check_kustomize
