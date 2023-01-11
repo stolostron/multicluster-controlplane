@@ -18,9 +18,10 @@ In line with [open-cluster-management-io/multicluster-controlplane](https://gith
 #### Build image
 
 ```bash
-$ export IMAGE_NAME=<customized image. default is quay.io/open-cluster-management/multicluster-controlplane:latest>
+$ export IMAGE_NAME=<customized image. default is quay.io/stolostron/multicluster-controlplane:latest>
 $ make build-image push-image
 ```
+
 #### Install 
 Set environment variables firstly and then deploy controlplane.
 * `HUB_NAME` (optional) is the namespace where the controlplane is deployed in. The default is `multicluster-controlplane`.
@@ -43,7 +44,7 @@ $ make deploy-etcd
 
 #### Build image
 ```bash
-$ export IMAGE_NAME=<customized image. default is quay.io/open-cluster-management/multicluster-controlplane:latest>
+$ export IMAGE_NAME=<customized image. default is quay.io/stolostron/multicluster-controlplane:latest>
 $ make build-image push-image
 ```
 
@@ -59,25 +60,19 @@ $ make deploy-with-external-etcd
 
 ### Option 3: Start multicluster-controlplane in local
 
-There are two modes to run controlplane locally. One is as a local binary, which uses embedded etcd for its database, and the other is running on a KinD cluster, which uses the external etcd started by StatefulSets. You can choose whichever you like as shown below.
-
-#### Run multicluster-controlplane as a local binary
-- Setup a multicluster-controlplane from the binary
-- Join a KinD managed cluster for the controlplane
 ```bash
-$ make setup-integration
+$ make all
 ```
+<b>Access the controlplane</b>
 
-#### Run multicluster-controlplane on a KinD cluster(hosting)
-- Setup a KinD cluster as the hosting cluster
-- Deploy controlplane1 and controlplane2 on the hosting cluster
-- Join KinD managed cluster controlplane1-mc1 for controlplane1 
-- Join KinD managed cluster controlplane2-mc1 for controlplane2
+The kubeconfig file of the controlplane is in the dir `hack/deploy/certs/kubeconfig`.
+
+You can use clusteradm to access and join a cluster.
 ```bash
-$ make setup-e2e
+$ clusteradm --kubeconfig=<kubeconfig file> get token --use-bootstrap-token
+$ clusteradm join --hub-token <hub token> --hub-apiserver <hub apiserver> --cluster-name <cluster_name>
+$ clusteradm --kubeconfig=<kubeconfig file> accept --clusters <cluster_name>
 ```
 
 > **Warning**
 > clusteradm version should be v0.4.1 or later
-
-

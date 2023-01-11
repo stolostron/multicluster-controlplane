@@ -87,7 +87,7 @@ for i in $(seq 1 "${number}"); do
   cd $deploy_dir
   $KUSTOMIZE edit set namespace $namespace 
   echo "## Using the Controlplane Image: $image"
-  $KUSTOMIZE edit set image quay.io/open-cluster-management/multicluster-controlplane=$image
+  $KUSTOMIZE edit set image quay.io/stolostron/multicluster-controlplane=$image
   $KUSTOMIZE build $deploy_dir | $KUBECTL apply -f -
   kube::util::wait_for_url "https://${external_host_ip}:${external_host_port}/healthz" "apiserver: " 1 120 1 || { echo "Controlplane $namespace is not ready!" ; exit 1 ; }
 

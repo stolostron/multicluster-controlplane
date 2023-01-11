@@ -15,7 +15,7 @@ if [ ! $KUSTOMIZE >& /dev/null ] ; then
 fi
 
 HUB_NAME=${HUB_NAME:-"multicluster-controlplane"}
-IMAGE_NAME=${IMAGE_NAME:-"quay.io/open-cluster-management/multicluster-controlplane"}
+IMAGE_NAME=${IMAGE_NAME:-"quay.io/stolostron/multicluster-controlplane"}
 
 # this is needed for the controlplane deploy
 echo "* Testing connection"
@@ -198,7 +198,7 @@ function start_apiserver {
         sed -i 's,API_HOST,'${API_HOST}',' hack/deploy/controlplane/deployment.yaml
     fi
     
-    cd hack/deploy/controlplane && ${KUSTOMIZE} edit set namespace ${HUB_NAME} && ${KUSTOMIZE} edit set image quay.io/open-cluster-management/multicluster-controlplane=${IMAGE_NAME}
+    cd hack/deploy/controlplane && ${KUSTOMIZE} edit set namespace ${HUB_NAME} && ${KUSTOMIZE} edit set image quay.io/stolostron/multicluster-controlplane=${IMAGE_NAME}
     cd ../../../
     ${KUSTOMIZE} build hack/deploy/controlplane | ${KUBECTL} apply -f -
     mv hack/deploy/controlplane/kustomization.yaml.tmp hack/deploy/controlplane/kustomization.yaml

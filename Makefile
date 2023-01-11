@@ -44,6 +44,13 @@ vendor:
 	go mod vendor
 .PHONY: vendor
 
+run:
+	bash -x hack/start-multicluster-controlplane.sh
+.PHONY: run
+
+all: clean vendor build run
+.PHONY: all
+
 update-crd:
 	bash -x hack/crd-update/copy-crds.sh
 .PHONY: update-crd
