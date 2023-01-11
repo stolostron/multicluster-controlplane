@@ -11,7 +11,7 @@ function check_kubectl() {
         curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.18.0/bin/darwin/amd64/kubectl
     fi
     chmod +x ./kubectl
-    sudo mv ./kubectl ${bin_dir}/kubectl
+    mv ./kubectl ${bin_dir}/kubectl
   fi
   echo "kubectl version: $(kubectl version --client --short)"
 }
@@ -40,11 +40,71 @@ function check_clusteradm() {
 function check_ginkgo() {
   if ! command -v ginkgo >/dev/null 2>&1; then 
     go install github.com/onsi/ginkgo/v2/ginkgo@v2.5.0
-    sudo mv $(go env GOPATH)/bin/ginkgo ${bin_dir}/ginkgo
+    # since the bin_dir is GOPATH
+    # mv $(go env GOPATH)/bin/ginkgo ${bin_dir}/ginkgo 
   fi 
   echo "ginkgo version: $(ginkgo version)"
 }
 
+function installDocker() {
+  sudo yum install -y yum-utils device-mapper-persistent-data lvm2
+  sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+  sudo yum install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+  sleep 5
+  sudo systemctl start docker
+  sudo systemctl enable docker
+}
+
+function check_docker() {
+  if ! command -v docker >/dev/null 2>&1; then 
+    installDocker
+  fi
+  if [ $(docker version --format '{{.Client.Version}}' | sed -e 's/\.//g') -lt 201017 ]; then
+    # upgrade
+    echo "remove old version of docker $(docker version --format '{{.Client.Version}}')"
+    sudo yum remove -y docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-selinux  docker-engine-selinux docker-engine 
+    installDocker
+  fi
+  echo "docker version: $(docker version --format '{{.Client.Version}}')"
+}
+
+function check_kind() {
+  if ! command -v kind >/dev/null 2>&1; then 
+    curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.14.0/kind-linux-amd64 
+    chmod +x ./kind
+    mv ./kind ${bin_dir}/kind
+  fi
+  if [[ $(kind version |awk '{print $2}') < "v0.12.0" ]]; then
+    rm -rf $(which kind)
+    curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.14.0/kind-linux-amd64 
+    chmod +x ./kind
+    mv ./kind ${bin_dir}/kind
+  fi
+  echo "kind version: $(kind version)"
+}
+
+function check_golang() {
+  export PATH=$PATH:/usr/local/go/bin
+  if ! command -v go >/dev/null 2>&1; then
+    wget https://dl.google.com/go/go1.19.3.linux-amd64.tar.gz >/dev/null 2>&1
+    tar -C /usr/local/ -xvf go1.19.3.linux-amd64.tar.gz >/dev/null 2>&1
+    rm go1.19.3.linux-amd64.tar.gz
+  fi
+  if [[ $(go version) < "go version go1.19" ]]; then
+    echo "go version is less than 1.19, update to 1.19"
+    rm -rf /usr/local/go
+    wget https://dl.google.com/go/go1.19.3.linux-amd64.tar.gz >/dev/null 2>&1
+    tar -C /usr/local/ -xvf go1.19.3.linux-amd64.tar.gz >/dev/null 2>&1
+    rm go1.19.3.linux-amd64.tar.gz
+    sleep 2
+  fi
+  echo "go version: $(go version)"
+}
+
+check_golang
+check_docker
+check_kind
 check_kubectl
 check_kustomize
 check_clusteradm
