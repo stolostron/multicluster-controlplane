@@ -1,4 +1,5 @@
 # Copyright Contributors to the Open Cluster Management project
+
 BINARYDIR := bin
 
 KUBECTL ?= kubectl
@@ -80,6 +81,10 @@ setup-dep:
 	./test/scripts/setup-dep.sh
 .PHONY: setup-dep
 
+prow-e2e: 
+	./test/scripts/prow-e2e.sh
+.PHONY: prow-e2e
+
 setup-e2e: setup-dep
 	./test/scripts/setup-e2e.sh
 .PHONY: setup-e2e
@@ -88,7 +93,7 @@ cleanup-e2e:
 	./test/scripts/cleanup-e2e.sh
 .PHONY: cleanup-e2e
 
-test-e2e:
+test-e2e: vendor
 	./test/scripts/test-e2e.sh -v $(VERBOSE)
 .PHONY: test-e2e
 
