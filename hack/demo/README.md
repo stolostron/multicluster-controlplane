@@ -5,6 +5,7 @@
 1. Connect to an OpenShift cluster
 2. Install the latest [clusteradm](https://github.com/open-cluster-management-io/clusteradm#install-the-clusteradm-command-line)
 3. Install the latest [kustomize](https://kubectl.docs.kubernetes.io/installation/kustomize/binaries/)
+4. Install [KinD](https://github.com/kubernetes-sigs/kind) in your local host. We create KinD cluster as managed cluster.
 
 ## Install
 
