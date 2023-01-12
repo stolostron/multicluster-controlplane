@@ -22,7 +22,7 @@ echo "install tools"
 ssh "${OPT[@]}" "$HOST" sudo yum install gcc git wget jq -y 
 
 echo "setup e2e environment"
-ssh "${OPT[@]}" "$HOST" "cd $HOST_DIR && . test/env.list && make setup-e2e" > >(tee "$ARTIFACT_DIR/setup-e2e.log") 2>&1
+ssh "${OPT[@]}" "$HOST" "cd $HOST_DIR && . test/env.list && sudo make setup-dep && make setup-e2e" > >(tee "$ARTIFACT_DIR/setup-e2e.log") 2>&1
 
 echo "runn e2e"
 ssh "${OPT[@]}" "$HOST" "cd $HOST_DIR && . test/env.list && make test-e2e" > >(tee "$ARTIFACT_DIR/test-e2e.log") 2>&1
