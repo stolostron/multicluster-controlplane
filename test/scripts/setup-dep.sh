@@ -62,6 +62,7 @@ function check_kustomize() {
 function check_clusteradm() {
   if ! command -v clusteradm >/dev/null 2>&1; then 
     curl -LO https://raw.githubusercontent.com/open-cluster-management-io/clusteradm/main/install.sh
+    chmod +x ./install.sh
     sudo ./install.sh 0.4.1
     sudo mv /usr/local/bin/clusteradm ${bin_dir}/clusteradm
     rm ./install.sh
