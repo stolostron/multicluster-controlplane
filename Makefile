@@ -68,6 +68,12 @@ deploy:
 	$(KUBECTL) get ns $(HUB_NAME); if [ $$? -ne 0 ] ; then $(KUBECTL) create ns $(HUB_NAME); fi
 	hack/deploy-multicluster-controlplane.sh
 
+rpm:
+	./packaging/rpm/make-rpm.sh rpm local
+
+srpm:
+	./packaging/rpm/make-rpm.sh srpm local
+
 # test
 export CONTROLPLANE_NUMBER ?= 2
 export VERBOSE ?= 5
