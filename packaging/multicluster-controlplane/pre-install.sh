@@ -9,11 +9,13 @@ kube::util::test_openssl_installed
 kube::util::ensure-cfssl
 
 network_interface=${NETWORK_INTERFACE:-"eth0"}
-api_host_ip=$(ip addr show dev $network_interface | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*')
-if [ ! $api_host_ip ] ; then
-    echo "api_host_ip should be set"
-    exit 1
-fi
+# TODO: generate certs within multicluster-controlplane, the api host IP will be used in certificate subject, use loopback IP for now.
+# api_host_ip=$(ip addr show dev $network_interface | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*')
+# if [ ! $api_host_ip ] ; then
+#     echo "api_host_ip should be set"
+#     exit 1
+# fi
+api_host_ip=127.0.0.1
 api_secure_port=${API_SECURE_PORT:-"9443"}
 
 cert_dir=${cert_dir:-"${WORK_DIR}/certs"}
