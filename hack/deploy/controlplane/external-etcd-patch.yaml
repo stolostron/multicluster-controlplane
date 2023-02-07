@@ -38,14 +38,14 @@ spec:
           - "--external-hostname=API_HOST"
         volumeMounts:
         - $patch: delete
-          mountPath: /.ocmconfig
-          name: ocmconfig 
+          mountPath: /.embedded-etcd 
+          name: embedded-etcd 
         - name: etcdconfig 
           mountPath: /controlplane/etcdconfig
           readOnly: true
       volumes:
       - $patch: delete
-        name: ocmconfig 
+        name: embedded-etcd 
         persistentVolumeClaim:
           claimName: multicluster-controlplane-pvc-volume
       - name: etcdconfig 
