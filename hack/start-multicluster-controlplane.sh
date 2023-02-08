@@ -14,7 +14,7 @@ kube::util::ensure-cfssl
 
 controlplane_bin=${CONTROPLANE_BIN:-"${project_dir}/bin"}
 network_interface=${NETWORK_INTERFACE:-"eth0"}
-api_host_ip=$(ifconfig $network_interface | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*')
+api_host_ip=$(ip addr show dev $network_interface | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*')
 if [ ! $api_host_ip ] ; then
     echo "api_host_ip should be set"
     exit 1
