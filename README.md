@@ -72,7 +72,7 @@ $ make setup-e2e
 
 ## Access the controlplane and join cluster
 
-The kubeconfig file of the controlplane is in the dir `hack/deploy/certs/kubeconfig`.
+The kubeconfig file of the controlplane is in the dir `hack/deploy/cert-${HUB_NAME}/kubeconfig`.
 
 You can use clusteradm to access and join a cluster.
 ```bash
