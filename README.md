@@ -48,7 +48,7 @@ $ export IMAGE_NAME=<customized image. default is quay.io/stolostron/multicluste
 $ make build-image push-image
 ```
 
-#### Install 
+#### Install controlplane
 Set environment variables and deploy controlplane.
 * `HUB_NAME` (optional) is the namespace where the controlplane is deployed in. The default is `multicluster-controlplane`.
 
@@ -58,12 +58,19 @@ $ export HUB_NAME=<hub name>
 $ make deploy-with-external-etcd
 ```
 
-### Option 3: Start multicluster-controlplane in local
+### Option 3: Start multicluster-controlplane as a local binary
 
 ```bash
 $ make all
 ```
-<b>Access the controlplane</b>
+
+### Option 4: Start multicluster-controlplane with embedded etcd on KinD cluster
+
+```bash
+$ make setup-e2e
+```
+
+## Access the controlplane and join cluster
 
 The kubeconfig file of the controlplane is in the dir `hack/deploy/certs/kubeconfig`.
 
@@ -76,3 +83,9 @@ $ clusteradm --kubeconfig=<kubeconfig file> accept --clusters <cluster_name>
 
 > **Warning**
 > clusteradm version should be v0.4.1 or later
+
+
+## Undeploy the controlplane
+```bash
+$ make destroy
+```

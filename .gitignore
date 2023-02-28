@@ -33,5 +33,6 @@ test/resources
 .ocmconfig
 
 cert-etcd
+cert
 
 hack/certs

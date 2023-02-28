@@ -68,6 +68,11 @@ deploy:
 	$(KUBECTL) get ns $(HUB_NAME); if [ $$? -ne 0 ] ; then $(KUBECTL) create ns $(HUB_NAME); fi
 	hack/deploy-multicluster-controlplane.sh
 
+destroy:
+	$(KUSTOMIZE) build hack/deploy/controlplane | $(KUBECTL) delete --namespace $(HUB_NAME) --ignore-not-found -f -
+	$(KUBECTL) delete ns $(HUB_NAME) --ignore-not-found
+	rm -r hack/deploy/cert-$(HUB_NAME)
+
 # test
 export CONTROLPLANE_NUMBER ?= 2
 export VERBOSE ?= 5
