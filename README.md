@@ -22,7 +22,7 @@ $ export IMAGE_NAME=<customized image. default is quay.io/stolostron/multicluste
 $ make build-image push-image
 ```
 
-#### Install 
+#### Deploy controlplane 
 Set environment variables firstly and then deploy controlplane.
 * `HUB_NAME` (optional) is the namespace where the controlplane is deployed in. The default is `multicluster-controlplane`.
 ```bash
@@ -32,7 +32,7 @@ $ make deploy
 
 ### Option 2: Start multicluster-controlplane with external etcd on Openshift Cluster 
 
-#### Install etcd
+#### Deploy etcd
 Set environmrnt variables and deploy etcd.
 * `ETCD_NS` (optional) is the namespace where the etcd is deployed in. The default is `multicluster-controlplane-etcd`.
 
@@ -48,7 +48,7 @@ $ export IMAGE_NAME=<customized image. default is quay.io/stolostron/multicluste
 $ make build-image push-image
 ```
 
-#### Install controlplane
+#### Deploy controlplane
 Set environment variables and deploy controlplane.
 * `HUB_NAME` (optional) is the namespace where the controlplane is deployed in. The default is `multicluster-controlplane`.
 
