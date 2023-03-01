@@ -65,9 +65,10 @@ $ make all
 ```
 
 ### Option 4: Start multicluster-controlplane with embedded etcd on KinD cluster
+You can specify the environment `CONTROLPLANE_NUMBER` indicates the number of generated controlplanes
 
 ```bash
-$ make setup-e2e
+$ make deploy-on-kind
 ```
 
 ## Access the controlplane and join cluster

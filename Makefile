@@ -94,6 +94,10 @@ setup-e2e: setup-dep
 	./test/scripts/setup-e2e.sh
 .PHONY: setup-e2e
 
+deploy-on-kind: setup-dep
+	./test/scripts/setup-e2e.sh
+.PHONY: deploy-on-kind
+
 cleanup-e2e:
 	./test/scripts/cleanup-e2e.sh
 .PHONY: cleanup-e2e
