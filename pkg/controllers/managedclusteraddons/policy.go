@@ -4,7 +4,6 @@ package managedclusteraddons
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 
@@ -22,8 +21,10 @@ import (
 	policyaddon "open-cluster-management.io/governance-policy-addon-controller/pkg/addon"
 	"open-cluster-management.io/governance-policy-addon-controller/pkg/addon/configpolicy"
 	"open-cluster-management.io/governance-policy-addon-controller/pkg/addon/policyframework"
-
 	confighub "open-cluster-management.io/multicluster-controlplane/config/hub"
+
+	"github.com/stolostron/multicluster-controlplane/pkg/constants"
+	"github.com/stolostron/multicluster-controlplane/pkg/controllers/helpers"
 )
 
 const (
@@ -31,9 +32,6 @@ const (
 	configPolicyAddonName           = "config-policy-controller"
 	evaluationConcurrencyAnnotation = "policy-evaluation-concurrency"
 	prometheusEnabledAnnotation     = "prometheus-metrics-enabled"
-	configPolicyControllerImage     = "quay.io/open-cluster-management/config-policy-controller:latest"
-	kubeRBACProxyImage              = "registry.redhat.io/openshift4/ose-kube-rbac-proxy:v4.10"
-	policyFrameworkAddonImage       = "quay.io/open-cluster-management/governance-policy-framework-addon:latest"
 )
 
 var agentPermissionFiles = []string{
@@ -107,17 +105,16 @@ type userValues struct {
 func getPolicyFrameworkValues(cluster *clusterv1.ManagedCluster,
 	addon *addonapiv1alpha1.ManagedClusterAddOn,
 ) (addonfactory.Values, error) {
-	image := os.Getenv("GOVERNANCE_POLICY_FRAMEWORK_ADDON_IMAGE")
-	if image == "" {
-		image = policyFrameworkAddonImage
-	}
 	userValues := userValues{
 		OnMulticlusterHub: false,
 		GlobalValues: policyaddon.GlobalValues{
 			ImagePullPolicy: "IfNotPresent",
 			ImagePullSecret: "open-cluster-management-image-pull-credentials",
 			ImageOverrides: map[string]string{
-				"governance_policy_framework_addon": image,
+				"governance_policy_framework_addon": helpers.GetImage(
+					constants.GovernancePolicyFrameworkAddonImageEnvName,
+					constants.DefaultGovernancePolicyFrameworkAddonImage,
+				),
 			},
 			NodeSelector: map[string]string{},
 			ProxyConfig: map[string]string{
@@ -158,21 +155,19 @@ func getPolicyFrameworkValues(cluster *clusterv1.ManagedCluster,
 func getConfigPolicyValues(cluster *clusterv1.ManagedCluster,
 	addon *addonapiv1alpha1.ManagedClusterAddOn,
 ) (addonfactory.Values, error) {
-	configImage := os.Getenv("CONFIG_POLICY_CONTROLLER_IMAGE")
-	if configImage == "" {
-		configImage = configPolicyControllerImage
-	}
-	proxyImage := os.Getenv("KUBE_RBAC_PROXY_IMAGE")
-	if proxyImage == "" {
-		proxyImage = kubeRBACProxyImage
-	}
 	userValues := configpolicy.UserValues{
 		GlobalValues: policyaddon.GlobalValues{
 			ImagePullPolicy: "IfNotPresent",
 			ImagePullSecret: "open-cluster-management-image-pull-credentials",
 			ImageOverrides: map[string]string{
-				"config_policy_controller": configImage,
-				"kube_rbac_proxy":          proxyImage,
+				"config_policy_controller": helpers.GetImage(
+					constants.ConfigPolicyControllerImageEnvName,
+					constants.DefaultConfigPolicyControllerImage,
+				),
+				"kube_rbac_proxy": helpers.GetImage(
+					constants.KubeRBACProxyEnvName,
+					constants.DefaultKubeRBACProxyImage,
+				),
 			},
 			NodeSelector: map[string]string{},
 			ProxyConfig: map[string]string{

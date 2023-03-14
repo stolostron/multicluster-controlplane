@@ -99,15 +99,10 @@ func InstallManagedClusterAddons(stopCh <-chan struct{}, aggregatorConfig *aggre
 			klog.Error(err)
 		}
 
-		klog.Info("starting managedclusteraddon: managedclusterinfo")
-		if err := managedclusteraddons.AddManagedClusterInfoAddon(addonManager, kubeClient, addonClient); err != nil {
-			klog.Error(err)
-		}
-
 		if err := addonManager.Start(ctx); err != nil {
 			klog.Errorf("failed to start managedcluster addons: %v", err)
 		}
-		klog.Info("started managedclusteraddons")
+		klog.Info("stop managedclusteraddons")
 		<-ctx.Done()
 	}()
 
@@ -181,7 +176,7 @@ func InstallClusterManagementAddons(stopCh <-chan struct{}, aggregatorConfig *ag
 			klog.Error(err)
 		}
 
-		klog.Info("started clustermanagedaddons/placementrule controller")
+		klog.Info("stop clustermanagedaddons/placementrule controller")
 		<-ctx.Done()
 	}()
 
