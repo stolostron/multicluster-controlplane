@@ -15,7 +15,7 @@ rules:
 # Allow agent to list clusterclaims
 - apiGroups: ["cluster.open-cluster-management.io"]
   resources: ["clusterclaims"]
-  verbs: ["get", "list", "watch"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 # Allow agent to create/update/patch/delete namespaces, get/list/watch are contained in admin role already
 - apiGroups: [""]
   resources: ["namespaces"]
@@ -55,3 +55,10 @@ rules:
 - apiGroups: [""]
   resources: ["serviceaccounts"]
   verbs: ["impersonate"]
+- apiGroups: ["coordination.k8s.io"]
+  resources: ["leases"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+- apiGroups: ["config.openshift.io"]
+  resources: ["infrastructures", "clusterversions"]
+  verbs: ["get", "list", "watch"]
+

@@ -105,15 +105,3 @@ cleanup-e2e:
 test-e2e: vendor
 	./test/scripts/test-e2e.sh -v $(VERBOSE)
 .PHONY: test-e2e
-
-setup-integration: setup-dep vendor build
-	./test/scripts/setup-integration.sh
-.PHONY: setup-integration
-
-cleanup-integration:
-	./test/scripts/cleanup-integration.sh
-.PHONY: cleanup-integration
-
-test-integration:
-	./test/scripts/test-integration.sh -v $(VERBOSE)
-.PHONY: test-integration
