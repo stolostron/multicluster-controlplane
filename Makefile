@@ -6,7 +6,7 @@ KUBECTL ?= kubectl
 KUSTOMIZE ?= kustomize
 
 HUB_NAME ?= multicluster-controlplane
-IMAGE_REGISTRY ?= quay.io/open-cluster-management
+IMAGE_REGISTRY ?= quay.io/stolostron
 IMAGE_TAG ?= latest
 IMAGE_NAME ?= $(IMAGE_REGISTRY)/multicluster-controlplane:$(IMAGE_TAG)
 ETCD_NS ?= multicluster-controlplane-etcd

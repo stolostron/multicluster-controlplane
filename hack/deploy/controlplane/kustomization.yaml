@@ -28,6 +28,9 @@ resources:
 - deployment.yaml
 - service.yaml
 - route.yaml
+- serviceaccount.yaml
+- role.yaml
+- rolebinding.yaml
 
 images:
 - name: quay.io/stolostron/multicluster-controlplane
@@ -35,16 +38,8 @@ images:
   newTag: latest
 
 secretGenerator:
-- name: controlplane-cert
+- name: controlplane-config
   files:
-  - cert/kube-serviceaccount.key
-  - cert/client-ca.crt
-  - cert/client-ca.key
-  - cert/serving-kube-apiserver.crt
-  - cert/serving-kube-apiserver.key
-  - cert/kube-aggregator.kubeconfig
-- name: controlplane-kubeconfig
-  files:
-  - kubeconfig=cert/kube-aggregator.kubeconfig
+  - ocmconfig.yaml
 generatorOptions:
  disableNameSuffixHash: true

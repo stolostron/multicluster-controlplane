@@ -2,6 +2,7 @@ kind: Deployment
 apiVersion: apps/v1
 metadata:
   name: multicluster-controlplane-agent
+  namespace: multicluster-controlplane-agent
   labels:
     app: multicluster-controlplane-agent
 spec:
@@ -22,8 +23,9 @@ spec:
         args:
           - "/multicluster-controlplane"
           - "agent"
-          - "--cluster-name=loopback"
+          - "--cluster-name=cluster1"
           - "--bootstrap-kubeconfig=/spoke/bootstrap/kubeconfig"
+          - "--feature-gates=AddonManagement=true"
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:

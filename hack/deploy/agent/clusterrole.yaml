@@ -1,4 +1,3 @@
-#TODO only apply this role for controlplane when self management enabled
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:

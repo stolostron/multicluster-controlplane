@@ -24,6 +24,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
+- namespace.yaml
 - clusterrole.yaml
 - clusterrolebinding-admin.yaml
 - clusterrolebinding.yaml
@@ -33,8 +34,8 @@ resources:
 - deployment.yaml
 
 images:
-- name: quay.io/open-cluster-management/multicluster-controlplane
-  newName: quay.io/open-cluster-management/multicluster-controlplane
+- name: quay.io/stolostron/multicluster-controlplane
+  newName: quay.io/stolostron/multicluster-controlplane
   newTag: latest
 
 secretGenerator:
