@@ -123,6 +123,7 @@ EOF
 
   wait_seconds="90"; until [[ $((wait_seconds--)) -eq 0 ]] || eval "kubectl --kubeconfig $hubkubeconfig get csr --ignore-not-found | grep ^$managed_cluster_name &> /dev/null" ; do sleep 1; done
   kubectl --kubeconfig $hubkubeconfig get csr --ignore-not-found -oname | grep ^certificatesigningrequest.certificates.k8s.io/$managed_cluster_name | xargs -n 1 kubectl --kubeconfig $hubkubeconfig certificate approve
+  wait_seconds="90"; until [[ $((wait_seconds--)) -eq 0 ]] || eval "kubectl --kubeconfig $hubkubeconfig get managedcluster $managed_cluster_name &> /dev/null" ; do sleep 1; done
   kubectl --kubeconfig $hubkubeconfig patch managedcluster $managed_cluster_name -p='{"spec":{"hubAcceptsClient":true}}' --type=merge
 
 done
