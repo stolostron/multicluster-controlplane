@@ -93,7 +93,7 @@ EOF
   ${SED} -i "s@ocmconfig.yaml@${deploy_dir}/ocmconfig.yaml@g" $deploy_dir/kustomization.yaml
 
   pushd $deploy_dir
-  kustomize edit set image quay.io/open-cluster-management/multicluster-controlplane=${IMAGE_NAME}
+  kustomize edit set image quay.io/stolostron/multicluster-controlplane=${IMAGE_NAME}
   popd
 
   kustomize build $deploy_dir | kubectl --kubeconfig ${kubeconfig} -n $namespace apply -f -
@@ -116,7 +116,7 @@ EOF
 
   cp -f ${hubkubeconfig} ${deploy_dir}/hub-kubeconfig
   pushd $deploy_dir
-  kustomize edit set image quay.io/open-cluster-management/multicluster-controlplane=${IMAGE_NAME}
+  kustomize edit set image quay.io/stolostron/multicluster-controlplane=${IMAGE_NAME}
   ${SED} -i "s/cluster-name=cluster1/cluster-name=$managed_cluster_name/" $deploy_dir/deployment.yaml
   popd
   kustomize build ${deploy_dir} | kubectl --kubeconfig $cluster_dir/$managed_cluster_name.kubeconfig -n ${agent_namespace} apply -f -
