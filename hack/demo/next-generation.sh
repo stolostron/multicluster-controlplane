@@ -33,17 +33,11 @@ ROOT_DIR="$(pwd)"
 controlplane_number=${1:-1}
 managedcluster_number=${2:-1}
 
-# this is needed for the controlplane deploy
-echo "* Testing connection"
-HOST_URL=$(oc -n openshift-console get routes console -o jsonpath='{.status.ingress[0].routerCanonicalHostname}')
-if [ $? -ne 0 ]; then
-    echo "ERROR: Make sure you are logged into an OpenShift Container Platform before running this script"
-    exit
+SED=sed
+if [ "$(uname)" = 'Darwin' ]; then
+  # run `brew install gnu-${SED}` to install gsed
+  SED=gsed
 fi
-
-# shorten to the basedomain
-DEFAULT_HOST_POSTFIX=${HOST_URL/#router-default./}
-HOST_POSTFIX=${HOST_POSTFIX:-$DEFAULT_HOST_POSTFIX}
 
 if [[ "$3" == "clean" ]]; then
   for i in $(seq 1 "${controlplane_number}"); do
@@ -71,26 +65,36 @@ for i in $(seq 1 "${controlplane_number}"); do
   namespace=multicluster-controlplane-$i
   p "deploy standalone controlplane and addons(policy and managedserviceaccount) in namespace ${namespace}"
   export HUB_NAME="${namespace}"
-  API_HOST="multicluster-controlplane-${HUB_NAME}.${HOST_POSTFIX}"
+  rm -rf ${ROOT_DIR}/../deploy/controlplane/ocmconfig.yaml
   pei "cd ../.. && make deploy"
   cd ${ROOT_DIR}
   pei "oc get pod -n ${namespace}"
 
   CERTS_DIR=${ROOT_DIR}/../deploy/cert-${namespace}
+  mkdir ${CERTS_DIR}
+  cp ${ROOT_DIR}/../../$namespace.kubeconfig ${CERTS_DIR}/controlplane-kubeconfig
+  hubkubeconfig=${CERTS_DIR}/controlplane-kubeconfig
   for j in $(seq 1 "$managedcluster_number"); do
+    managed_cluster_name="$namespace-mc-$j"
     p "create a KinD cluster as a managedcluster"
-    pei "kind create cluster --name $namespace-mc-$j --kubeconfig ${CERTS_DIR}/mc-$j-kubeconfig"
+    pei "kind create cluster --name $managed_cluster_name --kubeconfig ${CERTS_DIR}/mc-$j-kubeconfig"
   
-    output=$(clusteradm --kubeconfig=${CERTS_DIR}/kubeconfig get token --use-bootstrap-token)
-    token=$(echo $output | awk -F ' ' '{print $1}' | awk -F '=' '{print $2}')
-    p "join to the control plane"
-    pei "clusteradm --kubeconfig=${CERTS_DIR}/mc-$j-kubeconfig join --hub-token $token --hub-apiserver https://$API_HOST --cluster-name $namespace-mc-$j"
-    PROMPT_TIMEOUT=10
-    wait
-    pei "clusteradm --kubeconfig=${CERTS_DIR}/kubeconfig accept --clusters $namespace-mc-$j"
+    agent_namespace="multicluster-controlplane-agent"
+    agent_deploy_dir="${ROOT_DIR}/../deploy/agent"
+    cp -f $hubkubeconfig $agent_deploy_dir/hub-kubeconfig
+
+    # temporary solution. will be replaced once clusteradm supports it
+    cp $agent_deploy_dir/deployment.yaml $agent_deploy_dir/deployment.yaml.tmp
+    ${SED} -i "s/cluster-name=cluster1/cluster-name=$managed_cluster_name/" $agent_deploy_dir/deployment.yaml
+    kustomize build ${ROOT_DIR}/../deploy/agent | oc --kubeconfig ${CERTS_DIR}/mc-$j-kubeconfig -n ${agent_namespace} apply -f -
+    cp $agent_deploy_dir/deployment.yaml.tmp $agent_deploy_dir/deployment.yaml
+
+    wait_seconds="90"; until [[ $((wait_seconds--)) -eq 0 ]] || eval "oc --kubeconfig $hubkubeconfig get csr --ignore-not-found | grep ^$managed_cluster_name &> /dev/null" ; do sleep 1; done
+    oc --kubeconfig $hubkubeconfig get csr --ignore-not-found -oname | grep ^certificatesigningrequest.certificates.k8s.io/$managed_cluster_name | xargs -n 1 oc --kubeconfig $hubkubeconfig adm certificate approve
+    oc --kubeconfig $hubkubeconfig patch managedcluster $managed_cluster_name -p='{"spec":{"hubAcceptsClient":true}}' --type=merge
   
-    pei "oc --kubeconfig=${CERTS_DIR}/kubeconfig get managedcluster"
-    oc --kubeconfig=${CERTS_DIR}/kubeconfig label managedcluster $namespace-mc-$j "cluster.open-cluster-management.io/clusterset"=default
+    pei "oc --kubeconfig=$hubkubeconfig get managedcluster"
+    oc --kubeconfig=$hubkubeconfig label managedcluster $managed_cluster_name "cluster.open-cluster-management.io/clusterset"=default
     
   done
 done
