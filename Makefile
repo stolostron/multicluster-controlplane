@@ -6,7 +6,7 @@ KUBECTL ?= kubectl
 KUSTOMIZE ?= kustomize
 
 HUB_NAME ?= multicluster-controlplane
-IMAGE_REGISTRY ?= quay.io/open-cluster-management
+IMAGE_REGISTRY ?= quay.io/stolostron
 IMAGE_TAG ?= latest
 IMAGE_NAME ?= $(IMAGE_REGISTRY)/multicluster-controlplane:$(IMAGE_TAG)
 ETCD_NS ?= multicluster-controlplane-etcd
@@ -105,15 +105,3 @@ cleanup-e2e:
 test-e2e: vendor
 	./test/scripts/test-e2e.sh -v $(VERBOSE)
 .PHONY: test-e2e
-
-setup-integration: setup-dep vendor build
-	./test/scripts/setup-integration.sh
-.PHONY: setup-integration
-
-cleanup-integration:
-	./test/scripts/cleanup-integration.sh
-.PHONY: cleanup-integration
-
-test-integration:
-	./test/scripts/test-integration.sh -v $(VERBOSE)
-.PHONY: test-integration

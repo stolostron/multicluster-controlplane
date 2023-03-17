@@ -15,6 +15,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
+	"open-cluster-management.io/addon-framework/pkg/addonfactory"
 	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	msav1alpha1 "open-cluster-management.io/managed-serviceaccount/api/v1alpha1"
 	msacommon "open-cluster-management.io/managed-serviceaccount/pkg/common"
@@ -75,7 +76,7 @@ var _ = ginkgo.Describe("ManagedServiceAccount", ginkgo.Label("addon"), ginkgo.O
 		gomega.Eventually(func() error {
 			sa := &corev1.ServiceAccount{}
 			if err = runtimeClientMap[managedCluster.Name].Get(context.TODO(), types.NamespacedName{
-				Namespace: msacommon.AddonAgentInstallNamespace,
+				Namespace: addonfactory.AddonDefaultInstallNamespace,
 				Name:      msaName,
 			}, sa); err != nil {
 				return err
@@ -146,7 +147,7 @@ var _ = ginkgo.Describe("ManagedServiceAccount", ginkgo.Label("addon"), ginkgo.O
 			if !tokenReview.Status.Authenticated {
 				return fmt.Errorf("the secret: %s/%s token should be authenticated by the managed cluster service account", secret.GetNamespace(), secret.GetName())
 			}
-			expectUserName := fmt.Sprintf("system:serviceaccount:%s:%s", msacommon.AddonAgentInstallNamespace, msaName)
+			expectUserName := fmt.Sprintf("system:serviceaccount:%s:%s", addonfactory.AddonDefaultInstallNamespace, msaName)
 			if tokenReview.Status.User.Username != expectUserName {
 				return fmt.Errorf("expect username: %s of the token, but got username: %s", expectUserName, tokenReview.Status.User.Username)
 			}
@@ -180,7 +181,7 @@ var _ = ginkgo.Describe("ManagedServiceAccount", ginkgo.Label("addon"), ginkgo.O
 		gomega.Eventually(func() bool {
 			serviceAccount := &corev1.ServiceAccount{}
 			err := runtimeClientMap[controlPlane.Name].Get(context.TODO(), types.NamespacedName{
-				Namespace: msacommon.AddonAgentInstallNamespace,
+				Namespace: addonfactory.AddonDefaultInstallNamespace,
 				Name:      msaName,
 			}, serviceAccount)
 			return errors.IsNotFound(err)
