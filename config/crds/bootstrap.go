@@ -39,8 +39,6 @@ var addonCRDs = []string{
 	"0000_07_policy.open-cluster-management.io_policysets.crd.yaml",
 	// managed cluster info
 	"0000_08_internal.open-cluster-management.io_managedclusterinfos.crd.yaml",
-	"0000_08_view.open-cluster-management.io_managedclusterviews.crd.yaml",
-	"0000_08_action.open-cluster-management.io_managedclusteractions.crd.yaml",
 }
 
 func Bootstrap(ctx context.Context, crdClient apiextensionsclient.Interface) error {
