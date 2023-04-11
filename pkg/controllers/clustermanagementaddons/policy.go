@@ -25,7 +25,7 @@ import (
 func SetupPolicyWithManager(ctx context.Context, mgr ctrl.Manager, kubeconfig *rest.Config,
 	kubeClient kubernetes.Interface, dynamicClient dynamic.Interface,
 ) error {
-	dynamicWatcherReconciler, dynamicWatcherSource := k8sdepwatches.NewControllerRuntimeSource()
+	dynamicWatcherReconciler, _ := k8sdepwatches.NewControllerRuntimeSource()
 
 	dynamicWatcher, err := k8sdepwatches.New(kubeconfig, dynamicWatcherReconciler, nil)
 	if err != nil {
@@ -40,11 +40,11 @@ func SetupPolicyWithManager(ctx context.Context, mgr ctrl.Manager, kubeconfig *r
 	}()
 
 	if err = (&propagatorctrl.PolicyReconciler{
-		Client:         mgr.GetClient(),
-		Scheme:         mgr.GetScheme(),
-		Recorder:       mgr.GetEventRecorderFor(propagatorctrl.ControllerName),
-		DynamicWatcher: dynamicWatcher,
-	}).SetupWithManager(mgr, dynamicWatcherSource); err != nil {
+		Client:   mgr.GetClient(),
+		Scheme:   mgr.GetScheme(),
+		Recorder: mgr.GetEventRecorderFor(propagatorctrl.ControllerName),
+		// DynamicWatcher: dynamicWatcher,
+	}).SetupWithManager(mgr); err != nil {
 		return err
 	}
 

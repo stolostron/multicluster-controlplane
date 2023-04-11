@@ -17,7 +17,6 @@ import (
 	"k8s.io/klog/v2/klogr"
 	aggregatorapiserver "k8s.io/kube-aggregator/pkg/apiserver"
 	"open-cluster-management.io/addon-framework/pkg/addonmanager"
-	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
 	policyv1 "open-cluster-management.io/governance-policy-propagator/api/v1"
@@ -31,7 +30,6 @@ import (
 
 	"github.com/stolostron/multicluster-controlplane/config/crds"
 	"github.com/stolostron/multicluster-controlplane/pkg/controllers/clustermanagementaddons"
-	"github.com/stolostron/multicluster-controlplane/pkg/controllers/managedclusteraddons"
 )
 
 var ResyncInterval = 5 * time.Minute
@@ -68,10 +66,10 @@ func InstallManagedClusterAddons(stopCh <-chan struct{}, aggregatorConfig *aggre
 	if err != nil {
 		return err
 	}
-	kubeClient, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		return err
-	}
+	// kubeClient, err := kubernetes.NewForConfig(restConfig)
+	// if err != nil {
+	// 	return err
+	// }
 
 	go func() {
 		ctx := ocmcontroller.GoContext(stopCh)
@@ -84,20 +82,20 @@ func InstallManagedClusterAddons(stopCh <-chan struct{}, aggregatorConfig *aggre
 		if err != nil {
 			klog.Error(err)
 		}
-		addonClient, err := addonclient.NewForConfig(restConfig)
-		if err != nil {
-			klog.Error(err)
-		}
+		// addonClient, err := addonclient.NewForConfig(restConfig)
+		// if err != nil {
+		// 	klog.Error(err)
+		// }
 
-		klog.Info("starting managedclusteraddon: policy")
-		if err := managedclusteraddons.AddPolicyAddons(addonManager, restConfig, kubeClient, addonClient); err != nil {
-			klog.Error(err)
-		}
+		// klog.Info("starting managedclusteraddon: policy")
+		// if err := managedclusteraddons.AddPolicyAddons(addonManager, restConfig, kubeClient, addonClient); err != nil {
+		// 	klog.Error(err)
+		// }
 
-		klog.Info("starting managedclusteraddon: managedserviceaccount")
-		if err := managedclusteraddons.AddManagedServiceAccountAddon(addonManager, kubeClient, addonClient); err != nil {
-			klog.Error(err)
-		}
+		// klog.Info("starting managedclusteraddon: managedserviceaccount")
+		// if err := managedclusteraddons.AddManagedServiceAccountAddon(addonManager, kubeClient, addonClient); err != nil {
+		// 	klog.Error(err)
+		// }
 
 		if err := addonManager.Start(ctx); err != nil {
 			klog.Errorf("failed to start managedcluster addons: %v", err)
@@ -158,9 +156,9 @@ func InstallClusterManagementAddons(stopCh <-chan struct{}, aggregatorConfig *ag
 			klog.Error(err)
 		}
 
-		if err := clustermanagementaddons.SetupManagedServiceAccountWithManager(mgr); err != nil {
-			klog.Error(err)
-		}
+		// if err := clustermanagementaddons.SetupManagedServiceAccountWithManager(mgr); err != nil {
+		// 	klog.Error(err)
+		// }
 
 		if err := clustermanagementaddons.SetupPolicyWithManager(ctx, mgr, restConfig, kubeClient, dynamicClient); err != nil {
 			klog.Error(err)
