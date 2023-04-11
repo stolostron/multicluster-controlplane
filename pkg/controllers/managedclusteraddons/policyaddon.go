@@ -39,7 +39,11 @@ func SetupPolicyAddonWithManager(ctx context.Context, hubManager ctrl.Manager, m
 	instanceName, _ := os.Hostname() // on an error, instanceName will be empty, which is ok
 
 	// create target namespace if it doesn't exist
-	_, err = targetK8sClient.CoreV1().Namespaces().Get(ctx, config.RegistrationAgent.ClusterName, metav1.GetOptions{})
+	_, err = targetK8sClient.CoreV1().Namespaces().Create(ctx, &v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: config.RegistrationAgent.ClusterName,
+		},
+	}, metav1.CreateOptions{})
 	if err != nil {
 		if !k8serrors.IsAlreadyExists(err) {
 			return err
