@@ -174,7 +174,7 @@ require (
 	k8s.io/cluster-bootstrap v0.25.4 // indirect
 	open-cluster-management.io/clusteradm v0.4.0 // indirect
 	open-cluster-management.io/placement v0.9.0 // indirect
-	open-cluster-management.io/registration v0.9.1-0.20221114013223-9878ed071a3b // indirect
+	open-cluster-management.io/registration v0.9.1-0.20221114013223-9878ed071a3b
 )
 
 require (

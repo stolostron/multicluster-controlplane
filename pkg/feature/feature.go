@@ -1,6 +1,8 @@
 package feature
 
-import "k8s.io/component-base/featuregate"
+import (
+	"k8s.io/component-base/featuregate"
+)
 
 const (
 
