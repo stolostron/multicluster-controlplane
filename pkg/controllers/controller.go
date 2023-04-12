@@ -31,9 +31,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/stolostron/multicluster-controlplane/config/crds"
-	"github.com/stolostron/multicluster-controlplane/pkg/constants"
 	"github.com/stolostron/multicluster-controlplane/pkg/controllers/clustermanagementaddons"
 	"github.com/stolostron/multicluster-controlplane/pkg/controllers/managedclusteraddons"
+	"github.com/stolostron/multicluster-controlplane/pkg/feature"
 )
 
 var ResyncInterval = 5 * time.Minute
@@ -96,7 +96,7 @@ func InstallManagedClusterAddons(stopCh <-chan struct{}, aggregatorConfig *aggre
 		// 	klog.Error(err)
 		// }
 
-		if utilfeature.DefaultMutableFeatureGate.Enabled(constants.ManagedServiceAccount) {
+		if utilfeature.DefaultMutableFeatureGate.Enabled(feature.ManagedServiceAccount) {
 			// TODO: using in-process instead
 			klog.Info("starting managedclusteraddon: managedserviceaccount")
 			if err := managedclusteraddons.AddManagedServiceAccountAddon(addonManager, kubeClient, addonClient); err != nil {
@@ -158,21 +158,21 @@ func InstallClusterManagementAddons(stopCh <-chan struct{}, aggregatorConfig *ag
 			klog.Errorf("unable to start manager %v", err)
 		}
 
-		if utilfeature.DefaultMutableFeatureGate.Enabled(constants.ManagedClusterInfo) {
+		if utilfeature.DefaultMutableFeatureGate.Enabled(feature.ManagedClusterInfo) {
 			klog.Info("starting managed cluster info addon")
 			if err := clustermanagementaddons.SetupClusterInfoWithManager(mgr); err != nil {
 				klog.Error(err)
 			}
 		}
 
-		if utilfeature.DefaultMutableFeatureGate.Enabled(constants.ManagedServiceAccount) {
+		if utilfeature.DefaultMutableFeatureGate.Enabled(feature.ManagedServiceAccount) {
 			klog.Info("starting managed serviceaccount addon")
 			if err := clustermanagementaddons.SetupManagedServiceAccountWithManager(mgr); err != nil {
 				klog.Error(err)
 			}
 		}
 
-		if utilfeature.DefaultMutableFeatureGate.Enabled(constants.ConfigurationPolicy) {
+		if utilfeature.DefaultMutableFeatureGate.Enabled(feature.ConfigurationPolicy) {
 			klog.Info("starting configuration policy addon")
 			if err := clustermanagementaddons.SetupPolicyWithManager(ctx, mgr, restConfig, kubeClient, dynamicClient); err != nil {
 				klog.Error(err)

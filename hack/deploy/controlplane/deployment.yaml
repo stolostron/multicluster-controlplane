@@ -23,7 +23,7 @@ spec:
           - "/multicluster-controlplane"
           - "server"
           - "--controlplane-config-dir=/controlplane_config"
-          - "--feature-gates=DefaultClusterSet=true,OpenAPIV3=false,AddonManagement=true,ConfigurationPolicy=true,ManagedClusterInfo=true"
+          - "--feature-gates=DefaultClusterSet=true,OpenAPIV3=false,AddonManagement=true"
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:

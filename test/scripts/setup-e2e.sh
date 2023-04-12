@@ -94,7 +94,7 @@ EOF
 
   pushd $deploy_dir
   kustomize edit set image quay.io/stolostron/multicluster-controlplane=${IMAGE_NAME}
-  ${SED} -i "s/ManagedClusterInfo=true/ManagedClusterInfo=true,ManagedServiceAccount=true/" $deploy_dir/deployment.yaml
+  ${SED} -i "s/AddonManagement=true/AddonManagement=true,ManagedServiceAccount=true/" $deploy_dir/deployment.yaml
   popd
 
   kustomize build $deploy_dir | kubectl --kubeconfig ${kubeconfig} -n $namespace apply -f -
@@ -119,7 +119,7 @@ EOF
   pushd $deploy_dir
   kustomize edit set image quay.io/stolostron/multicluster-controlplane=${IMAGE_NAME}
   ${SED} -i "s/cluster-name=cluster1/cluster-name=$managed_cluster_name/" $deploy_dir/deployment.yaml
-  ${SED} -i "s/ManagedClusterInfo=true/ManagedClusterInfo=true,ManagedServiceAccount=true/" $deploy_dir/deployment.yaml
+  ${SED} -i "s/AddonManagement=true/AddonManagement=true,ManagedServiceAccount=true/" $deploy_dir/deployment.yaml
   popd
   kustomize build ${deploy_dir} | kubectl --kubeconfig $cluster_dir/$managed_cluster_name.kubeconfig -n ${agent_namespace} apply -f -
 

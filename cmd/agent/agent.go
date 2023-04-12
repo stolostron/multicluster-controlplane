@@ -40,8 +40,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"github.com/stolostron/multicluster-controlplane/pkg/config"
-	"github.com/stolostron/multicluster-controlplane/pkg/constants"
 	"github.com/stolostron/multicluster-controlplane/pkg/controllers/managedclusteraddons"
+	"github.com/stolostron/multicluster-controlplane/pkg/feature"
 )
 
 var (
@@ -106,7 +106,7 @@ func NewAgent() *cobra.Command {
 				return err
 			}
 
-			if utilfeature.DefaultMutableFeatureGate.Enabled(constants.ManagedClusterInfo) {
+			if utilfeature.DefaultMutableFeatureGate.Enabled(feature.ManagedClusterInfo) {
 				// start managed cluster info controller
 				go func() {
 					klog.Info("starting managed cluster info addon agent")
@@ -117,7 +117,7 @@ func NewAgent() *cobra.Command {
 				}()
 			}
 
-			if utilfeature.DefaultMutableFeatureGate.Enabled(constants.ConfigurationPolicy) {
+			if utilfeature.DefaultMutableFeatureGate.Enabled(feature.ConfigurationPolicy) {
 				go func() {
 					klog.Info("starting configuration policy addon agent")
 					err = managedclusteraddons.SetupPolicyAddonWithManager(ctx, hubManager, manager, agentOptions)
