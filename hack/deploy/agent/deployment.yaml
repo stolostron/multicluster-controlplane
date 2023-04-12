@@ -25,7 +25,7 @@ spec:
           - "agent"
           - "--cluster-name=cluster1"
           - "--bootstrap-kubeconfig=/spoke/bootstrap/kubeconfig"
-          - "--feature-gates=AddonManagement=true"
+          - "--feature-gates=AddonManagement=true,ConfigurationPolicy=true,ManagedClusterInfo=true"
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:

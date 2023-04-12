@@ -22,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	genericapiserver "k8s.io/apiserver/pkg/server"
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/record"
@@ -39,6 +40,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"github.com/stolostron/multicluster-controlplane/pkg/config"
+	"github.com/stolostron/multicluster-controlplane/pkg/constants"
 	"github.com/stolostron/multicluster-controlplane/pkg/controllers/managedclusteraddons"
 )
 
@@ -104,20 +106,26 @@ func NewAgent() *cobra.Command {
 				return err
 			}
 
-			// start managed cluster info controller
-			go func() {
-				err := managedclusteraddons.SetupManagedClusterInfoWithManager(ctx, hubManager, agentOptions)
-				if err != nil {
-					klog.Fatalf("failed to setup managedclusterinfo addon, %v", err)
-				}
-			}()
+			if utilfeature.DefaultMutableFeatureGate.Enabled(constants.ManagedClusterInfo) {
+				// start managed cluster info controller
+				go func() {
+					klog.Info("starting managed cluster info addon agent")
+					err := managedclusteraddons.SetupManagedClusterInfoWithManager(ctx, hubManager, agentOptions)
+					if err != nil {
+						klog.Fatalf("failed to setup managedclusterinfo addon, %v", err)
+					}
+				}()
+			}
 
-			go func() {
-				err = managedclusteraddons.SetupPolicyAddonWithManager(ctx, hubManager, manager, agentOptions)
-				if err != nil {
-					klog.Fatalf("failed to setup policy addon, %v", err)
-				}
-			}()
+			if utilfeature.DefaultMutableFeatureGate.Enabled(constants.ConfigurationPolicy) {
+				go func() {
+					klog.Info("starting configuration policy addon agent")
+					err = managedclusteraddons.SetupPolicyAddonWithManager(ctx, hubManager, manager, agentOptions)
+					if err != nil {
+						klog.Fatalf("failed to setup policy addon, %v", err)
+					}
+				}()
+			}
 
 			// start hub runtime manager
 			go func() {
