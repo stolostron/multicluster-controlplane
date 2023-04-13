@@ -39,8 +39,6 @@ var addonCRDs = []string{
 	"0000_07_policy.open-cluster-management.io_policysets.crd.yaml",
 	// managed cluster info
 	"0000_08_internal.open-cluster-management.io_managedclusterinfos.crd.yaml",
-	"0000_08_view.open-cluster-management.io_managedclusterviews.crd.yaml",
-	"0000_08_action.open-cluster-management.io_managedclusteractions.crd.yaml",
 }
 
 func Bootstrap(ctx context.Context, crdClient apiextensionsclient.Interface) error {
@@ -184,8 +182,6 @@ func WaitForOcmAddonCrdsReady(ctx context.Context, dynamicClient dynamic.Interfa
 		"policysets.policy.open-cluster-management.io",
 		// managed cluster info
 		"managedclusterinfos.internal.open-cluster-management.io",
-		"managedclusterviews.view.open-cluster-management.io",
-		"managedclusteractions.action.open-cluster-management.io",
 	}
 	klog.Infof("wait addon crds are installed")
 	if err := wait.PollUntil(1*time.Second, func() (bool, error) {
