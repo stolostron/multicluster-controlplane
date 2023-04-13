@@ -182,8 +182,6 @@ func WaitForOcmAddonCrdsReady(ctx context.Context, dynamicClient dynamic.Interfa
 		"policysets.policy.open-cluster-management.io",
 		// managed cluster info
 		"managedclusterinfos.internal.open-cluster-management.io",
-		"managedclusterviews.view.open-cluster-management.io",
-		"managedclusteractions.action.open-cluster-management.io",
 	}
 	klog.Infof("wait addon crds are installed")
 	if err := wait.PollUntil(1*time.Second, func() (bool, error) {
