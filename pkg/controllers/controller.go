@@ -10,6 +10,7 @@ import (
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -32,6 +33,7 @@ import (
 	"github.com/stolostron/multicluster-controlplane/config/crds"
 	"github.com/stolostron/multicluster-controlplane/pkg/controllers/clustermanagementaddons"
 	"github.com/stolostron/multicluster-controlplane/pkg/controllers/managedclusteraddons"
+	"github.com/stolostron/multicluster-controlplane/pkg/feature"
 )
 
 var ResyncInterval = 5 * time.Minute
@@ -89,14 +91,17 @@ func InstallManagedClusterAddons(stopCh <-chan struct{}, aggregatorConfig *aggre
 			klog.Error(err)
 		}
 
-		klog.Info("starting managedclusteraddon: policy")
-		if err := managedclusteraddons.AddPolicyAddons(addonManager, restConfig, kubeClient, addonClient); err != nil {
-			klog.Error(err)
-		}
+		// klog.Info("starting managedclusteraddon: policy")
+		// if err := managedclusteraddons.AddPolicyAddons(addonManager, restConfig, kubeClient, addonClient); err != nil {
+		// 	klog.Error(err)
+		// }
 
-		klog.Info("starting managedclusteraddon: managedserviceaccount")
-		if err := managedclusteraddons.AddManagedServiceAccountAddon(addonManager, kubeClient, addonClient); err != nil {
-			klog.Error(err)
+		if utilfeature.DefaultMutableFeatureGate.Enabled(feature.ManagedServiceAccount) {
+			// TODO: using in-process instead
+			klog.Info("starting managedclusteraddon: managedserviceaccount")
+			if err := managedclusteraddons.AddManagedServiceAccountAddon(addonManager, kubeClient, addonClient); err != nil {
+				klog.Error(err)
+			}
 		}
 
 		if err := addonManager.Start(ctx); err != nil {
@@ -153,17 +158,25 @@ func InstallClusterManagementAddons(stopCh <-chan struct{}, aggregatorConfig *ag
 			klog.Errorf("unable to start manager %v", err)
 		}
 
-		klog.Info("starting clustermanagedaddons")
-		if err := clustermanagementaddons.SetupClusterInfoWithManager(mgr); err != nil {
-			klog.Error(err)
+		if utilfeature.DefaultMutableFeatureGate.Enabled(feature.ManagedClusterInfo) {
+			klog.Info("starting managed cluster info addon")
+			if err := clustermanagementaddons.SetupClusterInfoWithManager(mgr); err != nil {
+				klog.Error(err)
+			}
 		}
 
-		if err := clustermanagementaddons.SetupManagedServiceAccountWithManager(mgr); err != nil {
-			klog.Error(err)
+		if utilfeature.DefaultMutableFeatureGate.Enabled(feature.ManagedServiceAccount) {
+			klog.Info("starting managed serviceaccount addon")
+			if err := clustermanagementaddons.SetupManagedServiceAccountWithManager(mgr); err != nil {
+				klog.Error(err)
+			}
 		}
 
-		if err := clustermanagementaddons.SetupPolicyWithManager(ctx, mgr, restConfig, kubeClient, dynamicClient); err != nil {
-			klog.Error(err)
+		if utilfeature.DefaultMutableFeatureGate.Enabled(feature.ConfigurationPolicy) {
+			klog.Info("starting configuration policy addon")
+			if err := clustermanagementaddons.SetupPolicyWithManager(ctx, mgr, restConfig, kubeClient, dynamicClient); err != nil {
+				klog.Error(err)
+			}
 		}
 
 		// placementrule controller

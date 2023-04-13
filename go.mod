@@ -5,11 +5,12 @@ go 1.19
 require (
 	github.com/onsi/ginkgo/v2 v2.5.0
 	github.com/onsi/gomega v1.24.1
+	github.com/open-policy-agent/frameworks/constraint v0.0.0-20220504221328-9db6a6b27c97
 	github.com/openshift/client-go v0.0.0-20221019143426-16aed247da5c
 	github.com/openshift/library-go v0.0.0-20221205131816-1700fb06ea43
 	github.com/spf13/cobra v1.5.0
 	github.com/stolostron/cluster-lifecycle-api v0.0.0-20230222063645-5b18b26381ff
-	github.com/stolostron/kubernetes-dependency-watches v0.1.0
+	github.com/stolostron/kubernetes-dependency-watches v0.2.0
 	github.com/stolostron/multicloud-operators-foundation v0.0.0-20230313144633-5efa51aee885
 	k8s.io/api v0.25.4
 	k8s.io/apiextensions-apiserver v0.25.4
@@ -20,10 +21,11 @@ require (
 	k8s.io/klog v1.0.0
 	k8s.io/klog/v2 v2.80.1
 	k8s.io/kube-aggregator v0.25.4
-	open-cluster-management.io/addon-framework v0.5.1-0.20221206033210-55b40b1bc8c6
+	open-cluster-management.io/addon-framework v0.6.0
 	open-cluster-management.io/api v0.9.1-0.20230113024003-6529d52caeeb
-	open-cluster-management.io/governance-policy-addon-controller v0.9.0
-	open-cluster-management.io/governance-policy-propagator v0.9.1-0.20221201165426-f610c4b09b06
+	open-cluster-management.io/config-policy-controller v0.10.0
+	open-cluster-management.io/governance-policy-framework-addon v0.10.0
+	open-cluster-management.io/governance-policy-propagator v0.8.1-0.20221014182333-d078c8d17ca7
 	open-cluster-management.io/managed-serviceaccount v0.2.1-0.20221125051317-2ebb47b67877
 	open-cluster-management.io/multicloud-operators-subscription v0.9.0
 	open-cluster-management.io/multicluster-controlplane v0.1.1-0.20230313022228-19dae269e7f8
@@ -67,7 +69,7 @@ require (
 	github.com/evanphx/json-patch/v5 v5.6.0 // indirect
 	github.com/exponent-io/jsonpath v0.0.0-20210407135951-1de76d718b3f // indirect
 	github.com/fatih/structs v1.1.0 // indirect
-	github.com/felixge/httpsnoop v1.0.1 // indirect
+	github.com/felixge/httpsnoop v1.0.2 // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32 // indirect
 	github.com/go-errors/errors v1.4.2 // indirect
@@ -97,7 +99,7 @@ require (
 	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
-	github.com/mitchellh/mapstructure v1.4.1 // indirect
+	github.com/mitchellh/mapstructure v1.4.3 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/moby/spdystream v0.2.0 // indirect
 	github.com/moby/sys/mountinfo v0.6.0 // indirect
@@ -112,7 +114,7 @@ require (
 	github.com/openshift/api v0.0.0-20221116152553-4b67c2b2bb1e // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/pkg/profile v1.3.0 // indirect
-	github.com/prometheus/client_model v0.2.0 // indirect
+	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
 	github.com/robfig/cron v1.2.0 // indirect
@@ -162,10 +164,8 @@ require (
 )
 
 require (
-	github.com/avast/retry-go/v3 v3.1.1 // indirect
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.57.0 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	go.etcd.io/etcd/server/v3 v3.5.4 // indirect
 	golang.org/x/oauth2 v0.0.0-20220822191816-0ebed06d0094 // indirect
@@ -174,28 +174,33 @@ require (
 	k8s.io/cluster-bootstrap v0.25.4 // indirect
 	open-cluster-management.io/clusteradm v0.4.0 // indirect
 	open-cluster-management.io/placement v0.9.0 // indirect
-	open-cluster-management.io/registration v0.9.1-0.20221114013223-9878ed071a3b // indirect
+	open-cluster-management.io/registration v0.9.1-0.20221114013223-9878ed071a3b
 )
 
 require (
 	cloud.google.com/go/compute v1.9.0 // indirect
 	github.com/Azure/go-autorest/autorest v0.11.28 // indirect
 	github.com/Azure/go-autorest/autorest/adal v0.9.21 // indirect
+	github.com/avast/retry-go/v3 v3.1.1 // indirect
 	github.com/emicklei/go-restful v2.16.0+incompatible // indirect
 	github.com/form3tech-oss/jwt-go v3.2.5+incompatible // indirect
 	github.com/go-logr/logr v1.2.3 // indirect
+	github.com/go-logr/zapr v1.2.3 // indirect
+	github.com/golang/glog v1.0.0 // indirect
 	github.com/google/btree v1.1.2 // indirect
 	github.com/google/cel-go v0.12.5 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
+	github.com/jellydator/ttlcache/v3 v3.0.1 // indirect
 	github.com/jonboulle/clockwork v0.3.0 // indirect
 	github.com/pquerna/cachecontrol v0.1.0 // indirect
-	github.com/prometheus/client_golang v1.13.0 // indirect
+	github.com/prometheus/client_golang v1.14.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/stolostron/go-template-utils/v3 v3.0.1 // indirect
+	github.com/stolostron/go-template-utils/v2 v2.5.1 // indirect
+	github.com/stolostron/go-template-utils/v3 v3.0.2 // indirect
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20220101234140-673ab2c3ae75 // indirect
 	go.opentelemetry.io/contrib v1.9.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.34.0 // indirect
-	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.27.0 // indirect
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.31.0 // indirect
 	go.opentelemetry.io/otel v1.9.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp v0.27.0 // indirect
 	go.opentelemetry.io/otel/metric v0.31.0 // indirect

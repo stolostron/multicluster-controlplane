@@ -61,4 +61,9 @@ rules:
 - apiGroups: ["config.openshift.io"]
   resources: ["infrastructures", "clusterversions"]
   verbs: ["get", "list", "watch"]
-
+- apiGroups: ["policy.open-cluster-management.io"]
+  resources: ["configurationpolicies", "policies"]
+  verbs: ["get", "list", "watch", "update", "patch"]
+- apiGroups: ["policy.open-cluster-management.io"]
+  resources: ["configurationpolicies/status"]
+  verbs: ["get", "update", "patch"]
