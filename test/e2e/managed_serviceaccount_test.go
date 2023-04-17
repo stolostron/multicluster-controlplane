@@ -14,7 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"open-cluster-management.io/addon-framework/pkg/addonfactory"
 	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	msav1alpha1 "open-cluster-management.io/managed-serviceaccount/api/v1alpha1"

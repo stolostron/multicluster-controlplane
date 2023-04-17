@@ -724,8 +724,8 @@ github.com/spf13/cobra v0.0.5/go.mod h1:3K3wKZymM7VvHMDS9+Akkh4K60UwM26emMESw8tL
 github.com/spf13/cobra v1.0.0/go.mod h1:/6GTrnGXV9HjY+aR4k0oJ5tcvakLuG6EuKReYlHNrgE=
 github.com/spf13/cobra v1.1.1/go.mod h1:WnodtKOvamDL/PwE2M4iKs8aMDBZ5Q5klgD3qfVJQMI=
 github.com/spf13/cobra v1.1.3/go.mod h1:pGADOWyqRD/YMrPZigI/zbliZ2wVD/23d+is3pSWzOo=
-github.com/spf13/cobra v1.5.0 h1:X+jTBEBqF0bHN+9cSMgmfuvv2VHJ9ezmFNf9Y/XstYU=
-github.com/spf13/cobra v1.5.0/go.mod h1:dWXEIy2H428czQCjInthrTRUg7yKbok+2Qi/yBIJoUM=
+github.com/spf13/cobra v1.6.1 h1:o94oiPyS4KD1mPy2fmcYYHHfCxLqYjJOhGsCHFZtEzA=
+github.com/spf13/cobra v1.6.1/go.mod h1:IOw/AERYS7UzyrGinqmz6HLUo219MORXGxhbaJUqzrY=
 github.com/spf13/jwalterweatherman v1.0.0/go.mod h1:cQK4TGJAtQXfYWX+Ddv3mKDzgVb68N+wFjFa4jdeBTo=
 github.com/spf13/pflag v0.0.0-20170130214245-9ff6c6923cff/go.mod h1:DYY7MBk1bdzusC3SYhjObp+wFpr4gzcvqqNjLnInEg4=
 github.com/spf13/pflag v1.0.1/go.mod h1:DYY7MBk1bdzusC3SYhjObp+wFpr4gzcvqqNjLnInEg4=
@@ -1484,10 +1484,10 @@ k8s.io/utils v0.0.0-20200324210504-a9aa75ae1b89/go.mod h1:sZAwmy6armz5eXlNoLmJcl
 k8s.io/utils v0.0.0-20201110183641-67b214c5f920/go.mod h1:jPW/WVKK9YHAvNhRxK0md/EJ228hCsBRufyofKtW8HA=
 k8s.io/utils v0.0.0-20210802155522-efc7438f0176/go.mod h1:jPW/WVKK9YHAvNhRxK0md/EJ228hCsBRufyofKtW8HA=
 k8s.io/utils v0.0.0-20220728103510-ee6ede2d64ed/go.mod h1:jPW/WVKK9YHAvNhRxK0md/EJ228hCsBRufyofKtW8HA=
-k8s.io/utils v0.0.0-20221011040102-427025108f67 h1:ZmUY7x0cwj9e7pGyCTIalBi5jpNfigO5sU46/xFoF/w=
-k8s.io/utils v0.0.0-20221011040102-427025108f67/go.mod h1:OLgZIPagt7ERELqWJFomSt595RzquPNLL48iOWgYOg0=
-open-cluster-management.io/addon-framework v0.6.0 h1:LZT/dlgFYN5fai0RZbR3iTU16R1crfuelCw+X3IeHsk=
-open-cluster-management.io/addon-framework v0.6.0/go.mod h1:Th7La8BVvGWbPdqAXxQj+Obr3uygL2FJPHpt4htYnU8=
+k8s.io/utils v0.0.0-20221128185143-99ec85e7a448 h1:KTgPnR10d5zhztWptI952TNtt/4u5h3IzDXkdIMuo2Y=
+k8s.io/utils v0.0.0-20221128185143-99ec85e7a448/go.mod h1:OLgZIPagt7ERELqWJFomSt595RzquPNLL48iOWgYOg0=
+open-cluster-management.io/addon-framework v0.5.1-0.20221206033210-55b40b1bc8c6 h1:TnQDy3V7wkiblgR5tz1J+ASswcfnRB9gpVbmwCCecVo=
+open-cluster-management.io/addon-framework v0.5.1-0.20221206033210-55b40b1bc8c6/go.mod h1:Fymctw1tnmCTXnmAMgc0zdHetAw6UaiAsj1S6w5VW6s=
 open-cluster-management.io/api v0.9.1-0.20230113024003-6529d52caeeb h1:I4YWWnSpMirqj/heYbu44WeKBK3MJGboLgr4MEJfygs=
 open-cluster-management.io/api v0.9.1-0.20230113024003-6529d52caeeb/go.mod h1:6BB/Y6r3hXlPjpJgDwIs6Ubxyx/kXXOg6D9Cntg1I9E=
 open-cluster-management.io/clusteradm v0.4.0 h1:UqTgXy7o/Tps1tJNNHbkjVRCFP+4cvn79w7tkoHEvAA=
@@ -1500,7 +1500,6 @@ open-cluster-management.io/governance-policy-propagator v0.8.1-0.20221014182333-
 open-cluster-management.io/governance-policy-propagator v0.8.1-0.20221014182333-d078c8d17ca7/go.mod h1:qANM1Ww0i7fN90ZDsN9CmPWyRq5kL5ZhuFpBG4MzzDY=
 open-cluster-management.io/managed-serviceaccount v0.2.1-0.20221125051317-2ebb47b67877 h1:LD/0xqqYpJtl7ia4CBWg1zuKVoyl/zga3KijRrmTf3I=
 open-cluster-management.io/managed-serviceaccount v0.2.1-0.20221125051317-2ebb47b67877/go.mod h1:XuTtJ373O5rb70sGAZY8SqsjRqio9zXTCtOEG9HFcvU=
-open-cluster-management.io/multicloud-operators-channel v0.8.1-0.20220830142938-f26e84e80456 h1:pQeDzn2Uu4swKhRh0ohBrky1LtOxUOhPVSOuE65sMAQ=
 open-cluster-management.io/multicloud-operators-subscription v0.9.0 h1:wpkvc25LluEqvk14smePArLED9hxI0gvSiKSuPbYzWI=
 open-cluster-management.io/multicloud-operators-subscription v0.9.0/go.mod h1:ZUyK1jDFqefZDQogJBMBFu6/5x3YLQN/V37XBTUsm4s=
 open-cluster-management.io/multicluster-controlplane v0.1.1-0.20230313022228-19dae269e7f8 h1:1lsLtKednuLG8ucoL1bxQIYyQW3rnZJB1bj+AqvDwLc=

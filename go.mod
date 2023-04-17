@@ -8,7 +8,7 @@ require (
 	github.com/open-policy-agent/frameworks/constraint v0.0.0-20220504221328-9db6a6b27c97
 	github.com/openshift/client-go v0.0.0-20221019143426-16aed247da5c
 	github.com/openshift/library-go v0.0.0-20221205131816-1700fb06ea43
-	github.com/spf13/cobra v1.5.0
+	github.com/spf13/cobra v1.6.1
 	github.com/stolostron/cluster-lifecycle-api v0.0.0-20230222063645-5b18b26381ff
 	github.com/stolostron/kubernetes-dependency-watches v0.2.0
 	github.com/stolostron/multicloud-operators-foundation v0.0.0-20230313144633-5efa51aee885
@@ -21,7 +21,8 @@ require (
 	k8s.io/klog v1.0.0
 	k8s.io/klog/v2 v2.80.1
 	k8s.io/kube-aggregator v0.25.4
-	open-cluster-management.io/addon-framework v0.6.0
+	k8s.io/utils v0.0.0-20221128185143-99ec85e7a448
+	open-cluster-management.io/addon-framework v0.5.1-0.20221206033210-55b40b1bc8c6
 	open-cluster-management.io/api v0.9.1-0.20230113024003-6529d52caeeb
 	open-cluster-management.io/config-policy-controller v0.10.0
 	open-cluster-management.io/governance-policy-framework-addon v0.10.0
@@ -111,7 +112,7 @@ require (
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/selinux v1.10.0 // indirect
-	github.com/openshift/api v0.0.0-20221116152553-4b67c2b2bb1e // indirect
+	github.com/openshift/api v0.0.0-20221116152553-4b67c2b2bb1e
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/pkg/profile v1.3.0 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
@@ -221,7 +222,6 @@ require (
 	k8s.io/kube-controller-manager v0.0.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20220803164354-a70c9af30aea // indirect
 	k8s.io/kubernetes v1.25.4 // indirect
-	k8s.io/utils v0.0.0-20221011040102-427025108f67 // indirect
 	open-cluster-management.io/work v0.10.0 // indirect
 )
 

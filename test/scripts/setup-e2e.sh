@@ -95,6 +95,21 @@ EOF
   pushd $deploy_dir
   kustomize edit set image quay.io/stolostron/multicluster-controlplane=${IMAGE_NAME}
   ${SED} -i "s/AddonManagement=true/AddonManagement=true,ManagedServiceAccount=true/" $deploy_dir/deployment.yaml
+  rm -f ${deploy_dir}/clusterrolebinding.yaml
+  cat > ${deploy_dir}/clusterrolebinding.yaml <<EOF
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: open-cluster-management:multicluster-controlplane-$i
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: open-cluster-management:multicluster-controlplane
+subjects:
+- kind: ServiceAccount
+  name: multicluster-controlplane-sa
+  namespace: multicluster-controlplane-$i
+EOF
   popd
 
   kustomize build $deploy_dir | kubectl --kubeconfig ${kubeconfig} -n $namespace apply -f -
@@ -123,9 +138,32 @@ EOF
   popd
   kustomize build ${deploy_dir} | kubectl --kubeconfig $cluster_dir/$managed_cluster_name.kubeconfig -n ${agent_namespace} apply -f -
 
-  wait_seconds="90"; until [[ $((wait_seconds--)) -eq 0 ]] || eval "kubectl --kubeconfig $hubkubeconfig get csr --ignore-not-found | grep ^$managed_cluster_name &> /dev/null" ; do sleep 1; done
-  kubectl --kubeconfig $hubkubeconfig get csr --ignore-not-found -oname | grep ^certificatesigningrequest.certificates.k8s.io/$managed_cluster_name | xargs -n 1 kubectl --kubeconfig $hubkubeconfig certificate approve
-  wait_seconds="90"; until [[ $((wait_seconds--)) -eq 0 ]] || eval "kubectl --kubeconfig $hubkubeconfig get managedcluster $managed_cluster_name &> /dev/null" ; do sleep 1; done
-  kubectl --kubeconfig $hubkubeconfig patch managedcluster $managed_cluster_name -p='{"spec":{"hubAcceptsClient":true}}' --type=merge
+  wait_seconds="300"; until [[ $((wait_seconds--)) -eq 0 ]] || eval "kubectl --kubeconfig $hubkubeconfig get crds klusterlets.operator.open-cluster-management.io &> /dev/null" ; do sleep 1; done
 
+  echo "Deploy hosted cluster"
+  hosted_cluster_name="controlplane$i-hosted-mc1"
+  spoke_kubeconfig="${cluster_dir}/spoke.kubeconfig"
+  internal_kubeconfig="${cluster_dir}/internal_controlplane$i.kubeconfig"
+
+  # only for kind env, need an accessable bootstrap secret
+  cp $hubkubeconfig $internal_kubeconfig
+  kubectl --kubeconfig $internal_kubeconfig config set-cluster multicluster-controlplane --server=https://multicluster-controlplane.$namespace.svc:443
+  kubectl --kubeconfig $kubeconfig -n $namespace delete secrets multicluster-controlplane-kubeconfig
+  kubectl --kubeconfig $kubeconfig -n $namespace create secret generic multicluster-controlplane-kubeconfig --from-file kubeconfig=$internal_kubeconfig
+
+  # prepare managed cluster kubeconfig secret
+  cp $kubeconfig $spoke_kubeconfig
+  kubectl --kubeconfig $spoke_kubeconfig config set-cluster kind-${cluster} --server=https://${cluster}-control-plane:6443
+  kubectl --kubeconfig $hubkubeconfig create namespace $hosted_cluster_name
+  kubectl --kubeconfig $hubkubeconfig -n $hosted_cluster_name create secret generic managedcluster-kubeconfig --from-file kubeconfig=$spoke_kubeconfig
+  # apply hosted klusterlet
+  cat <<EOF | kubectl --kubeconfig $hubkubeconfig apply -f -
+apiVersion: operator.open-cluster-management.io/v1
+kind: Klusterlet
+metadata:
+  name: $hosted_cluster_name
+spec:
+  deployOption:
+    mode: Hosted
+EOF
 done

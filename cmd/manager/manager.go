@@ -6,18 +6,23 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	cliflag "k8s.io/component-base/cli/flag"
 	logsapi "k8s.io/component-base/logs/api/v1"
 	"k8s.io/component-base/version/verflag"
-	"k8s.io/klog"
-	ocmfeature "open-cluster-management.io/api/feature"
+
 	"open-cluster-management.io/multicluster-controlplane/pkg/servers"
 	"open-cluster-management.io/multicluster-controlplane/pkg/servers/options"
 
 	controller "github.com/stolostron/multicluster-controlplane/pkg/controllers"
 )
+
+func init() {
+	utilruntime.Must(logsapi.AddFeatureGates(utilfeature.DefaultMutableFeatureGate)) // register log to featuregate
+}
 
 func NewManager() *cobra.Command {
 	options := options.NewServerRunOptions()
@@ -42,13 +47,7 @@ func NewManager() *cobra.Command {
 			}
 
 			server := servers.NewServer(*options)
-
-			if utilfeature.DefaultMutableFeatureGate.Enabled(ocmfeature.AddonManagement) {
-				klog.Info("enabled addons")
-				server.AddController("multicluster-controlplane-ocm-addon-crd", controller.InstallAddonCrds)
-				server.AddController("multicluster-controlplane-cluster-management-addons", controller.InstallClusterManagementAddons)
-				server.AddController("multicluster-controlplane-managed-cluster-addons", controller.InstallManagedClusterAddons)
-			}
+			server.AddController("next-gen-controlplane-controllers", controller.InstallControllers)
 
 			return server.Start(stopChan)
 		},

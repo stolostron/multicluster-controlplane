@@ -38,3 +38,4 @@ cert
 hack/certs
 
 _output
+multicluster_ca
