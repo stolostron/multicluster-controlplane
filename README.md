@@ -1,16 +1,7 @@
-# Get started
+## Architecture Diagram
+![ArchitectureDiagram](doc/architecture/arch.png)
 
-## Difference with [multicluster-controlplane](https://github.com/open-cluster-management-io/multicluster-controlplane) in open-cluster-management
-
-This reposotiy is an extension to [open-cluster-management-io/multicluster-controlplane](https://github.com/open-cluster-management-io/multicluster-controlplane) with the following enhancements:
-1. Added managed cluster info addon
-2. Added policy addon
-3. Added managed service account addon
-
-In line with [open-cluster-management-io/multicluster-controlplane](https://github.com/open-cluster-management-io/multicluster-controlplane):
-1. Using the same API Server, it starts core kubernetes and enables open-cluster-management registration controllers
-2. Both embedded etcd and external etcd are supported
-3. Test scenarios in [open-cluster-management-io/multicluster-controlplane](https://github.com/open-cluster-management-io/multicluster-controlplane) are all covered in the current repository
+This repository is an extension to [open-cluster-management-io/multicluster-controlplane](https://github.com/open-cluster-management-io/multicluster-controlplane). It provides a way to run in-process components, which can provide some new capabilities to support auto-import the managed clusters and deploy the configuration policy on the matched managed clusters.
 
 ## Install multicluster-controlplane
 
