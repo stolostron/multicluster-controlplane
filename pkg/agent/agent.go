@@ -18,7 +18,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
 	openshiftoauthclientset "github.com/openshift/client-go/oauth/clientset/versioned"
