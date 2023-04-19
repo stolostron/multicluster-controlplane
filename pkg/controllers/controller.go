@@ -5,7 +5,6 @@ import (
 	"time"
 
 	clusterinfov1beta1 "github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
-
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -22,7 +21,6 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
 	aggregatorapiserver "k8s.io/kube-aggregator/pkg/apiserver"
-
 	"open-cluster-management.io/addon-framework/pkg/addonmanager"
 	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
 	operatorclient "open-cluster-management.io/api/client/operator/clientset/versioned"
@@ -34,8 +32,8 @@ import (
 	policyv1beta1 "open-cluster-management.io/governance-policy-propagator/api/v1beta1"
 	authv1alpha1 "open-cluster-management.io/managed-serviceaccount/api/v1alpha1"
 	placementrulev1 "open-cluster-management.io/multicloud-operators-subscription/pkg/apis/apps/placementrule/v1"
+	placementrulecontroller "open-cluster-management.io/multicloud-operators-subscription/pkg/placementrule/controller"
 	"open-cluster-management.io/multicluster-controlplane/pkg/controllers/ocmcontroller"
-
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/stolostron/multicluster-controlplane/pkg/controllers/addons"
@@ -203,6 +201,11 @@ func InstallControllers(stopCh <-chan struct{}, aggregatorConfig *aggregatorapis
 			kubeInformerFactory,
 			operatorInformerFactory.Operator().V1().Klusterlets(),
 		)
+
+		klog.Info("starting placementrule controller")
+		if err := placementrulecontroller.AddToManager(mgr); err != nil {
+			klog.Error(err)
+		}
 
 		if err := mgr.Start(ctx); err != nil {
 			klog.Error(err)
