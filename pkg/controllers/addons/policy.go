@@ -4,14 +4,14 @@ import (
 	"context"
 	"os"
 	"strings"
+	"sync"
 
 	k8sdepwatches "github.com/stolostron/kubernetes-dependency-watches/client"
-
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
-
 	policyv1 "open-cluster-management.io/governance-policy-propagator/api/v1"
 	automationctrl "open-cluster-management.io/governance-policy-propagator/controllers/automation"
 	encryptionkeysctrl "open-cluster-management.io/governance-policy-propagator/controllers/encryptionkeys"
@@ -20,7 +20,11 @@ import (
 	propagatorctrl "open-cluster-management.io/governance-policy-propagator/controllers/propagator"
 
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 func SetupPolicyWithManager(ctx context.Context, mgr ctrl.Manager, kubeconfig *rest.Config,
@@ -41,10 +45,11 @@ func SetupPolicyWithManager(ctx context.Context, mgr ctrl.Manager, kubeconfig *r
 	}()
 
 	if err = (&propagatorctrl.PolicyReconciler{
-		Client:   mgr.GetClient(),
-		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorderFor(propagatorctrl.ControllerName),
-		// DynamicWatcher: dynamicWatcher,
+		Client:          mgr.GetClient(),
+		Scheme:          mgr.GetScheme(),
+		Recorder:        mgr.GetEventRecorderFor(propagatorctrl.ControllerName),
+		DynamicWatcher:  dynamicWatcher,
+		RootPolicyLocks: &sync.Map{},
 	}).SetupWithManager(mgr); err != nil {
 		return err
 	}
@@ -76,14 +81,43 @@ func SetupPolicyWithManager(ctx context.Context, mgr ctrl.Manager, kubeconfig *r
 	}
 
 	// TODO: allow KeyRotationDays & MaxConcurrentReconciles configuration
-	if err = (&encryptionkeysctrl.EncryptionKeysReconciler{
+	encryptionkeysctrl := &encryptionkeysctrl.EncryptionKeysReconciler{
 		Client:                  mgr.GetClient(),
 		KeyRotationDays:         30,
 		MaxConcurrentReconciles: 10,
 		Scheme:                  mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		return err
 	}
+
+	// need to limit to
+	ctrl.NewControllerManagedBy(mgr).
+		// The work queue prevents the same item being reconciled concurrently:
+		// https://github.com/kubernetes-sigs/controller-runtime/issues/1416#issuecomment-899833144
+		WithOptions(controller.Options{MaxConcurrentReconciles: int(encryptionkeysctrl.MaxConcurrentReconciles)}).
+		Named("policy-encryption-keys").
+		For(&corev1.Secret{}, builder.WithPredicates(predicate.Funcs{
+			UpdateFunc: func(e event.UpdateEvent) bool {
+				if e.ObjectNew.GetName() == propagatorctrl.EncryptionKeySecret {
+					return true
+				} else {
+					return false
+				}
+			},
+			CreateFunc: func(e event.CreateEvent) bool {
+				if e.Object.GetName() == propagatorctrl.EncryptionKeySecret {
+					return true
+				} else {
+					return false
+				}
+			},
+			DeleteFunc: func(e event.DeleteEvent) bool {
+				if e.Object.GetName() == propagatorctrl.EncryptionKeySecret {
+					return true
+				} else {
+					return false
+				}
+			},
+		})).
+		Complete(encryptionkeysctrl)
 
 	propagatorctrl.Initialize(kubeconfig, &kubeClient)
 
