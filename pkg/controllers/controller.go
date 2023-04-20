@@ -149,6 +149,10 @@ func InstallControllers(stopCh <-chan struct{}, aggregatorConfig *aggregatorapis
 				ctx, mgr, restConfig, kubeClient, controlplaneDynamicClient); err != nil {
 				klog.Fatalf("failed to setup policy controller %v", err)
 			}
+			klog.Info("starting placementrule controller")
+			if err := placementrulecontroller.AddToManager(mgr); err != nil {
+				klog.Error(err)
+			}
 		}
 
 		if utilfeature.DefaultMutableFeatureGate.Enabled(feature.ManagedServiceAccount) {
@@ -201,11 +205,6 @@ func InstallControllers(stopCh <-chan struct{}, aggregatorConfig *aggregatorapis
 			kubeInformerFactory,
 			operatorInformerFactory.Operator().V1().Klusterlets(),
 		)
-
-		klog.Info("starting placementrule controller")
-		if err := placementrulecontroller.AddToManager(mgr); err != nil {
-			klog.Error(err)
-		}
 
 		if err := mgr.Start(ctx); err != nil {
 			klog.Error(err)
