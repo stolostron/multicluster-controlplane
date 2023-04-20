@@ -26,6 +26,9 @@ spec:
           - "--cluster-name=cluster1"
           - "--bootstrap-kubeconfig=/spoke/bootstrap/kubeconfig"
           - "--feature-gates=AddonManagement=true"
+        env:
+        - name: OPERATOR_NAME
+          value: multicluster-controlplane-agent
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
