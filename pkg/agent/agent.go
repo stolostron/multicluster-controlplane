@@ -11,7 +11,6 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	kubescheme "k8s.io/client-go/kubernetes/scheme"
@@ -38,7 +37,9 @@ import (
 	"open-cluster-management.io/governance-policy-framework-addon/controllers/secretsync"
 	policyv1 "open-cluster-management.io/governance-policy-propagator/api/v1"
 	"open-cluster-management.io/governance-policy-propagator/controllers/common"
+	msav1alpha1 "open-cluster-management.io/managed-serviceaccount/api/v1alpha1"
 	"open-cluster-management.io/multicluster-controlplane/pkg/agent"
+	"open-cluster-management.io/multicluster-controlplane/pkg/features"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
@@ -47,7 +48,20 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
-// TODO enhance ocm ensure crd function, here we should only ensure policy crds
+var scheme = runtime.NewScheme()
+
+func init() {
+	utilruntime.Must(kubescheme.AddToScheme(scheme))
+	utilruntime.Must(clusterv1.AddToScheme(scheme))
+	utilruntime.Must(clusterinfov1beta1.AddToScheme(scheme))
+	utilruntime.Must(policyv1.AddToScheme(scheme))
+	utilruntime.Must(configpolicyv1.AddToScheme(scheme))
+	utilruntime.Must(apiextensionsv1.AddToScheme(scheme))
+	utilruntime.Must(msav1alpha1.AddToScheme(scheme))
+	utilruntime.Must(gktemplatesv1.AddToScheme(scheme))
+	utilruntime.Must(gktemplatesv1beta1.AddToScheme(scheme))
+}
+
 var requiredCRDFiles = []string{
 	"crds/clusters.open-cluster-management.io_clusterclaims.crd.yaml",
 	"crds/policy.open-cluster-management.io_configurationpolicies.crd.yaml",
@@ -111,16 +125,6 @@ func (a *AgentOptions) RunAddOns(ctx context.Context) error {
 	}
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(opts)))
 
-	scheme := runtime.NewScheme()
-	utilruntime.Must(kubescheme.AddToScheme(scheme))
-	utilruntime.Must(clusterv1.AddToScheme(scheme))
-	utilruntime.Must(clusterinfov1beta1.AddToScheme(scheme))
-	utilruntime.Must(policyv1.AddToScheme(scheme))
-	utilruntime.Must(configpolicyv1.AddToScheme(scheme))
-	utilruntime.Must(apiextensionsv1.AddToScheme(scheme))
-	utilruntime.Must(gktemplatesv1.AddToScheme(scheme))
-	utilruntime.Must(gktemplatesv1beta1.AddToScheme(scheme))
-
 	hubManager, err := a.newHubManager(hubKubeConfig, scheme)
 	if err != nil {
 		return err
@@ -131,9 +135,10 @@ func (a *AgentOptions) RunAddOns(ctx context.Context) error {
 		return err
 	}
 
+	clusterName := a.RegistrationAgent.ClusterName
 	startCtrlMgr := false
 
-	if utilfeature.DefaultMutableFeatureGate.Enabled(feature.ManagedClusterInfo) {
+	if features.DefaultAgentMutableFeatureGate.Enabled(feature.ManagedClusterInfo) {
 		// start managed cluster info controller
 		klog.Info("starting managed cluster info addon agent")
 		clusterClient, err := clusterclientset.NewForConfig(spokeKubeConfig)
@@ -158,7 +163,7 @@ func (a *AgentOptions) RunAddOns(ctx context.Context) error {
 
 		if err := addons.StartManagedClusterInfoAgent(
 			ctx,
-			a.RegistrationAgent.ClusterName,
+			clusterName,
 			hubManager,
 			kubeClient,
 			dynamicClient,
@@ -173,11 +178,11 @@ func (a *AgentOptions) RunAddOns(ctx context.Context) error {
 		startCtrlMgr = true
 	}
 
-	if utilfeature.DefaultMutableFeatureGate.Enabled(feature.ConfigurationPolicy) {
+	if features.DefaultAgentMutableFeatureGate.Enabled(feature.ConfigurationPolicy) {
 		klog.Info("starting configuration policy addon agent")
 		if err := addons.StartPolicyAgent(
 			ctx,
-			a.RegistrationAgent.ClusterName,
+			clusterName,
 			spokeKubeConfig,
 			hubManager,
 			spokeManager,
@@ -186,6 +191,15 @@ func (a *AgentOptions) RunAddOns(ctx context.Context) error {
 			a.PolicyAgentConfig,
 		); err != nil {
 			klog.Fatalf("failed to setup policy addon, %v", err)
+		}
+
+		startCtrlMgr = true
+	}
+
+	if features.DefaultAgentMutableFeatureGate.Enabled(feature.ManagedServiceAccount) {
+		klog.Info("starting managed serviceaccount addon agent")
+		if err := addons.StartManagedServiceAccountAgent(ctx, hubManager, clusterName); err != nil {
+			klog.Fatalf("failed to setup managed serviceaccount addon, %v", err)
 		}
 
 		startCtrlMgr = true
@@ -218,7 +232,7 @@ func (a *AgentOptions) newHubManager(config *rest.Config, scheme *runtime.Scheme
 	mgr, err := ctrl.NewManager(config, ctrl.Options{
 		Scheme:             scheme,
 		Namespace:          a.RegistrationAgent.ClusterName,
-		MetricsBindAddress: ":8383",
+		MetricsBindAddress: "0", //TODO think about the mertics later
 		NewCache: cache.BuilderWithOptions(
 			cache.Options{
 				SelectorsByObject: cache.SelectorsByObject{
@@ -266,7 +280,7 @@ func (a *AgentOptions) newSpokeManager(config *rest.Config, scheme *runtime.Sche
 	crdLabelSelector := labels.SelectorFromSet(map[string]string{common.APIGroup + "/policy-type": "template"})
 	mgr, err := ctrl.NewManager(config, ctrl.Options{
 		Scheme:             scheme,
-		MetricsBindAddress: ":8384",
+		MetricsBindAddress: "0", //TODO think about the mertics later
 		NewCache: cache.BuilderWithOptions(
 			cache.Options{
 				SelectorsByObject: cache.SelectorsByObject{

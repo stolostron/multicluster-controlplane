@@ -24,7 +24,7 @@ const (
 	HubKubeConfig = "hub-kubeconfig-secret"
 	// ExternalManagedKubeConfig is the secret name of kubeconfig secret to connecting to the managed cluster
 	// Only applicable to Hosted mode, klusterlet-operator uses it to install resources on the managed cluster.
-	ExternalManagedKubeConfig      = "external-managed-kubeconfig"
+	ExternalManagedKubeConfig      = "managedcluster-kubeconfig"
 	ExternalManagedAgentKubeConfig = "external-managed-agent-kubeconfig"
 
 	KlusterletReadyToApply = "ReadyToApply"
@@ -36,7 +36,7 @@ func KlusterletSecretQueueKeyFunc(klusterletLister operatorlister.KlusterletList
 		namespace := accessor.GetNamespace()
 		name := accessor.GetName()
 		interestedObjectFound := false
-		if name == HubKubeConfig || name == BootstrapHubKubeConfig || name == ExternalManagedKubeConfig {
+		if name == HubKubeConfig || name == BootstrapHubKubeConfig {
 			interestedObjectFound = true
 		}
 		if !interestedObjectFound {

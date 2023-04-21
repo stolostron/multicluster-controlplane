@@ -41,10 +41,13 @@ type managedReconcile struct {
 
 func (r *managedReconcile) reconcile(ctx context.Context, klusterlet *operatorapiv1.Klusterlet, config klusterletConfig) (*operatorapiv1.Klusterlet, reconcileState, error) {
 	if config.InstallMode == operatorapiv1.InstallModeHosted {
-		// In hosted mode, we should ensure the namespace on the managed cluster since
-		// some resources(eg:service account) are still deployed on managed cluster.
-		err := ensureNamespace(ctx, r.managedClusterClients.kubeClient, klusterlet, config.KlusterletNamespace)
-		if err != nil {
+		// In hosted mode, we should ensure two namespaces on the managed cluster
+		// 1. the controlplane namsespace is for the hub kubeconfig
+		// 2. the open-cluster-management-<hosted-cluster> namsespace for setting the rabc of agent
+		if err := ensureNamespace(ctx, r.managedClusterClients.kubeClient, klusterlet, helpers.GetComponentNamespace()); err != nil {
+			return klusterlet, reconcileStop, err
+		}
+		if err := ensureNamespace(ctx, r.managedClusterClients.kubeClient, klusterlet, config.KlusterletNamespace); err != nil {
 			return klusterlet, reconcileStop, err
 		}
 	}

@@ -1,19 +1,16 @@
-#!/bin/bash
+#!/usr/bin/env bash
+REPO_DIR="$(cd "$(dirname ${BASH_SOURCE[0]})/../.." ; pwd -P)"
+source ${REPO_DIR}/test/scripts/init.sh
 
 set -o nounset
 set -o pipefail
+set -o errexit
 
-project_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." ; pwd -P)"
+kind delete cluster --name $management_cluster
 
-host=${HOST_CLUSTER_NAME:-"controlplane-hosting"}
-kind delete cluster --name $host
-
-number=${CONTROLPLANE_NUMBER:-2}
-echo "Controlplane number : $number"
-for i in $(seq 1 "${number}"); do
-  namespace=controlplane$i
-  kind delete cluster --name ${namespace}-mc1
+for i in $(seq 1 "${CONTROLPLANE_NUMBER}"); do
+  kind delete cluster --name controlplane$i-mc
 done
 
-rm -rf $project_dir/multicluster_ca
-rm -rf $project_dir/_output
+rm -rf $REPO_DIR/multicluster_ca
+rm -rf $REPO_DIR/_output

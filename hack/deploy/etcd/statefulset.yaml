@@ -70,12 +70,12 @@ spec:
       volumes:
       - name: trusted
         secret:
-          secretName: trusted-ca              
+          secretName: trusted-ca
   volumeClaimTemplates:
   - metadata:
       name: multicluster-config
     spec:
-      storageClassName: standard
+      storageClassName: gp2
       accessModes:
         - "ReadWriteOnce"
       resources:
