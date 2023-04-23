@@ -67,3 +67,6 @@ rules:
 - apiGroups: ["policy.open-cluster-management.io"]
   resources: ["configurationpolicies/status", "policies/status"]
   verbs: ["get", "list", "watch", "create", "patch", "update", "delete"]
+- apiGroups: ["authentication.k8s.io"]
+  resources: ["tokenreviews"]
+  verbs: ["create"]

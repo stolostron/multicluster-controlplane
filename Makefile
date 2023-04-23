@@ -52,11 +52,7 @@ run:
 all: clean vendor build run
 .PHONY: all
 
-update-crd:
-	bash -x hack/crd-update/copy-crds.sh
-.PHONY: update-crd
-
-deploy-etcd: 
+deploy-etcd:
 	$(KUBECTL) get ns $(ETCD_NS); if [ $$? -ne 0 ] ; then $(KUBECTL) create ns $(ETCD_NS); fi
 	hack/deploy-etcd.sh
 
@@ -75,7 +71,6 @@ destroy:
 
 # test
 export CONTROLPLANE_NUMBER ?= 2
-export VERBOSE ?= 5
 GO_TEST ?= go test -v
 
 test-unit:
@@ -103,5 +98,5 @@ cleanup-e2e:
 .PHONY: cleanup-e2e
 
 test-e2e: vendor
-	./test/scripts/test-e2e.sh -v $(VERBOSE)
+	./test/scripts/test-e2e.sh
 .PHONY: test-e2e

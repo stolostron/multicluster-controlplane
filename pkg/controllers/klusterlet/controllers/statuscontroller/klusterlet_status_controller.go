@@ -16,11 +16,11 @@ import (
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
 
-	"github.com/stolostron/multicluster-controlplane/pkg/controllers/klusterlet/helpers"
-
 	operatorv1client "open-cluster-management.io/api/client/operator/clientset/versioned/typed/operator/v1"
 	operatorinformer "open-cluster-management.io/api/client/operator/informers/externalversions/operator/v1"
 	operatorlister "open-cluster-management.io/api/client/operator/listers/operator/v1"
+
+	"github.com/stolostron/multicluster-controlplane/pkg/controllers/klusterlet/helpers"
 )
 
 type klusterletStatusController struct {

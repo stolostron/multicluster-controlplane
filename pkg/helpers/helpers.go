@@ -4,9 +4,6 @@ package helpers
 import (
 	"context"
 	"embed"
-	"fmt"
-	"os"
-	"strings"
 	"time"
 
 	"k8s.io/apiextensions-apiserver/pkg/apihelpers"
@@ -18,12 +15,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 
-	"open-cluster-management.io/addon-framework/pkg/assets"
-
+	"github.com/openshift/library-go/pkg/assets"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
-
-	"github.com/stolostron/multicluster-controlplane/pkg/constants"
 )
 
 var (
@@ -34,25 +28,6 @@ var (
 
 func init() {
 	utilruntime.Must(crdv1.AddToScheme(genericScheme))
-}
-
-func GetImage(imageEnvName, defaultImage string) string {
-	image := os.Getenv(imageEnvName)
-	if image == "" {
-		image = defaultImage
-	}
-
-	// the image has tag or digest, return it directly
-	if strings.Contains(image, ":") || strings.Contains(image, "@") {
-		return image
-	}
-
-	snapshotVersion := os.Getenv(constants.SnapshotVersionEnvName)
-	if snapshotVersion == "" {
-		snapshotVersion = constants.DefaultSnapshotVersion
-	}
-
-	return fmt.Sprintf("%s:%s", image, snapshotVersion)
 }
 
 func EnsureCRDs(ctx context.Context, client apiextensionsclient.Interface, fs embed.FS, crds ...string) error {

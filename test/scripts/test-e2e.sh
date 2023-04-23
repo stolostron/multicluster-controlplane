@@ -1,66 +1,26 @@
-#!/bin/bash
+#!/usr/bin/env bash
+REPO_DIR="$(cd "$(dirname ${BASH_SOURCE[0]})/../.." ; pwd -P)"
+source ${REPO_DIR}/test/scripts/init.sh
 
-set -e
+set -o nounset
+set -o pipefail
+set -o errexit
 
-project_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." ; pwd -P)"
-kubeconfig_dir=$project_dir/_output/kubeconfig
-options_file="${project_dir}/_output/options.yaml"
+echo "##### Build e2e test ..."
+go test -c ${REPO_DIR}/test/e2e -mod=vendor -o ${REPO_DIR}/bin/e2e.test
 
-hosting=${HOST_CLUSTER_NAME:-"controlplane-hosting"}  # hosting cluster
-cp1=controlplane1
-cp2=controlplane2
-cp1_mc1=$cp1-mc1
-cp2_mc1=$cp2-mc1
+for i in $(seq 1 "${CONTROLPLANE_NUMBER}"); do
+  export CONTROLPLANE_NAME="controlplane$i"
+  export MANAGED_CLUSTER_NAMESPACE="controlplane$i-mc"
 
-printf "options:" > $options_file
-printf "\n  hosting:" >> $options_file
-printf "\n    name: $hosting" >> $options_file
-printf "\n    context: kind-$hosting" >> $options_file
-printf "\n    kubeconfig: ${kubeconfig_dir}/${hosting}.kubeconfig" >> $options_file
-printf "\n  controlplanes:" >> $options_file
-printf "\n    - name: $cp1" >> $options_file
-printf "\n      context: multicluster-controlplane" >> $options_file
-printf "\n      kubeconfig: ${kubeconfig_dir}/${cp1}.kubeconfig" >> $options_file
-printf "\n      managedclusters:" >> $options_file
-printf "\n        - name: $cp1_mc1" >> $options_file
-printf "\n          context: kind-$cp1_mc1" >> $options_file
-printf "\n          kubeconfig: ${kubeconfig_dir}/${cp1_mc1}.kubeconfig" >> $options_file
-printf "\n    - name: $cp2" >> $options_file
-printf "\n      context: multicluster-controlplane" >> $options_file
-printf "\n      kubeconfig: ${kubeconfig_dir}/${cp2}.kubeconfig" >> $options_file
-printf "\n      managedclusters:" >> $options_file
-printf "\n        - name: $cp2_mc1" >> $options_file
-printf "\n          context: kind-$cp2_mc1" >> $options_file
-printf "\n          kubeconfig: ${kubeconfig_dir}/${cp2_mc1}.kubeconfig" >> $options_file
+  export CONTROLPLANE_KUBECONFIG="${cluster_dir}/controlplane$i.kubeconfig"
+  export MANAGED_CLUSTER_KUBECONFIG="${cluster_dir}/controlplane$i-mc.kubeconfig"
 
-while getopts ":f:v:" opt; do
-  case $opt in
-    f) filter="$OPTARG"
-    ;;
-    v) verbose="$OPTARG"
-    ;;
-    \?) echo "Invalid option -$OPTARG" >&2
-    exit 1
-    ;;
-  esac
+  echo "##### Run e2e test on ${CONTROLPLANE_NAME} ..."
+  ${REPO_DIR}/bin/e2e.test -test.v -ginkgo.v
 
-  case $OPTARG in
-    -*) echo "Option $opt needs a valid argument"
-    exit 1
-    ;;
-  esac
+  unset CONTROLPLANE_NAME
+  unset MANAGED_CLUSTER_NAMESPACE
+  unset CONTROLPLANE_KUBECONFIG
+  unset MANAGED_CLUSTER_KUBECONFIG
 done
-
-echo "Build E2E Test ..."
-go test -c ${project_dir}/test/e2e -mod=vendor -o ${project_dir}/test/e2e/e2e.test
-
-echo "Run E2E Test ..."
-cd ${project_dir}/test/e2e
-
-if [ -z "${filter}" ]; then
-  ./e2e.test --options=$options_file -v=$verbose
-else
-  ./e2e.test --ginkgo.label-filter=${filter} --ginkgo.v --options=$options_file -v=$verbose 
-fi
-
-rm ${project_dir}/test/e2e/e2e.test

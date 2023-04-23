@@ -6,10 +6,9 @@ import (
 
 	"github.com/spf13/cobra"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/component-base/cli"
-	logsapi "k8s.io/component-base/logs/api/v1"
-	ocmfeature "open-cluster-management.io/registration/pkg/features"
+
+	"open-cluster-management.io/multicluster-controlplane/pkg/features"
 
 	"github.com/stolostron/multicluster-controlplane/cmd/agent"
 	"github.com/stolostron/multicluster-controlplane/cmd/manager"
@@ -17,9 +16,8 @@ import (
 )
 
 func init() {
-	utilruntime.Must(logsapi.AddFeatureGates(utilfeature.DefaultMutableFeatureGate)) // register log to featuregate
-	utilruntime.Must(utilfeature.DefaultMutableFeatureGate.Add(feature.DefaultControlPlaneFeatureGates))
-	ocmfeature.DefaultSpokeMutableFeatureGate.Add(feature.DefaultControlPlaneFeatureGates)
+	utilruntime.Must(features.DefaultControlplaneMutableFeatureGate.Add(feature.DefaultControlPlaneFeatureGates))
+	utilruntime.Must(features.DefaultAgentMutableFeatureGate.Add(feature.DefaultControlPlaneFeatureGates))
 }
 
 func main() {

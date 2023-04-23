@@ -50,13 +50,6 @@ var (
 	genericScheme = runtime.NewScheme()
 	genericCodecs = serializer.NewCodecFactory(genericScheme)
 	genericCodec  = genericCodecs.UniversalDeserializer()
-
-	DefaultHubRegistrationFeatureGates = []operatorapiv1.FeatureGate{
-		{Feature: "DefaultClusterSet", Mode: operatorapiv1.FeatureGateModeTypeEnable},
-	}
-	DefaultSpokeRegistrationFeatureGates = []operatorapiv1.FeatureGate{
-		{Feature: "AddonManagement", Mode: operatorapiv1.FeatureGateModeTypeEnable},
-	}
 )
 
 func init() {

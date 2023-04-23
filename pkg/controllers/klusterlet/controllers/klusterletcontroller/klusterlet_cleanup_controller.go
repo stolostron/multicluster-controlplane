@@ -42,6 +42,7 @@ type klusterletCleanupController struct {
 // NewKlusterletCleanupController construct klusterlet cleanup controller
 func NewKlusterletCleanupController(
 	kubeClient kubernetes.Interface,
+	controlplaneKubeClient kubernetes.Interface,
 	apiExtensionClient apiextensionsclient.Interface,
 	klusterletClient operatorv1client.KlusterletInterface,
 	klusterletInformer operatorinformer.KlusterletInformer,
@@ -50,10 +51,15 @@ func NewKlusterletCleanupController(
 	appliedManifestWorkClient workv1client.AppliedManifestWorkInterface,
 	recorder events.Recorder) factory.Controller {
 	controller := &klusterletCleanupController{
-		kubeClient:                   kubeClient,
-		klusterletClient:             klusterletClient,
-		klusterletLister:             klusterletInformer.Lister(),
-		managedClusterClientsBuilder: newManagedClusterClientsBuilder(kubeClient, apiExtensionClient, appliedManifestWorkClient),
+		kubeClient:       kubeClient,
+		klusterletClient: klusterletClient,
+		klusterletLister: klusterletInformer.Lister(),
+		managedClusterClientsBuilder: newManagedClusterClientsBuilder(
+			kubeClient,
+			controlplaneKubeClient,
+			apiExtensionClient,
+			appliedManifestWorkClient,
+		),
 	}
 
 	return factory.New().WithSync(controller.sync).
@@ -103,10 +109,8 @@ func (n *klusterletCleanupController) sync(ctx context.Context, controllerContex
 		BootStrapKubeConfigSecret: helpers.BootstrapHubKubeConfig,
 		HubKubeConfigSecret:       helpers.HubKubeConfig,
 		ExternalServerURL:         getServersFromKlusterlet(klusterlet),
-
-		ExternalManagedKubeConfigSecret: helpers.ExternalManagedKubeConfig,
-		InstallMode:                     klusterlet.Spec.DeployOption.Mode,
-		HubApiServerHostAlias:           klusterlet.Spec.HubApiServerHostAlias,
+		InstallMode:               klusterlet.Spec.DeployOption.Mode,
+		HubApiServerHostAlias:     klusterlet.Spec.HubApiServerHostAlias,
 	}
 
 	reconcilers := []klusterletReconcile{
@@ -123,7 +127,7 @@ func (n *klusterletCleanupController) sync(ctx context.Context, controllerContex
 	if config.InstallMode != operatorapiv1.InstallModeHosted || hasFinalizer(klusterlet, klusterletHostedFinalizer) {
 		managedClusterClients, err := n.managedClusterClientsBuilder.
 			withMode(config.InstallMode).
-			withKubeConfigSecret(config.AgentNamespace, config.ExternalManagedKubeConfigSecret).
+			withKubeConfigSecret(config.ClusterName, helpers.ExternalManagedKubeConfig).
 			build(ctx)
 		// stop when hosted kubeconfig is not found. the klustelet controller will monitor the secret and retrigger
 		// reconcilation of cleanup controller when secret is created again.

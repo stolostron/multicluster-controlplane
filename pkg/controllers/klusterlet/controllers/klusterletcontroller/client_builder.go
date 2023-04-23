@@ -5,12 +5,15 @@ import (
 	"context"
 
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
 	workclientset "open-cluster-management.io/api/client/work/clientset/versioned"
 	workv1client "open-cluster-management.io/api/client/work/clientset/versioned/typed/work/v1"
 	operatorapiv1 "open-cluster-management.io/api/operator/v1"
+
+	"github.com/stolostron/multicluster-controlplane/pkg/controllers/klusterlet/helpers"
 )
 
 type managedClusterClientsBuilderInterface interface {
@@ -31,6 +34,7 @@ type managedClusterClients struct {
 
 type managedClusterClientsBuilder struct {
 	kubeClient                kubernetes.Interface
+	controlplaneKubeClient    kubernetes.Interface
 	apiExtensionClient        apiextensionsclient.Interface
 	appliedManifestWorkClient workv1client.AppliedManifestWorkInterface
 
@@ -41,11 +45,13 @@ type managedClusterClientsBuilder struct {
 
 func newManagedClusterClientsBuilder(
 	kubeClient kubernetes.Interface,
+	controlplaneKubeClient kubernetes.Interface,
 	apiExtensionClient apiextensionsclient.Interface,
 	appliedManifestWorkClient workv1client.AppliedManifestWorkInterface,
 ) *managedClusterClientsBuilder {
 	return &managedClusterClientsBuilder{
 		kubeClient:                kubeClient,
+		controlplaneKubeClient:    controlplaneKubeClient,
 		apiExtensionClient:        apiExtensionClient,
 		appliedManifestWorkClient: appliedManifestWorkClient,
 	}
@@ -71,14 +77,12 @@ func (m *managedClusterClientsBuilder) build(ctx context.Context) (*managedClust
 		}, nil
 	}
 
-	// Ensure the agent namespace for users to create the external-managed-kubeconfig secret in this
-	// namespace, so that in the next reconcile loop the controller can get the secret successfully after
-	// the secret was created.
-	if err := ensureAgentNamespace(ctx, m.kubeClient, m.secretNamespace); err != nil {
+	managedKubeconfigSecret, err := m.controlplaneKubeClient.CoreV1().Secrets(m.secretNamespace).Get(ctx, m.secretName, metav1.GetOptions{})
+	if err != nil {
 		return nil, err
 	}
 
-	managedKubeConfig, err := getManagedKubeConfig(ctx, m.kubeClient, m.secretNamespace, m.secretName)
+	managedKubeConfig, err := helpers.LoadClientConfigFromSecret(managedKubeconfigSecret)
 	if err != nil {
 		return nil, err
 	}
@@ -90,13 +94,16 @@ func (m *managedClusterClientsBuilder) build(ctx context.Context) (*managedClust
 	if clients.kubeClient, err = kubernetes.NewForConfig(managedKubeConfig); err != nil {
 		return nil, err
 	}
+
 	if clients.apiExtensionClient, err = apiextensionsclient.NewForConfig(managedKubeConfig); err != nil {
 		return nil, err
 	}
+
 	workClient, err := workclientset.NewForConfig(managedKubeConfig)
 	if err != nil {
 		return nil, err
 	}
+
 	clients.appliedManifestWorkClient = workClient.WorkV1().AppliedManifestWorks()
 	return clients, nil
 }

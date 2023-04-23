@@ -39,3 +39,6 @@ hack/certs
 
 _output
 multicluster_ca
+
+*-kubeconfig
+*.kubeconfig

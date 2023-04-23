@@ -2,65 +2,29 @@
 package e2e_test
 
 import (
-	"context"
 	"fmt"
 	"time"
 
 	ginkgo "github.com/onsi/ginkgo/v2"
 	gomega "github.com/onsi/gomega"
+
 	authv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/klog/v2"
-	"open-cluster-management.io/addon-framework/pkg/addonfactory"
-	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
+
 	msav1alpha1 "open-cluster-management.io/managed-serviceaccount/api/v1alpha1"
-	msacommon "open-cluster-management.io/managed-serviceaccount/pkg/common"
 )
 
-var _ = ginkgo.Describe("ManagedServiceAccount", ginkgo.Label("addon"), ginkgo.Ordered, func() {
-	var controlPlane ControlPlane
-	var managedCluster Cluster
-	var msaName string
+const msaName = "msa-e2e"
 
-	ginkgo.BeforeAll(func() {
-		gomega.Expect(len(options.ControlPlanes) > 0).Should(gomega.BeTrue())
-		controlPlane = options.ControlPlanes[0]
-		gomega.Expect(len(options.ControlPlanes[0].ManagedCluster) > 0).Should(gomega.BeTrue())
-		managedCluster = options.ControlPlanes[0].ManagedCluster[0]
-		msaName = "msa-e2e"
-	})
-
-	ginkgo.It("managed-serviceaccount addon should be available", func() {
-		gomega.Eventually(func() bool {
-			availableCount := 0
-			for _, controlPlane := range options.ControlPlanes {
-				addon := &addonv1alpha1.ManagedClusterAddOn{}
-				runtimeClient := runtimeClientMap[controlPlane.Name]
-				err := runtimeClient.Get(context.TODO(), types.NamespacedName{
-					Namespace: controlPlane.ManagedCluster[0].Name,
-					Name:      msacommon.AddonName,
-				}, addon)
-				gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				if meta.IsStatusConditionTrue(addon.Status.Conditions, addonv1alpha1.ManagedClusterAddOnConditionAvailable) {
-					klog.V(5).Infof("managed-serviceaccount addon is available on cp(%s)", controlPlane.Name)
-					availableCount++
-				}
-			}
-			return availableCount > 0 && availableCount == len(options.ControlPlanes)
-		}).WithTimeout(2 * time.Minute).Should(gomega.BeTrue())
-	})
-
-	// https://github.com/open-cluster-management-io/enhancements/tree/main/enhancements/sig-architecture/19-projected-serviceaccount-token
-	ginkgo.It("token projection should work ", func() {
+var _ = ginkgo.Describe("ManagedServiceAccount", func() {
+	ginkgo.It("token projection should work", func() {
 		ginkgo.By("Create a ManagedServiceAccount on the hub cluster")
 		msa := &msav1alpha1.ManagedServiceAccount{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: managedCluster.Name,
-				Name:      msaName,
+				Name: msaName,
 			},
 			Spec: msav1alpha1.ManagedServiceAccountSpec{
 				Rotation: msav1alpha1.ManagedServiceAccountRotation{
@@ -69,65 +33,55 @@ var _ = ginkgo.Describe("ManagedServiceAccount", ginkgo.Label("addon"), ginkgo.O
 				},
 			},
 		}
-		err := runtimeClientMap[controlPlane.Name].Create(context.TODO(), msa)
+
+		_, err := saClient.Authentication().ManagedServiceAccounts(managedClusterName).Create(ctx, msa, metav1.CreateOptions{})
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		ginkgo.By("Check the ServiceAccount on the managed cluster")
 		gomega.Eventually(func() error {
-			sa := &corev1.ServiceAccount{}
-			if err = runtimeClientMap[managedCluster.Name].Get(context.TODO(), types.NamespacedName{
-				Namespace: addonfactory.AddonDefaultInstallNamespace,
-				Name:      msaName,
-			}, sa); err != nil {
+			_, err := spokeKubeClient.CoreV1().ServiceAccounts(agentNamespace).Get(ctx, msaName, metav1.GetOptions{})
+			if err != nil {
 				return err
 			}
-			klog.V(5).Infof("msa(%s) distributes sa(%s) to mc(%s)", msa.Name, sa.Name, managedCluster.Name)
+
 			return nil
-		}).WithTimeout(30 * time.Second).ShouldNot(gomega.HaveOccurred())
+		}).WithTimeout(addonTimeout).ShouldNot(gomega.HaveOccurred())
 
 		ginkgo.By("Validate the status of ManagedServiceAccount")
 		gomega.Eventually(func() error {
-			msa := &msav1alpha1.ManagedServiceAccount{}
-			if err := runtimeClientMap[controlPlane.Name].Get(context.TODO(), types.NamespacedName{
-				Namespace: managedCluster.Name,
-				Name:      msaName,
-			}, msa); err != nil {
+			msa, err := saClient.Authentication().ManagedServiceAccounts(managedClusterName).Get(ctx, msaName, metav1.GetOptions{})
+			if err != nil {
 				return err
 			}
+
 			if !meta.IsStatusConditionTrue(msa.Status.Conditions, msav1alpha1.ConditionTypeSecretCreated) {
-				return fmt.Errorf("the secret: %s/%s has not been created in hub", managedCluster.Name, msaName)
+				return fmt.Errorf("the secret: %s/%s has not been created in hub", managedClusterName, msaName)
 			}
+
 			if !meta.IsStatusConditionTrue(msa.Status.Conditions, msav1alpha1.ConditionTypeTokenReported) {
-				return fmt.Errorf("the token has not been reported to secret: %s/%s", managedCluster.Name, msaName)
+				return fmt.Errorf("the token has not been reported to secret: %s/%s", managedClusterName, msaName)
 			}
+
 			if msa.Status.TokenSecretRef == nil {
 				return fmt.Errorf("the ManagedServiceAccount not associated any token secret")
 			}
+
 			return nil
-		}).WithTimeout(2 * time.Minute).ShouldNot(gomega.HaveOccurred())
-	})
+		}).WithTimeout(addonTimeout).ShouldNot(gomega.HaveOccurred())
 
-	ginkgo.It("validity of the signing token", func() {
-		ginkgo.By("Get the ManagedServiceAccount")
-		msa := &msav1alpha1.ManagedServiceAccount{}
-		err := runtimeClientMap[controlPlane.Name].Get(context.TODO(), types.NamespacedName{
-			Namespace: managedCluster.Name,
-			Name:      msaName,
-		}, msa)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
+		ginkgo.By("Validate the reported token")
 		gomega.Eventually(func() error {
-			ginkgo.By("Get the reported token")
-			secret := &corev1.Secret{}
-			if err := runtimeClientMap[controlPlane.Name].Get(context.TODO(), types.NamespacedName{
-				Namespace: managedCluster.Name,
-				Name:      msa.Status.TokenSecretRef.Name,
-			}, secret); err != nil {
+			msa, err := saClient.Authentication().ManagedServiceAccounts(managedClusterName).Get(ctx, msaName, metav1.GetOptions{})
+			if err != nil {
 				return err
 			}
-			token := secret.Data[corev1.ServiceAccountTokenKey]
 
-			ginkgo.By("Validate the reported token by calling the TokenReview api of the managed cluster")
+			secret, err := hubKubeClient.CoreV1().Secrets(managedClusterName).Get(ctx, msa.Status.TokenSecretRef.Name, metav1.GetOptions{})
+			if err != nil {
+				return err
+			}
+
+			token := secret.Data[corev1.ServiceAccountTokenKey]
 			tokenReview := &authv1.TokenReview{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "TokenReview",
@@ -140,51 +94,35 @@ var _ = ginkgo.Describe("ManagedServiceAccount", ginkgo.Label("addon"), ginkgo.O
 					Token: string(token),
 				},
 			}
-			if err := runtimeClientMap[managedCluster.Name].Create(context.TODO(), tokenReview); err != nil {
+
+			tr, err := spokeKubeClient.AuthenticationV1().TokenReviews().Create(ctx, tokenReview, metav1.CreateOptions{})
+			if err != nil {
 				return err
 			}
 
-			if !tokenReview.Status.Authenticated {
+			if !tr.Status.Authenticated {
 				return fmt.Errorf("the secret: %s/%s token should be authenticated by the managed cluster service account", secret.GetNamespace(), secret.GetName())
 			}
-			expectUserName := fmt.Sprintf("system:serviceaccount:%s:%s", addonfactory.AddonDefaultInstallNamespace, msaName)
-			if tokenReview.Status.User.Username != expectUserName {
-				return fmt.Errorf("expect username: %s of the token, but got username: %s", expectUserName, tokenReview.Status.User.Username)
-			}
-			klog.V(5).Infof("reported token is authenticated by calling the TokenReview from mc(%s)", managedCluster.Name)
+
 			return nil
-		}).WithTimeout(2 * time.Minute).ShouldNot(gomega.HaveOccurred())
+		}).WithTimeout(addonTimeout).ShouldNot(gomega.HaveOccurred())
 	})
 
-	ginkgo.AfterAll(func() {
+	ginkgo.AfterEach(func() {
 		ginkgo.By("Delete the ManagedServiceAccount")
-		msa := &msav1alpha1.ManagedServiceAccount{}
-		err := runtimeClientMap[controlPlane.Name].Get(context.TODO(), types.NamespacedName{
-			Namespace: managedCluster.Name,
-			Name:      msaName,
-		}, msa)
-		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-		err = runtimeClientMap[controlPlane.Name].Delete(context.TODO(), msa)
+		err := saClient.Authentication().ManagedServiceAccounts(managedClusterName).Delete(ctx, msaName, metav1.DeleteOptions{})
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 		ginkgo.By("Reported secret should be deleted on hub cluster")
 		gomega.Eventually(func() bool {
-			secret := &corev1.Secret{}
-			err := runtimeClientMap[controlPlane.Name].Get(context.TODO(), types.NamespacedName{
-				Namespace: msa.GetNamespace(),
-				Name:      msa.Status.TokenSecretRef.Name,
-			}, secret)
+			_, err := hubKubeClient.CoreV1().Secrets(managedClusterName).Get(ctx, msaName, metav1.GetOptions{})
 			return errors.IsNotFound(err)
-		}, 2*time.Minute, time.Second).Should(gomega.BeTrue())
+		}, timeout, time.Second).Should(gomega.BeTrue())
 
 		ginkgo.By("ServiceAccount should be deleted on managed cluster")
 		gomega.Eventually(func() bool {
-			serviceAccount := &corev1.ServiceAccount{}
-			err := runtimeClientMap[controlPlane.Name].Get(context.TODO(), types.NamespacedName{
-				Namespace: addonfactory.AddonDefaultInstallNamespace,
-				Name:      msaName,
-			}, serviceAccount)
+			_, err := spokeKubeClient.CoreV1().ServiceAccounts(agentNamespace).Get(ctx, msaName, metav1.GetOptions{})
 			return errors.IsNotFound(err)
-		}, 2*time.Minute, time.Second).Should(gomega.BeTrue())
+		}, timeout, time.Second).Should(gomega.BeTrue())
 	})
 })

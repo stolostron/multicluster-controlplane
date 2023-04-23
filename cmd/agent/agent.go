@@ -4,6 +4,7 @@ package agent
 
 import (
 	"context"
+	"path"
 
 	"github.com/spf13/cobra"
 	genericapiserver "k8s.io/apiserver/pkg/server"
@@ -39,8 +40,11 @@ func NewAgent() *cobra.Command {
 				}
 			}()
 
-			// TODO change the function `waitForValidHubKubeConfig` to publich in
-			// `open-cluster-management.io/multicluster-controlplane/pkg/agent`, then call here
+			// wait for the agent is registered
+			hubKubeConfig := path.Join(agentOptions.RegistrationAgent.HubKubeconfigDir, "kubeconfig")
+			if err := agentOptions.WaitForValidHubKubeConfig(ctx, hubKubeConfig); err != nil {
+				return err
+			}
 
 			if err := agentOptions.RunAddOns(ctx); err != nil {
 				return err

@@ -18,7 +18,7 @@ spec:
       serviceAccountName: {{ .KlusterletName }}-agent-sa
       containers:
       - name: agent
-        image: quay.io/stolostron/multicluster-controlplane
+        image: {{ .AgentImage }}
         imagePullPolicy: IfNotPresent
         args:
           - "/multicluster-controlplane"
@@ -26,10 +26,15 @@ spec:
           - "--cluster-name={{ .ClusterName }}"
           - "--hub-kubeconfig-secret={{ .HubKubeConfigSecret }}"
           - "--bootstrap-kubeconfig=/spoke/bootstrap/kubeconfig"
+          {{if ne .InstallMode "Hosted"}}
           - "--feature-gates=AddonManagement=true"
+          {{end}}
           {{if eq .InstallMode "Hosted"}}
           - "--spoke-kubeconfig=/spoke/config/kubeconfig"
           {{end}}
+        env:
+        - name: OPERATOR_NAME
+          value: {{ .KlusterletName }}-multicluster-controlplane-agent
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
