@@ -8,14 +8,14 @@ import (
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 
-	"github.com/stolostron/multicluster-controlplane/pkg/controllers/klusterlet/crdmanager"
-	"github.com/stolostron/multicluster-controlplane/pkg/controllers/klusterlet/helpers"
-	"github.com/stolostron/multicluster-controlplane/pkg/controllers/klusterlet/manifests"
-
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	operatorapiv1 "open-cluster-management.io/api/operator/v1"
+
+	"github.com/stolostron/multicluster-controlplane/pkg/controllers/klusterlet/crdmanager"
+	"github.com/stolostron/multicluster-controlplane/pkg/controllers/klusterlet/helpers"
+	"github.com/stolostron/multicluster-controlplane/pkg/controllers/klusterlet/manifests"
 )
 
 var crdV1StaticFiles = []string{

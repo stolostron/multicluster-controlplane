@@ -17,6 +17,7 @@ import (
 
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	clusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	operatorclient "open-cluster-management.io/api/client/operator/clientset/versioned"
 	operatorinformer "open-cluster-management.io/api/client/operator/informers/externalversions"
 	workclient "open-cluster-management.io/api/client/work/clientset/versioned"
@@ -135,6 +136,11 @@ func InstallControllers(stopCh <-chan struct{}, aggregatorConfig *aggregatorapis
 				klog.Fatalf("failed to build controlplane operator client %v", err)
 			}
 
+			controlplaneClusterClient, err := clusterclient.NewForConfig(loopbackRestConfig)
+			if err != nil {
+				klog.Fatalf("failed to build controlplane cluster client %v", err)
+			}
+
 			kubeClient, err := kubernetes.NewForConfig(restConfig)
 			if err != nil {
 				klog.Fatalf("failed to build kube client on the management cluster %v", err)
@@ -151,6 +157,7 @@ func InstallControllers(stopCh <-chan struct{}, aggregatorConfig *aggregatorapis
 			klog.Info("starting klusterlet")
 			klusterlet := klusterlet.NewKlusterlet(
 				controlplaneKubeClient,
+				controlplaneClusterClient,
 				controlplaneCRDClient,
 				controlplaneOperatorClient.OperatorV1().Klusterlets(),
 				kubeClient,

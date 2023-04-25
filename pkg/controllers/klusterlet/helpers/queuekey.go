@@ -4,11 +4,11 @@ package helpers
 import (
 	"strings"
 
+	"github.com/openshift/library-go/pkg/controller/factory"
+
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-
-	"github.com/openshift/library-go/pkg/controller/factory"
 
 	operatorlister "open-cluster-management.io/api/client/operator/listers/operator/v1"
 	operatorapiv1 "open-cluster-management.io/api/operator/v1"
@@ -19,15 +19,20 @@ const (
 	KlusterletDefaultNamespace = "open-cluster-management-agent"
 
 	// BootstrapHubKubeConfig is the secret name of bootstrap kubeconfig secret to connect to hub
-	BootstrapHubKubeConfig = "bootstrap-hub-kubeconfig"
+	BootstrapHubKubeConfig             = "bootstrap-hub-kubeconfig"
+	ControlplaneBootstrapHubKubeConfig = "multicluster-controlplane-svc-kubeconfig"
+
 	// HubKubeConfig is the secret name of kubeconfig secret to connect to hub with mtls
 	HubKubeConfig = "hub-kubeconfig-secret"
-	// ExternalManagedKubeConfig is the secret name of kubeconfig secret to connecting to the managed cluster
-	// Only applicable to Hosted mode, klusterlet-operator uses it to install resources on the managed cluster.
-	ExternalManagedKubeConfig      = "managedcluster-kubeconfig"
-	ExternalManagedAgentKubeConfig = "external-managed-agent-kubeconfig"
 
-	KlusterletReadyToApply = "ReadyToApply"
+	// ManagedClusterKubeConfig is the secret name of kubeconfig secret, it is provied by user in the managed cluster
+	// namespace on the controlplane, it only applicable to Hosted mode, klusterlet uses it to install resources
+	// on the managed cluster.
+	ManagedClusterKubeConfig = "managedcluster-kubeconfig"
+	// ExternalManagedClusterKubeConfig is the secret name of kubeconfig secret, it is created by klusterlet with
+	// ManagedClusterKubeConfig, it is in the controlplane namespace on the management cluster, it only applicable to
+	// Hosted mode, controlplane agent uses it connecting to the managed cluster.
+	ExternalManagedClusterKubeConfig = "external-managedcluster-kubeconfig"
 )
 
 func KlusterletSecretQueueKeyFunc(klusterletLister operatorlister.KlusterletLister) factory.ObjectQueueKeyFunc {
@@ -36,7 +41,9 @@ func KlusterletSecretQueueKeyFunc(klusterletLister operatorlister.KlusterletList
 		namespace := accessor.GetNamespace()
 		name := accessor.GetName()
 		interestedObjectFound := false
-		if name == HubKubeConfig || name == BootstrapHubKubeConfig {
+		if strings.HasSuffix(name, HubKubeConfig) ||
+			name == BootstrapHubKubeConfig ||
+			name == ControlplaneBootstrapHubKubeConfig {
 			interestedObjectFound = true
 		}
 		if !interestedObjectFound {
@@ -62,7 +69,7 @@ func KlusterletDeploymentQueueKeyFunc(klusterletLister operatorlister.Klusterlet
 		namespace := accessor.GetNamespace()
 		name := accessor.GetName()
 		interestedObjectFound := false
-		if strings.HasSuffix(name, "registration-agent") || strings.HasSuffix(name, "work-agent") {
+		if strings.HasSuffix(name, "multicluster-controlplane-agent") {
 			interestedObjectFound = true
 		}
 		if !interestedObjectFound {

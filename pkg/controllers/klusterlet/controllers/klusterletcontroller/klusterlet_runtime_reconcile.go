@@ -9,14 +9,14 @@ import (
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 
-	"github.com/stolostron/multicluster-controlplane/pkg/controllers/klusterlet/helpers"
-	"github.com/stolostron/multicluster-controlplane/pkg/controllers/klusterlet/manifests"
-
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	operatorapiv1 "open-cluster-management.io/api/operator/v1"
+
+	"github.com/stolostron/multicluster-controlplane/pkg/controllers/klusterlet/helpers"
+	"github.com/stolostron/multicluster-controlplane/pkg/controllers/klusterlet/manifests"
 )
 
 // runtimeReconcile ensure all runtime of klusterlet is applied
@@ -37,7 +37,7 @@ func (r *runtimeReconcile) reconcile(ctx context.Context,
 			config.KlusterletNamespace,
 			config.AgentNamespace,
 			fmt.Sprintf("%s-agent-sa", klusterlet.Name),
-			config.ExternalManagedAgentKubeConfigSecret,
+			config.ExternalManagedClusterKubeConfigSecret,
 			r.recorder,
 		); err != nil {
 			return klusterlet, reconcileStop, err
@@ -60,17 +60,13 @@ func (r *runtimeReconcile) reconcile(ctx context.Context,
 			return objData, nil
 		},
 		r.recorder,
-		"klusterlet/management/klusterlet-agent-deployment.yaml")
-
+		"klusterlet/management/klusterlet-agent-deployment.yaml",
+	)
 	if err != nil {
-		// TODO update condition
 		return klusterlet, reconcileStop, err
 	}
 
 	helpers.SetGenerationStatuses(&klusterlet.Status.Generations, generationStatus)
-
-	// TODO check progressing condition
-
 	return klusterlet, reconcileContinue, nil
 }
 
@@ -101,10 +97,7 @@ func (r *runtimeReconcile) createManagedClusterKubeconfig(
 
 func (r *runtimeReconcile) clean(ctx context.Context,
 	klusterlet *operatorapiv1.Klusterlet, config klusterletConfig) (*operatorapiv1.Klusterlet, reconcileState, error) {
-	deployments := []string{
-		fmt.Sprintf("%s-registration-agent", config.KlusterletName),
-		fmt.Sprintf("%s-work-agent", config.KlusterletName),
-	}
+	deployments := []string{fmt.Sprintf("%s-multicluster-controlplane-agent", config.KlusterletName)}
 	for _, deployment := range deployments {
 		err := r.kubeClient.AppsV1().Deployments(config.AgentNamespace).Delete(ctx, deployment, metav1.DeleteOptions{})
 		if err != nil && !errors.IsNotFound(err) {

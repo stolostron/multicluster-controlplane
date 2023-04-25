@@ -22,6 +22,8 @@ import (
 	versionutil "k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
+
+	"github.com/stolostron/multicluster-controlplane/pkg/version"
 )
 
 // versionAnnotationKey is an annotation key on crd resources to mark the ocm version of the crds.
@@ -71,7 +73,7 @@ func (r *RemainingCRDError) Error() string {
 
 func NewManager[T CRD](client crdClient[T], equalFunc func(old, new T) bool) *Manager[T] {
 	// TODO handle crd versions, if we combine the klusterlet, the version may be not required
-	gitVersion := Get().GitVersion
+	gitVersion := version.Get().GitVersion
 	if len(gitVersion) == 0 {
 		gitVersion = defaultVersion
 	}
