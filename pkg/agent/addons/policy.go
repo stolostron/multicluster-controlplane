@@ -17,7 +17,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
-	operatorapiv1 "open-cluster-management.io/api/operator/v1"
 	"open-cluster-management.io/config-policy-controller/controllers"
 	"open-cluster-management.io/governance-policy-framework-addon/controllers/secretsync"
 	"open-cluster-management.io/governance-policy-framework-addon/controllers/specsync"
@@ -38,11 +37,10 @@ func StartPolicyAgent(
 	ctx context.Context,
 	clusterName string,
 	kubeConfig *rest.Config,
-	hubManager, mgr ctrl.Manager,
+	hubManager, mgr, hostingManager ctrl.Manager,
 	targetK8sClient kubernetes.Interface,
 	targetK8sDynamicClient dynamic.Interface,
-	config *PolicyAgentConfig,
-	deployMode operatorapiv1.InstallMode) error {
+	config *PolicyAgentConfig) error {
 	instanceName, _ := os.Hostname() // on an error, instanceName will be empty, which is ok
 
 	// create target namespace if it doesn't exist
@@ -70,13 +68,13 @@ func StartPolicyAgent(
 		EnableMetrics:          config.EnableMetrics,
 	}
 
-	if deployMode == operatorapiv1.InstallModeHosted {
+	if hostingManager != nil {
 		reconciler = controllers.ConfigurationPolicyReconciler{
-			Client:                 hubManager.GetClient(),
+			Client:                 hostingManager.GetClient(),
 			DecryptionConcurrency:  config.DecryptionConcurrency,
 			EvaluationConcurrency:  config.EvaluationConcurrency,
-			Scheme:                 hubManager.GetScheme(),
-			Recorder:               hubManager.GetEventRecorderFor(controllers.ControllerName),
+			Scheme:                 hostingManager.GetScheme(),
+			Recorder:               hostingManager.GetEventRecorderFor(controllers.ControllerName),
 			InstanceName:           instanceName,
 			TargetK8sClient:        targetK8sClient,
 			TargetK8sDynamicClient: targetK8sDynamicClient,

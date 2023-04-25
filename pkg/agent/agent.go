@@ -9,6 +9,8 @@ import (
 	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
 	openshiftoauthclientset "github.com/openshift/client-go/oauth/clientset/versioned"
 	clusterinfov1beta1 "github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
@@ -27,6 +29,8 @@ import (
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	operatorapiv1 "open-cluster-management.io/api/operator/v1"
 	configpolicyv1 "open-cluster-management.io/config-policy-controller/api/v1"
+	"open-cluster-management.io/config-policy-controller/controllers"
+	configcommon "open-cluster-management.io/config-policy-controller/pkg/common"
 	"open-cluster-management.io/governance-policy-framework-addon/controllers/secretsync"
 	policyv1 "open-cluster-management.io/governance-policy-propagator/api/v1"
 	"open-cluster-management.io/governance-policy-propagator/controllers/common"
@@ -35,7 +39,9 @@ import (
 	"open-cluster-management.io/multicluster-controlplane/pkg/features"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
@@ -133,6 +139,14 @@ func (a *AgentOptions) RunAddOns(ctx context.Context) error {
 		return err
 	}
 
+	var hostingManager manager.Manager
+	if a.DeployMode == operatorapiv1.InstallModeHosted {
+		hostingManager, err = a.newHostingManager(scheme)
+		if err != nil {
+			return err
+		}
+	}
+
 	clusterName := a.RegistrationAgent.ClusterName
 	startCtrlMgr := false
 
@@ -184,10 +198,10 @@ func (a *AgentOptions) RunAddOns(ctx context.Context) error {
 			spokeKubeConfig,
 			hubManager,
 			spokeManager,
+			hostingManager,
 			kubeClient,
 			dynamicClient,
 			a.PolicyAgentConfig,
-			a.DeployMode,
 		); err != nil {
 			klog.Fatalf("failed to setup policy addon, %v", err)
 		}
@@ -289,6 +303,74 @@ func (a *AgentOptions) newSpokeManager(config *rest.Config, scheme *runtime.Sche
 				},
 			},
 		),
+		// Override the EventBroadcaster so that the spam filter will not ignore events for the policy but with
+		// different messages if a large amount of events for that policy are sent in a short time.
+		EventBroadcaster: record.NewBroadcasterWithCorrelatorOptions(
+			record.CorrelatorOptions{
+				// This essentially disables event aggregation of the same events but with different messages.
+				MaxIntervalInSeconds: 1,
+				// This is the default spam key function except it adds the reason and message as well.
+				// https://github.com/kubernetes/client-go/blob/v0.23.3/tools/record/events_cache.go#L70-L82
+				SpamKeyFunc: func(event *v1.Event) string {
+					return strings.Join(
+						[]string{
+							event.Source.Component,
+							event.Source.Host,
+							event.InvolvedObject.Kind,
+							event.InvolvedObject.Namespace,
+							event.InvolvedObject.Name,
+							string(event.InvolvedObject.UID),
+							event.InvolvedObject.APIVersion,
+							event.Reason,
+							event.Message,
+						},
+						"",
+					)
+				},
+			},
+		),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return mgr, nil
+}
+
+func (a *AgentOptions) newHostingManager(scheme *runtime.Scheme) (manager.Manager, error) {
+
+	cfg, err := config.GetConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	cacheSelectors := cache.SelectorsByObject{
+		&apiextensionsv1.CustomResourceDefinition{}: {
+			Field: fields.SelectorFromSet(fields.Set{"metadata.name": controllers.CRDName}),
+		},
+	}
+
+	ctrlKey, err := configcommon.GetOperatorNamespacedName()
+	if err != nil {
+		return nil, err
+	}
+
+	cacheSelectors[&appsv1.Deployment{}] = cache.ObjectSelector{
+		Field: fields.SelectorFromSet(fields.Set{
+			"metadata.namespace": ctrlKey.Namespace,
+			"metadata.name":      ctrlKey.Name,
+		}),
+	}
+
+	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
+		Scheme:             scheme,
+		MetricsBindAddress: "0", //TODO think about the mertics later
+		NewCache: cache.BuilderWithOptions(
+			cache.Options{
+				SelectorsByObject: cacheSelectors,
+			},
+		),
+		ClientDisableCacheFor: []client.Object{&corev1.Secret{}},
 		// Override the EventBroadcaster so that the spam filter will not ignore events for the policy but with
 		// different messages if a large amount of events for that policy are sent in a short time.
 		EventBroadcaster: record.NewBroadcasterWithCorrelatorOptions(

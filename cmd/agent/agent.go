@@ -58,7 +58,7 @@ func NewAgent() *cobra.Command {
 
 	flags := cmd.Flags()
 	flags.StringVar((*string)(&agentOptions.DeployMode), "deploy-mode", string(operatorapiv1.InstallModeDefault),
-		"Indicate the deploy mode of the agent, default or hosted")
+		"Indicate the deploy mode of the agent, Default or Hosted")
 	agentOptions.AddFlags(flags)
 	return cmd
 }
