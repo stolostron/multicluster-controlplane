@@ -31,6 +31,7 @@ spec:
           {{end}}
           {{if eq .InstallMode "Hosted"}}
           - "--spoke-kubeconfig=/spoke/config/kubeconfig"
+          - "--deploy-mode=Hosted"
           {{end}}
         env:
         - name: OPERATOR_NAME

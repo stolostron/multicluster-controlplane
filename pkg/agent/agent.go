@@ -4,6 +4,11 @@ import (
 	"context"
 	"strings"
 
+	gktemplatesv1 "github.com/open-policy-agent/frameworks/constraint/pkg/apis/templates/v1"
+	gktemplatesv1beta1 "github.com/open-policy-agent/frameworks/constraint/pkg/apis/templates/v1beta1"
+	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
+	openshiftoauthclientset "github.com/openshift/client-go/oauth/clientset/versioned"
+	clusterinfov1beta1 "github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
 	v1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
@@ -18,21 +23,9 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
-
-	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
-	openshiftoauthclientset "github.com/openshift/client-go/oauth/clientset/versioned"
-
-	gktemplatesv1 "github.com/open-policy-agent/frameworks/constraint/pkg/apis/templates/v1"
-	gktemplatesv1beta1 "github.com/open-policy-agent/frameworks/constraint/pkg/apis/templates/v1beta1"
-
-	clusterinfov1beta1 "github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
-	"github.com/stolostron/multicluster-controlplane/pkg/agent/addons"
-	"github.com/stolostron/multicluster-controlplane/pkg/agent/addons/manifests"
-	"github.com/stolostron/multicluster-controlplane/pkg/feature"
-	"github.com/stolostron/multicluster-controlplane/pkg/helpers"
-
 	clusterclientset "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
+	operatorapiv1 "open-cluster-management.io/api/operator/v1"
 	configpolicyv1 "open-cluster-management.io/config-policy-controller/api/v1"
 	"open-cluster-management.io/governance-policy-framework-addon/controllers/secretsync"
 	policyv1 "open-cluster-management.io/governance-policy-propagator/api/v1"
@@ -40,12 +33,16 @@ import (
 	msav1alpha1 "open-cluster-management.io/managed-serviceaccount/api/v1alpha1"
 	"open-cluster-management.io/multicluster-controlplane/pkg/agent"
 	"open-cluster-management.io/multicluster-controlplane/pkg/features"
-
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	"github.com/stolostron/multicluster-controlplane/pkg/agent/addons"
+	"github.com/stolostron/multicluster-controlplane/pkg/agent/addons/manifests"
+	"github.com/stolostron/multicluster-controlplane/pkg/feature"
+	"github.com/stolostron/multicluster-controlplane/pkg/helpers"
 )
 
 var scheme = runtime.NewScheme()
@@ -72,6 +69,7 @@ var requiredCRDFiles = []string{
 type AgentOptions struct {
 	*agent.AgentOptions
 	*addons.PolicyAgentConfig
+	DeployMode operatorapiv1.InstallMode
 }
 
 func NewAgentOptions() *AgentOptions {
@@ -189,6 +187,7 @@ func (a *AgentOptions) RunAddOns(ctx context.Context) error {
 			kubeClient,
 			dynamicClient,
 			a.PolicyAgentConfig,
+			a.DeployMode,
 		); err != nil {
 			klog.Fatalf("failed to setup policy addon, %v", err)
 		}
