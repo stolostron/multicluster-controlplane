@@ -162,7 +162,6 @@ if [ ! -f "$configfile" ] ; then
 dataDirectory: /.ocm
 apiserver:
   externalHostname: ${API_HOST}
-  port: 9443
 etcd:
   mode: embed
   prefix: $HUB_NAME
