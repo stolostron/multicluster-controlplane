@@ -23,11 +23,13 @@ import (
 var (
 	managementSharedStaticResourceFiles = []string{
 		"klusterlet/management/klusterlet-agent-role.yaml",
+		"klusterlet/management/klusterlet-agent-clusterrole.yaml",
 	}
 
 	managementStaticResourceFiles = []string{
 		"klusterlet/management/klusterlet-agent-serviceaccount.yaml",
 		"klusterlet/management/klusterlet-agent-rolebinding.yaml",
+		"klusterlet/management/klusterlet-agent-clusterrolebinding.yaml",
 	}
 )
 

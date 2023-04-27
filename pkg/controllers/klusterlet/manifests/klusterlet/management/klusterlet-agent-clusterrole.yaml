@@ -1,0 +1,21 @@
+# Mandatory Role permission for registartion agent
+# Registartion agent can not run without these permissions
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: open-cluster-management:management:multicluster-controlplane:agent
+rules:
+# required by configuration policy controller
+- apiGroups: [""]
+  resources: ["namespace"]
+  verbs: ["get", "list", "watch", "create", "delete", "update", "patch"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  resourceNames: ["policy-encryption-key"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["policy.open-cluster-management.io"]
+  resources: ["configurationpolicies", "policies"]
+  verbs: ["get", "list", "watch", "create", "patch", "update", "delete"]
+- apiGroups: ["policy.open-cluster-management.io"]
+  resources: ["configurationpolicies/status", "policies/status"]
+  verbs: ["get", "list", "watch", "create", "patch", "update", "delete"]

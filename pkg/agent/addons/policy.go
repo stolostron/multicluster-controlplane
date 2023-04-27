@@ -24,6 +24,7 @@ import (
 	"open-cluster-management.io/governance-policy-framework-addon/controllers/templatesync"
 	policiesv1 "open-cluster-management.io/governance-policy-propagator/api/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type PolicyAgentConfig struct {
@@ -37,18 +38,18 @@ func StartPolicyAgent(
 	ctx context.Context,
 	clusterName string,
 	kubeConfig *rest.Config,
-	hubManager, mgr, hostingManager ctrl.Manager,
+	hubManager, hostingManager ctrl.Manager,
 	targetK8sClient kubernetes.Interface,
 	targetK8sDynamicClient dynamic.Interface,
 	config *PolicyAgentConfig) error {
 	instanceName, _ := os.Hostname() // on an error, instanceName will be empty, which is ok
 
 	// create target namespace if it doesn't exist
-	_, err := targetK8sClient.CoreV1().Namespaces().Create(ctx, &v1.Namespace{
+	err := hostingManager.GetClient().Create(ctx, &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: clusterName,
 		},
-	}, metav1.CreateOptions{})
+	}, &client.CreateOptions{})
 	if err != nil {
 		if !k8serrors.IsAlreadyExists(err) {
 			return err
@@ -56,11 +57,11 @@ func StartPolicyAgent(
 	}
 
 	reconciler := controllers.ConfigurationPolicyReconciler{
-		Client:                 mgr.GetClient(),
+		Client:                 hostingManager.GetClient(),
 		DecryptionConcurrency:  config.DecryptionConcurrency,
 		EvaluationConcurrency:  config.EvaluationConcurrency,
-		Scheme:                 mgr.GetScheme(),
-		Recorder:               mgr.GetEventRecorderFor(controllers.ControllerName),
+		Scheme:                 hostingManager.GetScheme(),
+		Recorder:               hostingManager.GetEventRecorderFor(controllers.ControllerName),
 		InstanceName:           instanceName,
 		TargetK8sClient:        targetK8sClient,
 		TargetK8sDynamicClient: targetK8sDynamicClient,
@@ -68,27 +69,12 @@ func StartPolicyAgent(
 		EnableMetrics:          config.EnableMetrics,
 	}
 
-	if hostingManager != nil {
-		reconciler = controllers.ConfigurationPolicyReconciler{
-			Client:                 hostingManager.GetClient(),
-			DecryptionConcurrency:  config.DecryptionConcurrency,
-			EvaluationConcurrency:  config.EvaluationConcurrency,
-			Scheme:                 hostingManager.GetScheme(),
-			Recorder:               hostingManager.GetEventRecorderFor(controllers.ControllerName),
-			InstanceName:           instanceName,
-			TargetK8sClient:        targetK8sClient,
-			TargetK8sDynamicClient: targetK8sDynamicClient,
-			TargetK8sConfig:        kubeConfig,
-			EnableMetrics:          config.EnableMetrics,
-		}
-	}
-
-	if err := reconciler.SetupWithManager(mgr); err != nil {
+	if err := reconciler.SetupWithManager(hostingManager); err != nil {
 		return err
 	}
 
 	go func() {
-		reconciler.PeriodicallyExecConfigPolicies(ctx, config.Frequency, mgr.Elected())
+		reconciler.PeriodicallyExecConfigPolicies(ctx, config.Frequency, hostingManager.Elected())
 	}()
 
 	eventBroadcaster := record.NewBroadcaster()
@@ -104,7 +90,7 @@ func StartPolicyAgent(
 
 	if err := (&specsync.PolicyReconciler{
 		HubClient:       hubManager.GetClient(),
-		ManagedClient:   mgr.GetClient(),
+		ManagedClient:   hostingManager.GetClient(),
 		ManagedRecorder: managedRecorder,
 		Scheme:          hubManager.GetScheme(),
 		TargetNamespace: clusterName,
@@ -114,7 +100,7 @@ func StartPolicyAgent(
 
 	if err := (&secretsync.SecretReconciler{
 		Client:          hubManager.GetClient(),
-		ManagedClient:   mgr.GetClient(),
+		ManagedClient:   hostingManager.GetClient(),
 		Scheme:          hubManager.GetScheme(),
 		TargetNamespace: clusterName,
 	}).SetupWithManager(hubManager); err != nil {
@@ -135,10 +121,10 @@ func StartPolicyAgent(
 		ClusterNamespaceOnHub: clusterName,
 		HubClient:             hubManager.GetClient(),
 		HubRecorder:           hubRecorder,
-		ManagedClient:         mgr.GetClient(),
-		ManagedRecorder:       mgr.GetEventRecorderFor(statussync.ControllerName),
-		Scheme:                mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
+		ManagedClient:         hostingManager.GetClient(),
+		ManagedRecorder:       hostingManager.GetEventRecorderFor(statussync.ControllerName),
+		Scheme:                hostingManager.GetScheme(),
+	}).SetupWithManager(hostingManager); err != nil {
 		return err
 	}
 
@@ -150,11 +136,11 @@ func StartPolicyAgent(
 	}
 
 	templateReconciler := &templatesync.PolicyReconciler{
-		Client:           mgr.GetClient(),
+		Client:           hostingManager.GetClient(),
 		DynamicWatcher:   watcher,
-		Scheme:           mgr.GetScheme(),
-		Config:           mgr.GetConfig(),
-		Recorder:         mgr.GetEventRecorderFor(templatesync.ControllerName),
+		Scheme:           hostingManager.GetScheme(),
+		Config:           hostingManager.GetConfig(),
+		Recorder:         hostingManager.GetEventRecorderFor(templatesync.ControllerName),
 		ClusterNamespace: clusterName,
 	}
 	go func() {
@@ -168,7 +154,7 @@ func StartPolicyAgent(
 	<-watcher.Started()
 
 	klog.Info("starting policy template sync controller")
-	if err := templateReconciler.Setup(mgr, depEvents); err != nil {
+	if err := templateReconciler.Setup(hostingManager, depEvents); err != nil {
 		return err
 	}
 

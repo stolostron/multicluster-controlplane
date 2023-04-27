@@ -20,3 +20,7 @@ rules:
 - apiGroups: ["", "events.k8s.io"]
   resources: ["events"]
   verbs: ["create", "patch", "update"]
+# required by configuration policy controller
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get", "watch", "patch", "update", "update"]
