@@ -17,6 +17,7 @@ function check_golang() {
     rm go1.19.3.linux-amd64.tar.gz
     sleep 2
   fi
+  echo "go path: $(which go)"
   echo "go version: $(go version)"
 }
 
@@ -32,6 +33,7 @@ function check_kind() {
     chmod +x ./kind
     mv ./kind ${bin_dir}/kind
   fi
+  echo "kind path: $(which kind)"
   echo "kind version: $(kind version)"
 }
 
@@ -46,6 +48,7 @@ function check_kubectl() {
     chmod +x ./kubectl
     mv ./kubectl ${bin_dir}/kubectl
   fi
+  echo "kubectl path: $(which kubectl)"
   echo "kubectl version: $(kubectl version --client --short)"
 }
 
@@ -57,25 +60,16 @@ function check_kustomize() {
     source ./install_kustomize.sh 4.5.7 ${bin_dir}
     rm ./install_kustomize.sh
   fi
+  echo "kustomize path: $(which kustomize)"
   echo "kustomize version: $(kustomize version)"
-}
-
-function check_clusteradm() {
-  if ! command -v clusteradm >/dev/null 2>&1; then 
-    curl -LO https://raw.githubusercontent.com/open-cluster-management-io/clusteradm/main/install.sh
-    chmod +x ./install.sh
-    INSTALL_DIR=$bin_dir
-    source ./install.sh 0.4.1
-    rm ./install.sh
-  fi
-  echo "clusteradm path: $(which clusteradm)"
 }
 
 function check_ginkgo() {
   if ! command -v ginkgo >/dev/null 2>&1; then 
     go install github.com/onsi/ginkgo/v2/ginkgo@v2.5.0
     mv $(go env GOPATH)/bin/ginkgo ${bin_dir}/ginkgo
-  fi 
+  fi
+  echo "ginkgo path: $(which ginkgo)"
   echo "ginkgo version: $(ginkgo version)"
 }
 
@@ -90,14 +84,27 @@ function check_cfssl() {
     curl --retry 10 -L -o cfssljson https://github.com/cloudflare/cfssl/releases/download/v1.5.0/cfssljson_1.5.0_linux_amd64
     chmod +x cfssljson || true
     mv cfssljson ${bin_dir}/cfssljson
-  fi 
+  fi
   echo "cfssljson path: $(which cfssljson)"
+}
+
+function check_helm() {
+  if ! command -v helm >/dev/null 2>&1; then 
+    wget -q https://get.helm.sh/helm-v3.11.3-linux-amd64.tar.gz
+    tar -xf helm-v3.11.3-linux-amd64.tar.gz
+    mkdir -p helm
+    tar -C helm -xf helm-v3.11.3-linux-amd64.tar.gz
+    chmod +x helm/linux-amd64/helm
+    mv helm/linux-amd64/helm ${bin_dir}/helm
+  fi
+  echo "helm path: $(which helm)"
+  echo "helm version: $(helm version --short)"
 }
 
 check_golang
 check_kind
 check_kubectl
 check_kustomize
-check_clusteradm
 check_ginkgo
 check_cfssl
+check_helm

@@ -16,12 +16,6 @@ import (
 	"github.com/stolostron/multicluster-controlplane/pkg/controllers/klusterlet/helpers"
 )
 
-type managedClusterClientsBuilderInterface interface {
-	withMode(mode operatorapiv1.InstallMode) managedClusterClientsBuilderInterface
-	withKubeConfigSecret(namespace, name string) managedClusterClientsBuilderInterface
-	build(ctx context.Context) (*managedClusterClients, error)
-}
-
 // managedClusterClients holds variety of kube client for managed cluster
 type managedClusterClients struct {
 	kubeClient                kubernetes.Interface
@@ -33,23 +27,23 @@ type managedClusterClients struct {
 }
 
 type managedClusterClientsBuilder struct {
+	klusterlet *operatorapiv1.Klusterlet
+
 	kubeClient                kubernetes.Interface
 	controlplaneKubeClient    kubernetes.Interface
 	apiExtensionClient        apiextensionsclient.Interface
 	appliedManifestWorkClient workv1client.AppliedManifestWorkInterface
-
-	mode            operatorapiv1.InstallMode
-	secretNamespace string
-	secretName      string
 }
 
 func newManagedClusterClientsBuilder(
+	klusterlet *operatorapiv1.Klusterlet,
 	kubeClient kubernetes.Interface,
 	controlplaneKubeClient kubernetes.Interface,
 	apiExtensionClient apiextensionsclient.Interface,
 	appliedManifestWorkClient workv1client.AppliedManifestWorkInterface,
 ) *managedClusterClientsBuilder {
 	return &managedClusterClientsBuilder{
+		klusterlet:                klusterlet,
 		kubeClient:                kubeClient,
 		controlplaneKubeClient:    controlplaneKubeClient,
 		apiExtensionClient:        apiExtensionClient,
@@ -57,19 +51,8 @@ func newManagedClusterClientsBuilder(
 	}
 }
 
-func (m *managedClusterClientsBuilder) withMode(mode operatorapiv1.InstallMode) managedClusterClientsBuilderInterface {
-	m.mode = mode
-	return m
-}
-
-func (m *managedClusterClientsBuilder) withKubeConfigSecret(namespace, name string) managedClusterClientsBuilderInterface {
-	m.secretNamespace = namespace
-	m.secretName = name
-	return m
-}
-
 func (m *managedClusterClientsBuilder) build(ctx context.Context) (*managedClusterClients, error) {
-	if m.mode != operatorapiv1.InstallModeHosted {
+	if m.klusterlet.Spec.DeployOption.Mode != operatorapiv1.InstallModeHosted {
 		return &managedClusterClients{
 			kubeClient:                m.kubeClient,
 			apiExtensionClient:        m.apiExtensionClient,
@@ -77,7 +60,8 @@ func (m *managedClusterClientsBuilder) build(ctx context.Context) (*managedClust
 		}, nil
 	}
 
-	managedKubeconfigSecret, err := m.controlplaneKubeClient.CoreV1().Secrets(m.secretNamespace).Get(ctx, m.secretName, metav1.GetOptions{})
+	managedKubeconfigSecret, err := m.controlplaneKubeClient.CoreV1().Secrets(helpers.ClusterName(m.klusterlet)).Get(
+		ctx, helpers.ManagedClusterKubeConfig, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

@@ -11,8 +11,12 @@ import (
 	ginkgo "github.com/onsi/ginkgo/v2"
 	gomega "github.com/onsi/gomega"
 
+	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
+
+	operatorv1client "open-cluster-management.io/api/client/operator/clientset/versioned/typed/operator/v1"
 
 	clusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	saclient "open-cluster-management.io/managed-serviceaccount/pkg/generated/clientset/versioned"
@@ -27,16 +31,28 @@ const (
 var ctx = context.TODO()
 
 var (
-	controlPlaneName   string
-	managedClusterName string
+	controlPlaneNamespace    string
+	managedClusterName       string
+	hostedManagedClusterName string
 
-	// hub clients
-	hubKubeClient kubernetes.Interface
-	clusterClient clusterclient.Interface
-	saClient      saclient.Interface
+	// management clients
+	managementKubeClinet kubernetes.Interface
 
-	// spoke clients
-	spokeKubeClient kubernetes.Interface
+	// controlplane clients
+	kubeClient       kubernetes.Interface
+	dynamicClient    dynamic.Interface
+	clusterClient    clusterclient.Interface
+	klusterletClient operatorv1client.KlusterletInterface
+	saClient         saclient.Interface
+
+	// default spoke clients
+	spokeKubeClient    kubernetes.Interface
+	spokeClusterClient clusterclient.Interface
+
+	// hosted spoke clients
+	hostedSpokeKubeClient    kubernetes.Interface
+	hostedSpokeClusterClient clusterclient.Interface
+	hostedCRDsClient         apiextensionsclient.Interface
 )
 
 func TestE2E(t *testing.T) {
@@ -46,15 +62,31 @@ func TestE2E(t *testing.T) {
 
 var _ = ginkgo.BeforeSuite(func() {
 	err := func() error {
-		controlPlaneName = os.Getenv("CONTROLPLANE_NAME")
-		managedClusterName = os.Getenv("MANAGED_CLUSTER_NAMESPACE")
+		controlPlaneNamespace = os.Getenv("CONTROLPLANE_NAMESPACE")
+		managedClusterName = os.Getenv("MANAGED_CLUSTER")
+		hostedManagedClusterName = os.Getenv("HOSTED_MANAGED_CLUSTER")
+
+		managementConfig, err := clientcmd.BuildConfigFromFlags("", os.Getenv("MANAGEMENT_KUBECONFIG"))
+		if err != nil {
+			return err
+		}
+
+		managementKubeClinet, err = kubernetes.NewForConfig(managementConfig)
+		if err != nil {
+			return err
+		}
 
 		controlplaneConfig, err := clientcmd.BuildConfigFromFlags("", os.Getenv("CONTROLPLANE_KUBECONFIG"))
 		if err != nil {
 			return err
 		}
 
-		hubKubeClient, err = kubernetes.NewForConfig(controlplaneConfig)
+		kubeClient, err = kubernetes.NewForConfig(controlplaneConfig)
+		if err != nil {
+			return err
+		}
+
+		dynamicClient, err = dynamic.NewForConfig(controlplaneConfig)
 		if err != nil {
 			return err
 		}
@@ -63,6 +95,12 @@ var _ = ginkgo.BeforeSuite(func() {
 		if err != nil {
 			return err
 		}
+
+		operatorClient, err := operatorv1client.NewForConfig(controlplaneConfig)
+		if err != nil {
+			return err
+		}
+		klusterletClient = operatorClient.Klusterlets()
 
 		saClient, err = saclient.NewForConfig(controlplaneConfig)
 		if err != nil {
@@ -73,7 +111,33 @@ var _ = ginkgo.BeforeSuite(func() {
 		if err != nil {
 			return err
 		}
+
 		spokeKubeClient, err = kubernetes.NewForConfig(spokeConfig)
+		if err != nil {
+			return err
+		}
+
+		spokeClusterClient, err = clusterclient.NewForConfig(spokeConfig)
+		if err != nil {
+			return err
+		}
+
+		hostedSpokeConfig, err := clientcmd.BuildConfigFromFlags("", os.Getenv("HOSTED_MANAGED_CLUSTER_KUBECONFIG"))
+		if err != nil {
+			return err
+		}
+
+		hostedSpokeKubeClient, err = kubernetes.NewForConfig(hostedSpokeConfig)
+		if err != nil {
+			return err
+		}
+
+		hostedSpokeClusterClient, err = clusterclient.NewForConfig(hostedSpokeConfig)
+		if err != nil {
+			return err
+		}
+
+		hostedCRDsClient, err = apiextensionsclient.NewForConfig(hostedSpokeConfig)
 		if err != nil {
 			return err
 		}

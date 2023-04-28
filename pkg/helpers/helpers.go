@@ -6,6 +6,9 @@ import (
 	"embed"
 	"time"
 
+	"github.com/openshift/library-go/pkg/assets"
+	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
+
 	"k8s.io/apiextensions-apiserver/pkg/apihelpers"
 	crdv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
@@ -15,9 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 
-	"github.com/openshift/library-go/pkg/assets"
-	"github.com/openshift/library-go/pkg/operator/events"
-	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
+	"open-cluster-management.io/multicluster-controlplane/pkg/util"
 )
 
 var (
@@ -46,7 +47,7 @@ func EnsureCRDs(ctx context.Context, client apiextensionsclient.Interface, fs em
 				crd, _, err := resourceapply.ApplyCustomResourceDefinitionV1(
 					ctx,
 					client.ApiextensionsV1(),
-					events.NewInMemoryRecorder("crd-generator"),
+					util.NewLoggingRecorder("crd-generator"),
 					required,
 				)
 				if err != nil {

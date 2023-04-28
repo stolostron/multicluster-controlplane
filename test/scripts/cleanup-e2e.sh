@@ -10,6 +10,7 @@ kind delete cluster --name $management_cluster
 
 for i in $(seq 1 "${CONTROLPLANE_NUMBER}"); do
   kind delete cluster --name controlplane$i-mc
+  kind delete cluster --name controlplane$i-hosted-mc
 done
 
 rm -rf $REPO_DIR/multicluster_ca

@@ -13,92 +13,54 @@ if [ "$LOAD_IMAGE" = true ]; then
   kind load docker-image $IMAGE_NAME --name $management_cluster
 fi
 
-external_host_ip=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${management_cluster}-control-plane)
-
 echo "##### Deploy etcd in the cluster $management_cluster ..."
+etd_ca_dir=${output}/etcd_ca
+etc_ca="${etd_ca_dir}/ca.pem"
+etc_cert="${etd_ca_dir}/client.pem"
+etc_key="${etd_ca_dir}/client-key.pem"
 cp $REPO_DIR/hack/deploy/etcd/statefulset.yaml $REPO_DIR/hack/deploy/etcd/statefulset.yaml.tmp
 ${SED} -i "s/gp2/standard/g" $REPO_DIR/hack/deploy/etcd/statefulset.yaml
 pushd ${REPO_DIR}
 export KUBECONFIG=${kubeconfig}
+export CFSSL_DIR=${etd_ca_dir}
 make deploy-etcd
 unset KUBECONFIG
 popd
 mv $REPO_DIR/hack/deploy/etcd/statefulset.yaml.tmp $REPO_DIR/hack/deploy/etcd/statefulset.yaml
 
 echo "##### Deploy multicluster controlplanes ..."
+external_host_ip=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${management_cluster}-control-plane)
+
 for i in $(seq 1 "${CONTROLPLANE_NUMBER}"); do
-  name=multicluster-controlplane-$i
-  deploy_dir=${controlplane_deploy_dir}/$name
+  namespace=multicluster-controlplane-$i
+  external_host_port="3008$i"
 
-  echo "Deploy multicluster controlplane $name ..."
-  # expose apiserver
-  ${SED} -i 's/ClusterIP/NodePort/' $deploy_dir/service.yaml
-  ${SED} -i '/route\.yaml/d' $deploy_dir/kustomization.yaml
-  ${SED} -i "/targetPort.*/a  \ \ \ \ \ \ nodePort: 3008$i" $deploy_dir/service.yaml
+  kubectl --kubeconfig $kubeconfig create namespace $namespace
 
-  # append etcd certs
-  certs_dir=$deploy_dir/certs
-  mkdir -p ${certs_dir}
-  cp -f ${REPO_DIR}/multicluster_ca/ca.pem ${certs_dir}/etcd-ca.crt
-  cp -f ${REPO_DIR}/multicluster_ca/client.pem ${certs_dir}/etcd-client.crt
-  cp -f ${REPO_DIR}/multicluster_ca/client-key.pem ${certs_dir}/etcd-client.key
-  ${SED} -i "$(${SED} -n  '/  - ocmconfig.yaml/=' $deploy_dir/kustomization.yaml) a \  - ${certs_dir}/etcd-client.key" $deploy_dir/kustomization.yaml
-  ${SED} -i "$(${SED} -n  '/  - ocmconfig.yaml/=' $deploy_dir/kustomization.yaml) a \  - ${certs_dir}/etcd-client.crt" $deploy_dir/kustomization.yaml
-  ${SED} -i "$(${SED} -n  '/  - ocmconfig.yaml/=' $deploy_dir/kustomization.yaml) a \  - ${certs_dir}/etcd-ca.crt" $deploy_dir/kustomization.yaml
+  helm template multicluster-controlplane charts/multicluster-controlplane \
+    -n $namespace \
+    --set route.enabled=false \
+    --set nodeport.enabled=true \
+    --set nodeport.port=${external_host_port} \
+    --set apiserver.externalHostname=${external_host_ip} \
+    --set image=${IMAGE_NAME} \
+    --set autoApprovalBootstrapUsers="system:admin" \
+    --set etcd.mode=external \
+    --set 'etcd.servers={"http://etcd-0.etcd.multicluster-controlplane-etcd:2379","http://etcd-1.etcd.multicluster-controlplane-etcd:2379","http://etcd-2.etcd.multicluster-controlplane-etcd:2379"}' \
+    --set-file etcd.ca="${etc_ca}" \
+    --set-file etcd.cert="${etc_cert}" \
+    --set-file etcd.certkey="${etc_key}" | kubectl --kubeconfig $kubeconfig apply -f - 
 
-  # create multicluster-controlplane configfile
-  cat > ${deploy_dir}/ocmconfig.yaml <<EOF
-dataDirectory: /.ocm
-apiserver:
-  externalHostname: $external_host_ip
-etcd:
-  mode: external
-  prefix: $name
-  caFile: /controlplane_config/etcd-ca.crt
-  certFile: /controlplane_config/etcd-client.crt
-  keyFile: /controlplane_config/etcd-client.key
-  servers:
-  - http://etcd-0.etcd.multicluster-controlplane-etcd:2379
-  - http://etcd-1.etcd.multicluster-controlplane-etcd:2379
-  - http://etcd-2.etcd.multicluster-controlplane-etcd:2379
-EOF
-  ${SED} -i "s@ocmconfig.yaml@${deploy_dir}/ocmconfig.yaml@g" $deploy_dir/kustomization.yaml
+  wait_seconds="90"; until [[ $((wait_seconds--)) -eq 0 ]] || eval "kubectl --kubeconfig $kubeconfig -n $namespace get secrets multicluster-controlplane-kubeconfig &> /dev/null" ; do sleep 1; done
 
-  kubectl --kubeconfig ${kubeconfig} delete ns $name --ignore-not-found --wait
-  kubectl --kubeconfig ${kubeconfig} create ns $name
-
-  pushd $deploy_dir
-  kustomize edit set image quay.io/stolostron/multicluster-controlplane=${IMAGE_NAME}
-  ${SED} -i "s/AddonManagement=true/AddonManagement=true,ManagedServiceAccount=true/" $deploy_dir/deployment.yaml
-  rm -f ${deploy_dir}/clusterrolebinding.yaml
-  cat > ${deploy_dir}/clusterrolebinding.yaml <<EOF
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: open-cluster-management:multicluster-controlplane-$i
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: open-cluster-management:multicluster-controlplane
-subjects:
-- kind: ServiceAccount
-  name: multicluster-controlplane-sa
-  namespace: multicluster-controlplane-$i
-EOF
-  popd
-
-  kustomize build $deploy_dir | kubectl --kubeconfig ${kubeconfig} -n $name apply -f -
-
-  wait_seconds="90"; until [[ $((wait_seconds--)) -eq 0 ]] || eval "kubectl --kubeconfig $kubeconfig -n $name get secrets multicluster-controlplane-kubeconfig &> /dev/null" ; do sleep 1; done
   hubkubeconfig="${cluster_dir}/controlplane$i.kubeconfig"
-  kubectl --kubeconfig $kubeconfig -n $name get secrets multicluster-controlplane-kubeconfig -ojsonpath='{.data.kubeconfig}' | base64 -d > ${hubkubeconfig}
-  kubectl --kubeconfig ${hubkubeconfig} config set-cluster multicluster-controlplane --server=https://${external_host_ip}:3008$i
+  kubectl --kubeconfig $kubeconfig -n $namespace get secrets multicluster-controlplane-kubeconfig -ojsonpath='{.data.kubeconfig}' | base64 -d > ${hubkubeconfig}
+  kubectl --kubeconfig ${hubkubeconfig} config set-cluster multicluster-controlplane --server=https://${external_host_ip}:${external_host_port}
 done
 
-echo "##### Create multicluster controlplane managed cluters ..."
+echo "##### Create and import managed cluters ..."
 for i in $(seq 1 "${CONTROLPLANE_NUMBER}"); do
   managed_cluster_name="controlplane$i-mc"
-  echo "Create a managed cluster $managed_cluster_name with kind ..."
   kind create cluster --name $managed_cluster_name --kubeconfig $cluster_dir/$managed_cluster_name.kubeconfig
 if [ "$LOAD_IMAGE" = true ]; then
   echo "Load $IMAGE_NAME to the cluster $managed_cluster_name ..."
@@ -106,7 +68,6 @@ if [ "$LOAD_IMAGE" = true ]; then
 fi
 done
 
-echo "##### Deploy multicluster controlplane agnets on the managed cluters ..."
 for i in $(seq 1 "${CONTROLPLANE_NUMBER}"); do
   managed_cluster_name="controlplane$i-mc"
   deploy_dir=${output}/agent/deploy/$managed_cluster_name
@@ -138,20 +99,28 @@ EOF
 done
 
 wait_seconds="90"; until [[ $((wait_seconds--)) -eq 0 ]] || eval "kubectl --kubeconfig $hubkubeconfig get crds klusterlets.operator.open-cluster-management.io &> /dev/null" ; do sleep 1; done
+sleep 120
+
+echo "##### Create and import hosted cluters ..."
+for i in $(seq 1 "${CONTROLPLANE_NUMBER}"); do
+  hosted_cluster_name="controlplane$i-hosted-mc"
+  kind create cluster --name $hosted_cluster_name --kubeconfig $cluster_dir/$hosted_cluster_name.kubeconfig
+if [ "$LOAD_IMAGE" = true ]; then
+  echo "Load $IMAGE_NAME to the cluster $hosted_cluster_name ..."
+  kind load docker-image $IMAGE_NAME --name $hosted_cluster_name
+fi
+done
 
 for i in $(seq 1 "${CONTROLPLANE_NUMBER}"); do
   hosted_cluster_name="controlplane$i-hosted-mc"
-  
   hubkubeconfig="${cluster_dir}/controlplane$i.kubeconfig"
-  spoke_kubeconfig="${cluster_dir}/spoke.kubeconfig"
+  kind_kubeconfig="${cluster_dir}/$hosted_cluster_name.kind-kubeconfig"
 
-  echo "##### Deploy hosted cluster $hosted_cluster_name on $hubkubeconfig ..."
-
-  # prepare managed cluster kubeconfig secret
-  cp $kubeconfig $spoke_kubeconfig
-  kubectl --kubeconfig $spoke_kubeconfig config set-cluster kind-${management_cluster} --server=https://${management_cluster}-control-plane:6443
+  # prepare hosted cluster kubeconfig secret
+  cp ${cluster_dir}/$hosted_cluster_name.kubeconfig $kind_kubeconfig
+  kubectl --kubeconfig $kind_kubeconfig config set-cluster kind-${hosted_cluster_name} --server=https://${hosted_cluster_name}-control-plane:6443
   kubectl --kubeconfig $hubkubeconfig create namespace $hosted_cluster_name
-  kubectl --kubeconfig $hubkubeconfig -n $hosted_cluster_name create secret generic managedcluster-kubeconfig --from-file kubeconfig=$spoke_kubeconfig
+  kubectl --kubeconfig $hubkubeconfig -n $hosted_cluster_name create secret generic managedcluster-kubeconfig --from-file kubeconfig=$kind_kubeconfig
 
   # apply hosted klusterlet
   cat <<EOF | kubectl --kubeconfig $hubkubeconfig apply -f -

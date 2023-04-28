@@ -3,6 +3,7 @@ package klusterletcontroller
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"strings"
 	"time"
@@ -10,9 +11,6 @@ import (
 	"github.com/openshift/library-go/pkg/assets"
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
-
-	"github.com/stolostron/multicluster-controlplane/pkg/controllers/klusterlet/helpers"
-	"github.com/stolostron/multicluster-controlplane/pkg/controllers/klusterlet/manifests"
 
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -25,24 +23,32 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 
+	clusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	operatorv1client "open-cluster-management.io/api/client/operator/clientset/versioned/typed/operator/v1"
 	operatorinformer "open-cluster-management.io/api/client/operator/informers/externalversions/operator/v1"
 	operatorlister "open-cluster-management.io/api/client/operator/listers/operator/v1"
 	workv1client "open-cluster-management.io/api/client/work/clientset/versioned/typed/work/v1"
 	operatorapiv1 "open-cluster-management.io/api/operator/v1"
+
+	"github.com/stolostron/multicluster-controlplane/pkg/controllers/klusterlet/helpers"
+	"github.com/stolostron/multicluster-controlplane/pkg/controllers/klusterlet/manifests"
 )
 
 type klusterletCleanupController struct {
-	klusterletClient             operatorv1client.KlusterletInterface
-	klusterletLister             operatorlister.KlusterletLister
-	kubeClient                   kubernetes.Interface
-	managedClusterClientsBuilder managedClusterClientsBuilderInterface
+	kubeClient                kubernetes.Interface
+	controlplaneKubeClient    kubernetes.Interface
+	controlplaneClusterClient clusterclient.Interface
+	apiExtensionClient        apiextensionsclient.Interface
+	appliedManifestWorkClient workv1client.AppliedManifestWorkInterface
+	klusterletClient          operatorv1client.KlusterletInterface
+	klusterletLister          operatorlister.KlusterletLister
 }
 
 // NewKlusterletCleanupController construct klusterlet cleanup controller
 func NewKlusterletCleanupController(
 	kubeClient kubernetes.Interface,
 	controlplaneKubeClient kubernetes.Interface,
+	controlplaneClusterClient clusterclient.Interface,
 	apiExtensionClient apiextensionsclient.Interface,
 	klusterletClient operatorv1client.KlusterletInterface,
 	klusterletInformer operatorinformer.KlusterletInformer,
@@ -51,20 +57,18 @@ func NewKlusterletCleanupController(
 	appliedManifestWorkClient workv1client.AppliedManifestWorkInterface,
 	recorder events.Recorder) factory.Controller {
 	controller := &klusterletCleanupController{
-		kubeClient:       kubeClient,
-		klusterletClient: klusterletClient,
-		klusterletLister: klusterletInformer.Lister(),
-		managedClusterClientsBuilder: newManagedClusterClientsBuilder(
-			kubeClient,
-			controlplaneKubeClient,
-			apiExtensionClient,
-			appliedManifestWorkClient,
-		),
+		kubeClient:                kubeClient,
+		controlplaneKubeClient:    controlplaneKubeClient,
+		controlplaneClusterClient: controlplaneClusterClient,
+		apiExtensionClient:        apiExtensionClient,
+		appliedManifestWorkClient: appliedManifestWorkClient,
+		klusterletClient:          klusterletClient,
+		klusterletLister:          klusterletInformer.Lister(),
 	}
 
 	return factory.New().WithSync(controller.sync).
-		WithInformersQueueKeyFunc(helpers.KlusterletSecretQueueKeyFunc(controller.klusterletLister), secretInformer.Informer()).
-		WithInformersQueueKeyFunc(helpers.KlusterletDeploymentQueueKeyFunc(controller.klusterletLister), deploymentInformer.Informer()).
+		WithInformersQueueKeyFunc(
+			helpers.KlusterletDeploymentQueueKeyFunc(controller.klusterletLister), deploymentInformer.Informer()).
 		WithInformersQueueKeyFunc(func(obj runtime.Object) string {
 			accessor, _ := meta.Accessor(obj)
 			return accessor.GetName()
@@ -83,6 +87,7 @@ func (n *klusterletCleanupController) sync(ctx context.Context, controllerContex
 	if err != nil {
 		return err
 	}
+
 	klusterlet = klusterlet.DeepCopy()
 
 	if klusterlet.DeletionTimestamp.IsZero() {
@@ -90,7 +95,8 @@ func (n *klusterletCleanupController) sync(ctx context.Context, controllerContex
 			return n.addFinalizer(ctx, klusterlet, klusterletFinalizer)
 		}
 
-		if !hasFinalizer(klusterlet, klusterletHostedFinalizer) && readyToAddHostedFinalizer(klusterlet, klusterlet.Spec.DeployOption.Mode) {
+		if !hasFinalizer(klusterlet, klusterletHostedFinalizer) &&
+			readyToAddHostedFinalizer(klusterlet, klusterlet.Spec.DeployOption.Mode) {
 			// the external managed kubeconfig secret is ready, there will be some resources applied on the managed
 			// cluster, add hosted finalizer here to indicate these resources should be cleaned up when deleting the
 			// klusterlet
@@ -102,15 +108,14 @@ func (n *klusterletCleanupController) sync(ctx context.Context, controllerContex
 
 	// Klusterlet is deleting, we remove its related resources on managed and management cluster
 	config := klusterletConfig{
-		KlusterletName:            klusterlet.Name,
-		KlusterletNamespace:       helpers.KlusterletNamespace(klusterlet),
-		AgentNamespace:            helpers.AgentNamespace(klusterlet),
-		ClusterName:               klusterlet.Spec.ClusterName,
-		BootStrapKubeConfigSecret: helpers.BootstrapHubKubeConfig,
-		HubKubeConfigSecret:       helpers.HubKubeConfig,
-		ExternalServerURL:         getServersFromKlusterlet(klusterlet),
-		InstallMode:               klusterlet.Spec.DeployOption.Mode,
-		HubApiServerHostAlias:     klusterlet.Spec.HubApiServerHostAlias,
+		KlusterletName:                         klusterlet.Name,
+		KlusterletNamespace:                    helpers.KlusterletNamespace(klusterlet),
+		AgentNamespace:                         helpers.AgentNamespace(klusterlet),
+		ClusterName:                            helpers.ClusterName(klusterlet),
+		BootStrapKubeConfigSecret:              helpers.BootstrapHubKubeConfigSecret(klusterlet),
+		HubKubeConfigSecret:                    helpers.HubKubeConfigSecret(klusterlet),
+		ExternalManagedClusterKubeConfigSecret: helpers.ExternalManagedClusterKubeConfigSecret(klusterlet),
+		InstallMode:                            klusterlet.Spec.DeployOption.Mode,
 	}
 
 	reconcilers := []klusterletReconcile{
@@ -125,21 +130,21 @@ func (n *klusterletCleanupController) sync(ctx context.Context, controllerContex
 	// 1. install mode is not hosted
 	// 2. install mode is hosted and some resources has been applied on managed cluster (if hosted finalizer exists)
 	if config.InstallMode != operatorapiv1.InstallModeHosted || hasFinalizer(klusterlet, klusterletHostedFinalizer) {
-		managedClusterClients, err := n.managedClusterClientsBuilder.
-			withMode(config.InstallMode).
-			withKubeConfigSecret(config.ClusterName, helpers.ExternalManagedKubeConfig).
-			build(ctx)
-		// stop when hosted kubeconfig is not found. the klustelet controller will monitor the secret and retrigger
-		// reconcilation of cleanup controller when secret is created again.
-		if errors.IsNotFound(err) {
-			return nil
-		}
+		managedClusterClients, err := newManagedClusterClientsBuilder(
+			klusterlet,
+			n.kubeClient,
+			n.controlplaneKubeClient,
+			n.apiExtensionClient,
+			n.appliedManifestWorkClient,
+		).build(ctx)
+		// if building managed cluster client failed, retrun an error to retry
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to build managedcluster kube clients, %v", err)
 		}
 
 		// check the managed cluster connectivity
-		cleanupManagedClusterResources, err := n.checkConnectivity(ctx, managedClusterClients.appliedManifestWorkClient, klusterlet)
+		cleanupManagedClusterResources, err := n.checkConnectivity(
+			ctx, managedClusterClients.appliedManifestWorkClient, klusterlet)
 		if err != nil {
 			errs := []error{err}
 			// compare the annotation to check whether the eviction timestamp has changed
@@ -165,6 +170,7 @@ func (n *klusterletCleanupController) sync(ctx context.Context, controllerContex
 			)
 		}
 	}
+
 	// managementReconcile should be added as the last one, since we finally need to remove agent namespace.
 	reconcilers = append(reconcilers, &managementReconcile{
 		kubeClient: n.kubeClient,
@@ -187,7 +193,11 @@ func (n *klusterletCleanupController) sync(ctx context.Context, controllerContex
 		return utilerrors.NewAggregate(errs)
 	}
 
-	return n.removeKlusterletFinalizers(ctx, klusterlet.Name)
+	if err := n.removeKlusterletFinalizers(ctx, klusterlet.Name); err != nil {
+		return err
+	}
+
+	return n.finalClenup(ctx, config)
 }
 
 func (r *klusterletCleanupController) checkConnectivity(ctx context.Context,
@@ -232,18 +242,6 @@ func (r *klusterletCleanupController) checkConnectivity(ctx context.Context,
 	// It may be temporarily unreachable, but now it is reachable, delete the timestamp
 	delete(klusterlet.Annotations, managedResourcesEvictionTimestampAnno)
 	return true, err
-}
-
-func isTCPTimeOutError(err error) bool {
-	return err != nil &&
-		strings.Contains(err.Error(), "dial tcp") &&
-		strings.Contains(err.Error(), "i/o timeout")
-}
-
-func isTCPNoSuchHostError(err error) bool {
-	return err != nil &&
-		strings.Contains(err.Error(), "dial tcp: lookup") &&
-		strings.Contains(err.Error(), "no such host")
 }
 
 func (n *klusterletCleanupController) updateKlusterletAnnotation(
@@ -291,6 +289,36 @@ func (n *klusterletCleanupController) removeKlusterletFinalizers(ctx context.Con
 	return nil
 }
 
+func (n *klusterletCleanupController) finalClenup(ctx context.Context, config klusterletConfig) error {
+	if config.InstallMode != operatorapiv1.InstallModeHosted {
+		return nil
+	}
+
+	if err := n.kubeClient.CoreV1().Secrets(config.AgentNamespace).Delete(
+		ctx, config.ExternalManagedClusterKubeConfigSecret, metav1.DeleteOptions{}); err != nil {
+		return err
+	}
+
+	if err := n.controlplaneClusterClient.ClusterV1().ManagedClusters().Delete(
+		ctx, config.ClusterName, metav1.DeleteOptions{}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func isTCPTimeOutError(err error) bool {
+	return err != nil &&
+		strings.Contains(err.Error(), "dial tcp") &&
+		strings.Contains(err.Error(), "i/o timeout")
+}
+
+func isTCPNoSuchHostError(err error) bool {
+	return err != nil &&
+		strings.Contains(err.Error(), "dial tcp: lookup") &&
+		strings.Contains(err.Error(), "no such host")
+}
+
 // readyToAddHostedFinalizer checkes whether the hosted finalizer should be added.
 // It is only added when mode is hosted, and some resources have been applied to the managed cluster.
 func readyToAddHostedFinalizer(klusterlet *operatorapiv1.Klusterlet, mode operatorapiv1.InstallMode) bool {
@@ -298,10 +326,11 @@ func readyToAddHostedFinalizer(klusterlet *operatorapiv1.Klusterlet, mode operat
 		return false
 	}
 
-	return meta.IsStatusConditionTrue(klusterlet.Status.Conditions, helpers.KlusterletReadyToApply)
+	return meta.IsStatusConditionTrue(klusterlet.Status.Conditions, klusterletReadyToApply)
 }
 
-func (n *klusterletCleanupController) addFinalizer(ctx context.Context, k *operatorapiv1.Klusterlet, finalizer string) error {
+func (n *klusterletCleanupController) addFinalizer(
+	ctx context.Context, k *operatorapiv1.Klusterlet, finalizer string) error {
 	k.Finalizers = append(k.Finalizers, finalizer)
 	_, err := n.klusterletClient.Update(ctx, k, metav1.UpdateOptions{})
 	return err

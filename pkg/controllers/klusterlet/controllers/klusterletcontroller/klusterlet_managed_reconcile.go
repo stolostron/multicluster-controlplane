@@ -9,15 +9,15 @@ import (
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 
-	"github.com/stolostron/multicluster-controlplane/pkg/controllers/klusterlet/helpers"
-	"github.com/stolostron/multicluster-controlplane/pkg/controllers/klusterlet/manifests"
-
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/kubernetes"
 	operatorapiv1 "open-cluster-management.io/api/operator/v1"
+
+	"github.com/stolostron/multicluster-controlplane/pkg/controllers/klusterlet/helpers"
+	"github.com/stolostron/multicluster-controlplane/pkg/controllers/klusterlet/manifests"
 )
 
 var managedStaticResourceFiles = []string{
@@ -41,12 +41,8 @@ type managedReconcile struct {
 
 func (r *managedReconcile) reconcile(ctx context.Context, klusterlet *operatorapiv1.Klusterlet, config klusterletConfig) (*operatorapiv1.Klusterlet, reconcileState, error) {
 	if config.InstallMode == operatorapiv1.InstallModeHosted {
-		// In hosted mode, we should ensure two namespaces on the managed cluster
-		// 1. the controlplane namsespace is for the hub kubeconfig
-		// 2. the open-cluster-management-<hosted-cluster> namsespace for setting the rabc of agent
-		if err := ensureNamespace(ctx, r.managedClusterClients.kubeClient, klusterlet, helpers.GetComponentNamespace()); err != nil {
-			return klusterlet, reconcileStop, err
-		}
+		// In hosted mode, ensure the klusterlet namespaces (open-cluster-management-<hosted-cluster>) on the managed
+		// cluster for setting the rabc of agent
 		if err := ensureNamespace(ctx, r.managedClusterClients.kubeClient, klusterlet, config.KlusterletNamespace); err != nil {
 			return klusterlet, reconcileStop, err
 		}

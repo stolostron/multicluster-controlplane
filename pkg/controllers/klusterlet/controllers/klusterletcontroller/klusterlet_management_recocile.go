@@ -9,26 +9,25 @@ import (
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 
-	"github.com/stolostron/multicluster-controlplane/pkg/controllers/klusterlet/helpers"
-	"github.com/stolostron/multicluster-controlplane/pkg/controllers/klusterlet/manifests"
-
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/kubernetes"
 	operatorapiv1 "open-cluster-management.io/api/operator/v1"
+
+	"github.com/stolostron/multicluster-controlplane/pkg/controllers/klusterlet/helpers"
+	"github.com/stolostron/multicluster-controlplane/pkg/controllers/klusterlet/manifests"
 )
 
 var (
+	managementSharedStaticResourceFiles = []string{
+		"klusterlet/management/klusterlet-agent-role.yaml",
+	}
+
 	managementStaticResourceFiles = []string{
 		"klusterlet/management/klusterlet-agent-serviceaccount.yaml",
-		"klusterlet/management/klusterlet-agent-role.yaml",
 		"klusterlet/management/klusterlet-agent-rolebinding.yaml",
-		"klusterlet/management/klusterlet-role-extension-apiserver.yaml",
-		"klusterlet/management/klusterlet-agent-rolebinding-extension-apiserver.yaml",
-		"klusterlet/management/klusterlet-agent-clusterrole-addon-management.yaml",
-		"klusterlet/management/klusterlet-agent-clusterrolebinding-addon-management.yaml",
 	}
 )
 
@@ -44,12 +43,9 @@ func (r *managementReconcile) reconcile(ctx context.Context, klusterlet *operato
 		return klusterlet, reconcileStop, err
 	}
 
-	// TODO think about this
-	// Sync pull secret to the agent namespace
-	// err = syncPullSecret(ctx, r.kubeClient, r.kubeClient, klusterlet, r.operatorNamespace, config.AgentNamespace, r.recorder)
-	// if err != nil {
-	// 	return klusterlet, reconcileStop, err
-	// }
+	resouceFiles := []string{}
+	resouceFiles = append(resouceFiles, managementSharedStaticResourceFiles...)
+	resouceFiles = append(resouceFiles, managementStaticResourceFiles...)
 
 	resourceResults := helpers.ApplyDirectly(
 		ctx,
@@ -66,7 +62,7 @@ func (r *managementReconcile) reconcile(ctx context.Context, klusterlet *operato
 			helpers.SetRelatedResourcesStatusesWithObj(&klusterlet.Status.RelatedResources, objData)
 			return objData, nil
 		},
-		managementStaticResourceFiles...,
+		resouceFiles...,
 	)
 
 	var errs []error
@@ -91,33 +87,24 @@ func (r *managementReconcile) reconcile(ctx context.Context, klusterlet *operato
 func (r *managementReconcile) clean(ctx context.Context, klusterlet *operatorapiv1.Klusterlet, config klusterletConfig) (*operatorapiv1.Klusterlet, reconcileState, error) {
 	// Remove secrets
 	secrets := []string{config.HubKubeConfigSecret}
-	//if config.InstallMode == operatorapiv1.InstallModeHosted {
-	// In Hosted mod, also need to remove the external-managed-kubeconfig-registration and external-managed-kubeconfig-work
-	//secrets = append(secrets, []string{config.ExternalManagedKubeConfigRegistrationSecret, config.ExternalManagedKubeConfigWorkSecret}...)
-	//}
 	for _, secret := range secrets {
 		err := r.kubeClient.CoreV1().Secrets(config.AgentNamespace).Delete(ctx, secret, metav1.DeleteOptions{})
 		if err != nil && !errors.IsNotFound(err) {
 			return klusterlet, reconcileStop, err
 		}
-		r.recorder.Eventf("SecretDeleted", "secret %s is deleted", secret)
+		r.recorder.Eventf("SecretDeleted", "secret %s/%s is deleted", config.AgentNamespace, secret)
 	}
+
+	resouceFiles := []string{}
+	if config.InstallMode != operatorapiv1.InstallModeHosted {
+		resouceFiles = append(resouceFiles, managementSharedStaticResourceFiles...)
+	}
+	resouceFiles = append(resouceFiles, managementStaticResourceFiles...)
 
 	// remove static file on the management cluster
-	err := removeStaticResources(ctx, r.kubeClient, nil, managementStaticResourceFiles, config)
+	err := removeStaticResources(ctx, r.kubeClient, nil, resouceFiles, config)
 	if err != nil {
 		return klusterlet, reconcileStop, err
-	}
-
-	// The agent namespace on the management cluster should be removed **at the end**. Otherwise if any failure occurred,
-	// the managed-external-kubeconfig secret would be removed and the next reconcile will fail due to can not build the
-	// managed cluster clients.
-	if config.InstallMode == operatorapiv1.InstallModeHosted {
-		// remove the agent namespace on the management cluster
-		err = r.kubeClient.CoreV1().Namespaces().Delete(ctx, config.AgentNamespace, metav1.DeleteOptions{})
-		if err != nil && !errors.IsNotFound(err) {
-			return klusterlet, reconcileStop, err
-		}
 	}
 
 	return klusterlet, reconcileContinue, nil

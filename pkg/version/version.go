@@ -1,5 +1,5 @@
 // Copyright Contributors to the Open Cluster Management project
-package crdmanager
+package version
 
 import (
 	"k8s.io/apimachinery/pkg/version"
@@ -37,8 +37,8 @@ func Get() version.Info {
 func init() {
 	buildInfo := metrics.NewGaugeVec(
 		&metrics.GaugeOpts{
-			Name: "open_cluster_management_registration_build_info",
-			Help: "A metric with a constant '1' value labeled by major, minor, git commit & git version from which Open Cluster Management Registration was built.",
+			Name: "multicluster_controlplane_build_info",
+			Help: "A metric with a constant '1' value labeled by major, minor, git commit & git version from which multicluster controlplane was built.",
 		},
 		[]string{"major", "minor", "gitCommit", "gitVersion"},
 	)

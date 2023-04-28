@@ -12,6 +12,7 @@ import (
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/openshift/library-go/pkg/operator/resource/resourcemerge"
+
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -36,6 +37,7 @@ import (
 	"k8s.io/klog/v2"
 	apiregistrationv1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
 	apiregistrationclient "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset/typed/apiregistration/v1"
+
 	operatorv1client "open-cluster-management.io/api/client/operator/clientset/versioned/typed/operator/v1"
 	operatorapiv1 "open-cluster-management.io/api/operator/v1"
 )
@@ -77,12 +79,6 @@ func UpdateKlusterletStatus(
 		oldStatus := &klusterlet.Status
 
 		newStatus := oldStatus.DeepCopy()
-		// TODO: just for upgrading, we change the condition type from "InvalidRegistrationFeatureGates" to
-		// "ValidRegistrationFeatureGates", need to remove this in 0.11.0
-		if err := RemoveKlusterletConditionFn(
-			"InvalidRegistrationFeatureGates", "ValidRegistrationFeatureGates")(newStatus); err != nil {
-			return err
-		}
 
 		// update the klusterlet status by update functions
 		for _, update := range updateFuncs {
@@ -113,17 +109,6 @@ func UpdateKlusterletConditionFn(conds ...metav1.Condition) UpdateKlusterletStat
 	return func(oldStatus *operatorapiv1.KlusterletStatus) error {
 		for _, cond := range conds {
 			meta.SetStatusCondition(&oldStatus.Conditions, cond)
-		}
-		return nil
-	}
-}
-
-// RemoveKlusterletConditionFn return a function to remove a condition from the conditions
-// TODO: just for upgrading, we need to remove this in 0.11.0
-func RemoveKlusterletConditionFn(condTypes ...string) UpdateKlusterletStatusFunc {
-	return func(oldStatus *operatorapiv1.KlusterletStatus) error {
-		for _, t := range condTypes {
-			meta.RemoveStatusCondition(&oldStatus.Conditions, t)
 		}
 		return nil
 	}
@@ -694,4 +679,30 @@ func GetComponentNamespace() string {
 		return "multicluster-controlplane"
 	}
 	return string(nsBytes)
+}
+
+func BootstrapHubKubeConfigSecret(klusterlet *operatorapiv1.Klusterlet) string {
+	if klusterlet.Spec.DeployOption.Mode == operatorapiv1.InstallModeHosted {
+		return "multicluster-controlplane-svc-kubeconfig"
+	}
+
+	return BootstrapHubKubeConfig
+}
+
+func HubKubeConfigSecret(klusterlet *operatorapiv1.Klusterlet) string {
+	if klusterlet.Spec.DeployOption.Mode == operatorapiv1.InstallModeHosted {
+		return fmt.Sprintf("%s-hub-kubeconfig-secret", klusterlet.Name)
+	}
+	return HubKubeConfig
+}
+
+func ExternalManagedClusterKubeConfigSecret(klusterlet *operatorapiv1.Klusterlet) string {
+	return fmt.Sprintf("%s-%s", klusterlet.Name, ExternalManagedClusterKubeConfig)
+}
+
+func ClusterName(klusterlet *operatorapiv1.Klusterlet) string {
+	if klusterlet.Spec.DeployOption.Mode == operatorapiv1.InstallModeHosted {
+		return klusterlet.Name
+	}
+	return klusterlet.Spec.ClusterName
 }

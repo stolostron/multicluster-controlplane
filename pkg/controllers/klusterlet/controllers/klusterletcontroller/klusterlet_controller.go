@@ -4,15 +4,10 @@ package klusterletcontroller
 import (
 	"context"
 	"fmt"
-	"strings"
-
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
-
-	"github.com/stolostron/multicluster-controlplane/pkg/controllers/klusterlet/helpers"
 
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
@@ -20,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	appsinformer "k8s.io/client-go/informers/apps/v1"
 	coreinformer "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
@@ -30,23 +26,30 @@ import (
 	operatorlister "open-cluster-management.io/api/client/operator/listers/operator/v1"
 	workv1client "open-cluster-management.io/api/client/work/clientset/versioned/typed/work/v1"
 	operatorapiv1 "open-cluster-management.io/api/operator/v1"
+
+	"github.com/stolostron/multicluster-controlplane/pkg/controllers/klusterlet/helpers"
 )
 
 const (
 	// klusterletHostedFinalizer is used to clean up resources on the managed/hosted cluster in Hosted mode
-	klusterletHostedFinalizer             = "operator.open-cluster-management.io/klusterlet-hosted-cleanup"
-	klusterletFinalizer                   = "operator.open-cluster-management.io/klusterlet-cleanup"
-	klusterletApplied                     = "Applied"
-	appliedManifestWorkFinalizer          = "cluster.open-cluster-management.io/applied-manifest-work-cleanup"
+	klusterletHostedFinalizer    = "operator.open-cluster-management.io/klusterlet-hosted-cleanup"
+	klusterletFinalizer          = "operator.open-cluster-management.io/klusterlet-cleanup"
+	appliedManifestWorkFinalizer = "cluster.open-cluster-management.io/applied-manifest-work-cleanup"
+
 	managedResourcesEvictionTimestampAnno = "operator.open-cluster-management.io/managed-resources-eviction-timestamp"
+
+	klusterletReadyToApply = "ReadyToApply"
+	klusterletApplied      = "Applied"
 )
 
 type klusterletController struct {
-	klusterletClient             operatorv1client.KlusterletInterface
-	klusterletLister             operatorlister.KlusterletLister
-	kubeClient                   kubernetes.Interface
-	cache                        resourceapply.ResourceCache
-	managedClusterClientsBuilder managedClusterClientsBuilderInterface
+	kubeClient                kubernetes.Interface
+	controlplaneKubeClient    kubernetes.Interface
+	apiExtensionClient        apiextensionsclient.Interface
+	appliedManifestWorkClient workv1client.AppliedManifestWorkInterface
+	klusterletClient          operatorv1client.KlusterletInterface
+	klusterletLister          operatorlister.KlusterletLister
+	cache                     resourceapply.ResourceCache
 }
 
 type klusterletReconcile interface {
@@ -73,23 +76,17 @@ func NewKlusterletController(
 	appliedManifestWorkClient workv1client.AppliedManifestWorkInterface,
 	recorder events.Recorder) factory.Controller {
 	controller := &klusterletController{
-		kubeClient:       kubeClient,
-		klusterletClient: klusterletClient,
-		klusterletLister: klusterletInformer.Lister(),
-		cache:            resourceapply.NewResourceCache(),
-		managedClusterClientsBuilder: newManagedClusterClientsBuilder(
-			kubeClient,
-			controlplaneKubeClient,
-			apiExtensionClient,
-			appliedManifestWorkClient,
-		),
+		kubeClient:                kubeClient,
+		controlplaneKubeClient:    controlplaneKubeClient,
+		apiExtensionClient:        apiExtensionClient,
+		appliedManifestWorkClient: appliedManifestWorkClient,
+		klusterletClient:          klusterletClient,
+		klusterletLister:          klusterletInformer.Lister(),
+		cache:                     resourceapply.NewResourceCache(),
 	}
 
 	return factory.New().WithSync(controller.sync).
-		WithInformersQueueKeyFunc(
-			helpers.KlusterletSecretQueueKeyFunc(controller.klusterletLister), secretInformer.Informer()).
-		WithInformersQueueKeyFunc(
-			helpers.KlusterletDeploymentQueueKeyFunc(controller.klusterletLister), deploymentInformer.Informer()).
+		WithInformersQueueKeyFunc(helpers.KlusterletDeploymentQueueKeyFunc(controller.klusterletLister), deploymentInformer.Informer()).
 		WithInformersQueueKeyFunc(func(obj runtime.Object) string {
 			accessor, _ := meta.Accessor(obj)
 			return accessor.GetName()
@@ -100,6 +97,7 @@ func NewKlusterletController(
 // klusterletConfig is used to render the template of hub manifests
 type klusterletConfig struct {
 	KlusterletName string
+	ClusterName    string
 
 	// KlusterletNamespace is the namespace created on the managed cluster for each
 	// klusterlet.
@@ -113,20 +111,16 @@ type klusterletConfig struct {
 	// 2). In the Hosted mode, it is same with the controlplane namespace on the management cluster.
 	AgentNamespace string
 
-	ClusterName               string
-	ExternalServerURL         string
 	HubKubeConfigSecret       string
 	BootStrapKubeConfigSecret string
 
 	AgentImage string
 
-	ExternalManagedAgentKubeConfigSecret string
+	ExternalManagedClusterKubeConfigSecret string
 
 	InstallMode operatorapiv1.InstallMode
 
 	// TODO support to configure standalone agent features
-
-	HubApiServerHostAlias *operatorapiv1.HubApiServerHostAlias
 }
 
 func (n *klusterletController) sync(ctx context.Context, controllerContext factory.SyncContext) error {
@@ -150,34 +144,35 @@ func (n *klusterletController) sync(ctx context.Context, controllerContext facto
 	}
 
 	config := klusterletConfig{
-		KlusterletName:                       klusterlet.Name,
-		KlusterletNamespace:                  helpers.KlusterletNamespace(klusterlet),
-		AgentNamespace:                       helpers.AgentNamespace(klusterlet),
-		ClusterName:                          klusterlet.Name,
-		AgentImage:                           image,
-		BootStrapKubeConfigSecret:            getBootstrapHubKubeConfigSecret(klusterlet),
-		HubKubeConfigSecret:                  getHubKubeConfigSecret(klusterlet),
-		ExternalServerURL:                    getServersFromKlusterlet(klusterlet),
-		ExternalManagedAgentKubeConfigSecret: fmt.Sprintf("%s-%s", klusterlet.Name, helpers.ExternalManagedAgentKubeConfig),
-		InstallMode:                          klusterlet.Spec.DeployOption.Mode,
-		HubApiServerHostAlias:                klusterlet.Spec.HubApiServerHostAlias,
+		KlusterletName:                         klusterlet.Name,
+		KlusterletNamespace:                    helpers.KlusterletNamespace(klusterlet),
+		AgentNamespace:                         helpers.AgentNamespace(klusterlet),
+		ClusterName:                            helpers.ClusterName(klusterlet),
+		AgentImage:                             image,
+		BootStrapKubeConfigSecret:              helpers.BootstrapHubKubeConfigSecret(klusterlet),
+		HubKubeConfigSecret:                    helpers.HubKubeConfigSecret(klusterlet),
+		ExternalManagedClusterKubeConfigSecret: helpers.ExternalManagedClusterKubeConfigSecret(klusterlet),
+		InstallMode:                            klusterlet.Spec.DeployOption.Mode,
 	}
 
-	managedClusterClients, err := n.managedClusterClientsBuilder.
-		withMode(config.InstallMode).
-		withKubeConfigSecret(config.ClusterName, helpers.ExternalManagedKubeConfig).
-		build(ctx)
+	managedClusterClients, err := newManagedClusterClientsBuilder(
+		klusterlet,
+		n.kubeClient,
+		n.controlplaneKubeClient,
+		n.apiExtensionClient,
+		n.appliedManifestWorkClient,
+	).build(ctx)
 
 	// update klusterletReadyToApply condition at first in hosted mode
 	// this conditions should be updated even when klusterlet is in deleteing state.
 	if config.InstallMode == operatorapiv1.InstallModeHosted {
 		cond := metav1.Condition{
-			Type: helpers.KlusterletReadyToApply, Status: metav1.ConditionTrue, Reason: "KlusterletPrepared",
+			Type: klusterletReadyToApply, Status: metav1.ConditionTrue, Reason: "KlusterletPrepared",
 			Message: "Klusterlet is ready to apply",
 		}
 		if err != nil {
 			cond = metav1.Condition{
-				Type: helpers.KlusterletReadyToApply, Status: metav1.ConditionFalse, Reason: "KlusterletPrepareFailed",
+				Type: klusterletReadyToApply, Status: metav1.ConditionFalse, Reason: "KlusterletPrepareFailed",
 				Message: fmt.Sprintf("Failed to build managed cluster clients: %v", err),
 			}
 		}
@@ -279,18 +274,6 @@ func (n *klusterletController) sync(ctx context.Context, controllerContext facto
 	return err
 }
 
-// TODO also read CABundle from ExternalServerURLs and set into registration deployment
-func getServersFromKlusterlet(klusterlet *operatorapiv1.Klusterlet) string {
-	if klusterlet.Spec.ExternalServerURLs == nil {
-		return ""
-	}
-	serverString := make([]string, 0, len(klusterlet.Spec.ExternalServerURLs))
-	for _, server := range klusterlet.Spec.ExternalServerURLs {
-		serverString = append(serverString, server.URL)
-	}
-	return strings.Join(serverString, ",")
-}
-
 func ensureNamespace(ctx context.Context, kubeClient kubernetes.Interface, klusterlet *operatorapiv1.Klusterlet, namespace string) error {
 	_, err := kubeClient.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
 	switch {
@@ -316,21 +299,6 @@ func ensureNamespace(ctx context.Context, kubeClient kubernetes.Interface, klust
 	}
 
 	return nil
-}
-
-func getBootstrapHubKubeConfigSecret(klusterlet *operatorapiv1.Klusterlet) string {
-	if klusterlet.Spec.DeployOption.Mode == operatorapiv1.InstallModeHosted {
-		return "multicluster-controlplane-svc-kubeconfig"
-	}
-
-	return helpers.BootstrapHubKubeConfig
-}
-
-func getHubKubeConfigSecret(klusterlet *operatorapiv1.Klusterlet) string {
-	if klusterlet.Spec.DeployOption.Mode == operatorapiv1.InstallModeHosted {
-		return fmt.Sprintf("%s-hub-kubeconfig-secret", klusterlet.Name)
-	}
-	return helpers.HubKubeConfig
 }
 
 func getAgentImage(ctx context.Context, kubeClient kubernetes.Interface, klusterlet *operatorapiv1.Klusterlet) (string, error) {
