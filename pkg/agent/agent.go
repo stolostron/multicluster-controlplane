@@ -200,15 +200,11 @@ func (a *AgentOptions) RunAddOns(ctx context.Context) error {
 
 	if features.DefaultAgentMutableFeatureGate.Enabled(feature.ConfigurationPolicy) {
 		klog.Info("starting configuration policy addon agent")
-		//generate target kubeconfig
-		targetKubeconfig, err := clientcmd.BuildConfigFromFlags("", a.KubeConfig+"/kubeconfig")
-		if err != nil {
-			return err
-		}
+
 		if err := addons.StartPolicyAgent(
 			ctx,
 			clusterName,
-			targetKubeconfig,
+			spokeKubeConfig,
 			hubManager,
 			hostingManager,
 			a.PolicyAgentConfig,

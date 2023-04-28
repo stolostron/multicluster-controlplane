@@ -7,9 +7,14 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
+  {{if eq .InstallMode "Hosted"}}
+  # for hosted mode, the agent need cluster-admin permission to enforcing configuration policies.
+  name: cluster-admin
+  {{else}}
   # We deploy a controller that could work with permission lower than cluster-admin, the tradeoff is
   # responsivity because list/watch cannot be maintained over too many namespaces.
   name: admin
+  {{end}}
 subjects:
   - kind: ServiceAccount
     name: {{ .KlusterletName }}-agent-sa
