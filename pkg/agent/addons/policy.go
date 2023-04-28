@@ -39,13 +39,20 @@ func StartPolicyAgent(
 	clusterName string,
 	kubeConfig *rest.Config,
 	hubManager, hostingManager ctrl.Manager,
-	targetK8sClient kubernetes.Interface,
-	targetK8sDynamicClient dynamic.Interface,
 	config *PolicyAgentConfig) error {
 	instanceName, _ := os.Hostname() // on an error, instanceName will be empty, which is ok
 
+	targetK8sClient, err := kubernetes.NewForConfig(kubeConfig)
+	if err != nil {
+		return err
+	}
+
+	targetK8sDynamicClient, err := dynamic.NewForConfig(kubeConfig)
+	if err != nil {
+		return err
+	}
 	// create target namespace if it doesn't exist
-	err := hostingManager.GetClient().Create(ctx, &v1.Namespace{
+	err = hostingManager.GetClient().Create(ctx, &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: clusterName,
 		},

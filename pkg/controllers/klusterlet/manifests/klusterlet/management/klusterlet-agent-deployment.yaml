@@ -31,6 +31,7 @@ spec:
           {{end}}
           {{if eq .InstallMode "Hosted"}}
           - "--spoke-kubeconfig=/spoke/config/kubeconfig"
+          - "--kubeconfig=/spoke/user-config/kubeconfig"
           - "--deploy-mode=Hosted"
           {{end}}
         env:
@@ -57,6 +58,9 @@ spec:
         - name: spoke-kubeconfig-secret
           mountPath: "/spoke/config"
           readOnly: true
+        - name: user-spoke-kubeconfig-secret
+          mountPath: "/spoke/user-config"
+          readOnly: true
         {{end}}
       volumes:
       - name: bootstrap-kubeconfig
@@ -69,4 +73,7 @@ spec:
       - name: spoke-kubeconfig-secret
         secret:
           secretName: {{ .ExternalManagedClusterKubeConfigSecret }}
+      - name: user-spoke-kubeconfig-secret
+        secret:
+          secretName: {{ .ManagedClusterKubeConfig }}
       {{end}}

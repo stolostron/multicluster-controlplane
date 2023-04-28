@@ -23,4 +23,4 @@ rules:
 # required by configuration policy controller
 - apiGroups: ["apps"]
   resources: ["deployments"]
-  verbs: ["get", "watch", "patch", "update", "update"]
+  verbs: ["get", "watch", "list", "patch", "update"]
