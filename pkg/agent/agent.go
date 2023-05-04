@@ -26,7 +26,6 @@ import (
 	"k8s.io/klog/v2"
 	clusterclientset "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
-	operatorapiv1 "open-cluster-management.io/api/operator/v1"
 	configpolicyv1 "open-cluster-management.io/config-policy-controller/api/v1"
 	"open-cluster-management.io/config-policy-controller/controllers"
 	configcommon "open-cluster-management.io/config-policy-controller/pkg/common"
@@ -76,7 +75,6 @@ var policyRequiredCRDFiles = []string{
 type AgentOptions struct {
 	*agent.AgentOptions
 	*addons.PolicyAgentConfig
-	DeployMode operatorapiv1.InstallMode
 }
 
 func NewAgentOptions() *AgentOptions {
@@ -123,6 +121,8 @@ func (a *AgentOptions) RunAddOns(ctx context.Context) error {
 		return err
 	}
 
+	// in hosted mode, the hostingKubeConfig is for the management cluster.
+	// in default mode, the hostingKubeConfig is for the managed cluster.
 	hostingKubeConfig, err := rest.InClusterConfig()
 	if err != nil {
 		return err

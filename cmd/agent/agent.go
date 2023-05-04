@@ -9,7 +9,6 @@ import (
 	"github.com/spf13/cobra"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/klog"
-	operatorapiv1 "open-cluster-management.io/api/operator/v1"
 
 	"github.com/stolostron/multicluster-controlplane/pkg/agent"
 )
@@ -57,8 +56,6 @@ func NewAgent() *cobra.Command {
 	}
 
 	flags := cmd.Flags()
-	flags.StringVar((*string)(&agentOptions.DeployMode), "deploy-mode", string(operatorapiv1.InstallModeDefault),
-		"Indicate the deploy mode of the agent, Default or Hosted")
 	agentOptions.AddFlags(flags)
 	return cmd
 }
