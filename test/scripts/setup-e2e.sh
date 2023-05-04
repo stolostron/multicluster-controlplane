@@ -83,7 +83,7 @@ for i in $(seq 1 "${CONTROLPLANE_NUMBER}"); do
 
   pushd $deploy_dir
   kustomize edit set image quay.io/stolostron/multicluster-controlplane=${IMAGE_NAME}
-  ${SED} -i "s/cluster-name=cluster1/cluster-name=$managed_cluster_name/" $deploy_dir/deployment.yaml
+  ${SED} -i "s/cluster1/$managed_cluster_name/" $deploy_dir/deployment.yaml
   cat >> ${deploy_dir}/kustomization.yaml <<EOF
 patches:
 - patch: |-

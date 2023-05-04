@@ -28,6 +28,8 @@ spec:
         env:
         - name: OPERATOR_NAME
           value: multicluster-controlplane-agent
+        - name: WATCH_NAMESPACE
+          value: cluster1
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
