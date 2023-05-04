@@ -36,7 +36,8 @@ var (
 	hostedManagedClusterName string
 
 	// management clients
-	managementKubeClinet kubernetes.Interface
+	managementKubeClient    kubernetes.Interface
+	managementDynamicClient dynamic.Interface
 
 	// controlplane clients
 	kubeClient       kubernetes.Interface
@@ -71,7 +72,12 @@ var _ = ginkgo.BeforeSuite(func() {
 			return err
 		}
 
-		managementKubeClinet, err = kubernetes.NewForConfig(managementConfig)
+		managementKubeClient, err = kubernetes.NewForConfig(managementConfig)
+		if err != nil {
+			return err
+		}
+
+		managementDynamicClient, err = dynamic.NewForConfig(managementConfig)
 		if err != nil {
 			return err
 		}

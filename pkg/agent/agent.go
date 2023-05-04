@@ -147,12 +147,9 @@ func (a *AgentOptions) RunAddOns(ctx context.Context) error {
 		return err
 	}
 
-	var hostingManager manager.Manager
-	if a.DeployMode == operatorapiv1.InstallModeHosted {
-		hostingManager, err = a.newHostingManager(scheme)
-		if err != nil {
-			return err
-		}
+	hostingManager, err := a.newHostingManager(scheme)
+	if err != nil {
+		return err
 	}
 
 	clusterName := a.RegistrationAgent.ClusterName
@@ -331,6 +328,11 @@ func (a *AgentOptions) newHostingManager(scheme *runtime.Scheme) (manager.Manage
 
 	if watchNamespace != "" {
 		cacheSelectors[&configpolicyv1.ConfigurationPolicy{}] = cache.ObjectSelector{
+			Field: fields.SelectorFromSet(fields.Set{
+				"metadata.namespace": watchNamespace,
+			}),
+		}
+		cacheSelectors[&policyv1.Policy{}] = cache.ObjectSelector{
 			Field: fields.SelectorFromSet(fields.Set{
 				"metadata.namespace": watchNamespace,
 			}),
