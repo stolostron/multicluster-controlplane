@@ -16,9 +16,9 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 
-	operatorv1client "open-cluster-management.io/api/client/operator/clientset/versioned/typed/operator/v1"
-
 	clusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
+	operatorv1client "open-cluster-management.io/api/client/operator/clientset/versioned/typed/operator/v1"
+	workclient "open-cluster-management.io/api/client/work/clientset/versioned"
 	saclient "open-cluster-management.io/managed-serviceaccount/pkg/generated/clientset/versioned"
 )
 
@@ -43,6 +43,7 @@ var (
 	kubeClient       kubernetes.Interface
 	dynamicClient    dynamic.Interface
 	clusterClient    clusterclient.Interface
+	workClient       workclient.Interface
 	klusterletClient operatorv1client.KlusterletInterface
 	saClient         saclient.Interface
 
@@ -53,6 +54,7 @@ var (
 	// hosted spoke clients
 	hostedSpokeKubeClient    kubernetes.Interface
 	hostedSpokeClusterClient clusterclient.Interface
+	hostedSpokeWorkClient    workclient.Interface
 	hostedCRDsClient         apiextensionsclient.Interface
 )
 
@@ -102,6 +104,11 @@ var _ = ginkgo.BeforeSuite(func() {
 			return err
 		}
 
+		workClient, err = workclient.NewForConfig(controlplaneConfig)
+		if err != nil {
+			return err
+		}
+
 		operatorClient, err := operatorv1client.NewForConfig(controlplaneConfig)
 		if err != nil {
 			return err
@@ -139,6 +146,11 @@ var _ = ginkgo.BeforeSuite(func() {
 		}
 
 		hostedSpokeClusterClient, err = clusterclient.NewForConfig(hostedSpokeConfig)
+		if err != nil {
+			return err
+		}
+
+		hostedSpokeWorkClient, err = workclient.NewForConfig(hostedSpokeConfig)
 		if err != nil {
 			return err
 		}

@@ -3,15 +3,21 @@ package e2e_test
 import (
 	"fmt"
 	"os"
+	"time"
 
 	ginkgo "github.com/onsi/ginkgo/v2"
 	gomega "github.com/onsi/gomega"
+
 	clusterinfov1beta1 "github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
+
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/rand"
+	"k8s.io/apimachinery/pkg/util/wait"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
+	workv1 "open-cluster-management.io/api/work/v1"
 	policyv1 "open-cluster-management.io/governance-policy-propagator/api/v1"
 
 	"github.com/stolostron/multicluster-controlplane/test/e2e/util"
@@ -63,6 +69,28 @@ var _ = ginkgo.Describe("hosted mode loopback test", ginkgo.Ordered, func() {
 	})
 
 	ginkgo.AfterAll(func() {
+		ginkgo.By("Ensure the resources are cleaned on the controlplane", func() {
+			gomega.Eventually(func() error {
+				_, err := clusterClient.ClusterV1().ManagedClusters().Get(ctx, hostedManagedClusterName, metav1.GetOptions{})
+				if err != nil && !errors.IsNotFound(err) {
+					return err
+				}
+				if err == nil {
+					return fmt.Errorf("the hosted managed cluster %s still exists", hostedManagedClusterName)
+				}
+
+				works, err := workClient.WorkV1().ManifestWorks(hostedManagedClusterName).List(ctx, metav1.ListOptions{})
+				if err != nil {
+					return err
+				}
+				if len(works.Items) != 0 {
+					return fmt.Errorf("the manifest works %d still exist in %s", len(works.Items), hostedManagedClusterName)
+				}
+
+				return nil
+			}).WithTimeout(timeout).ShouldNot(gomega.HaveOccurred())
+		})
+
 		ginkgo.By("Ensure the resources are cleaned on the management cluster", func() {
 			gomega.Eventually(func() error {
 				deploy := fmt.Sprintf("%s-multicluster-controlplane-agent", hostedManagedClusterName)
@@ -118,6 +146,14 @@ var _ = ginkgo.Describe("hosted mode loopback test", ginkgo.Ordered, func() {
 					}
 				}
 
+				works, err := hostedSpokeWorkClient.WorkV1().AppliedManifestWorks().List(ctx, metav1.ListOptions{})
+				if err != nil {
+					return err
+				}
+				if len(works.Items) != 0 {
+					return fmt.Errorf("the applied manifest works %d still exist in %s", len(works.Items), hostedManagedClusterName)
+				}
+
 				return nil
 			}).WithTimeout(timeout).ShouldNot(gomega.HaveOccurred())
 		})
@@ -136,6 +172,55 @@ var _ = ginkgo.Describe("hosted mode loopback test", ginkgo.Ordered, func() {
 				}
 				return nil
 			}).WithTimeout(timeout).ShouldNot(gomega.HaveOccurred())
+		})
+	})
+
+	ginkgo.Context("manifestworks should work fine", func() {
+		ginkgo.It("should be able to create manifestoworks", func() {
+			workName := fmt.Sprintf("%s-%s", hostedManagedClusterName, rand.String(6))
+			configMapName := fmt.Sprintf("%s-%s", hostedManagedClusterName, rand.String(6))
+			ginkgo.By(fmt.Sprintf("Create a manifestwork %q in the cluster %q", workName, hostedManagedClusterName), func() {
+				_, err := workClient.WorkV1().ManifestWorks(hostedManagedClusterName).Create(
+					ctx,
+					&workv1.ManifestWork{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: workName,
+						},
+						Spec: workv1.ManifestWorkSpec{
+							Workload: workv1.ManifestsTemplate{
+								Manifests: []workv1.Manifest{
+									util.ToManifest(util.NewConfigmap(configMapName)),
+								},
+							},
+						},
+					},
+					metav1.CreateOptions{},
+				)
+				gomega.Expect(err).ToNot(gomega.HaveOccurred())
+			})
+
+			ginkgo.By("Waiting the manifestwork becomes available", func() {
+				gomega.Expect(wait.Poll(1*time.Second, timeout, func() (bool, error) {
+					work, err := workClient.WorkV1().ManifestWorks(hostedManagedClusterName).Get(ctx, workName, metav1.GetOptions{})
+					if errors.IsNotFound(err) {
+						return false, nil
+					}
+					if err != nil {
+						return false, err
+					}
+
+					if meta.IsStatusConditionTrue(work.Status.Conditions, workv1.WorkAvailable) {
+						return true, nil
+					}
+
+					return false, nil
+				})).ToNot(gomega.HaveOccurred())
+			})
+
+			ginkgo.By("Get the configmap that was created by manifestwork", func() {
+				_, err := hostedSpokeKubeClient.CoreV1().ConfigMaps(util.DefaultNamespace).Get(ctx, configMapName, metav1.GetOptions{})
+				gomega.Expect(err).ToNot(gomega.HaveOccurred())
+			})
 		})
 	})
 

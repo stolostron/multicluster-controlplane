@@ -4,8 +4,10 @@ import (
 	"context"
 	"os/exec"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -13,11 +15,13 @@ import (
 
 	clusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	clusterv1alpha1 "open-cluster-management.io/api/cluster/v1alpha1"
+	workv1 "open-cluster-management.io/api/work/v1"
 )
 
 const (
-	IDClaim      = "id.k8s.io"
-	VersionClaim = "kubeversion.open-cluster-management.io"
+	IDClaim          = "id.k8s.io"
+	VersionClaim     = "kubeversion.open-cluster-management.io"
+	DefaultNamespace = "default"
 )
 
 var (
@@ -90,4 +94,26 @@ func Kubectl(kubeConfig string, args ...string) (string, error) {
 	args = append([]string{"--kubeconfig", kubeConfig}, args...)
 	output, err := exec.Command("kubectl", args...).CombinedOutput()
 	return string(output), err
+}
+
+func ToManifest(object runtime.Object) workv1.Manifest {
+	manifest := workv1.Manifest{}
+	manifest.Object = object
+	return manifest
+}
+
+func NewConfigmap(name string) *corev1.ConfigMap {
+	return &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: DefaultNamespace,
+			Name:      name,
+		},
+		Data: map[string]string{
+			"test": "I'm a test configmap",
+		},
+	}
 }

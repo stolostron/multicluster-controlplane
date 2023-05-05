@@ -141,6 +141,11 @@ func InstallControllers(stopCh <-chan struct{}, aggregatorConfig *aggregatorapis
 				klog.Fatalf("failed to build controlplane cluster client %v", err)
 			}
 
+			controlplaneWorkClient, err := workclient.NewForConfig(loopbackRestConfig)
+			if err != nil {
+				klog.Fatalf("failed to build controlplane work client %v", err)
+			}
+
 			kubeClient, err := kubernetes.NewForConfig(restConfig)
 			if err != nil {
 				klog.Fatalf("failed to build kube client on the management cluster %v", err)
@@ -158,10 +163,11 @@ func InstallControllers(stopCh <-chan struct{}, aggregatorConfig *aggregatorapis
 			klusterlet := klusterlet.NewKlusterlet(
 				controlplaneKubeClient,
 				controlplaneClusterClient,
+				controlplaneWorkClient,
 				controlplaneCRDClient,
 				controlplaneOperatorClient.OperatorV1().Klusterlets(),
 				kubeClient,
-				workClient,
+				workClient.WorkV1().AppliedManifestWorks(),
 				kubeInformerFactory,
 				operatorInformerFactory.Operator().V1().Klusterlets(),
 			)

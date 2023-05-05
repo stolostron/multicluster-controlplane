@@ -13,6 +13,7 @@ import (
 	operatorv1client "open-cluster-management.io/api/client/operator/clientset/versioned/typed/operator/v1"
 	operatorv1informers "open-cluster-management.io/api/client/operator/informers/externalversions/operator/v1"
 	workclient "open-cluster-management.io/api/client/work/clientset/versioned"
+	workv1client "open-cluster-management.io/api/client/work/clientset/versioned/typed/work/v1"
 	"open-cluster-management.io/multicluster-controlplane/pkg/util"
 
 	"github.com/stolostron/multicluster-controlplane/pkg/controllers/klusterlet/controllers/bootstrapcontroller"
@@ -40,10 +41,11 @@ func (k *Klusterlet) Start(ctx context.Context) {
 func NewKlusterlet(
 	controlplaneKubeClient kubernetes.Interface,
 	controlplaneClusterClient clusterclient.Interface,
+	controlplaneWorkClient workclient.Interface,
 	controlplaneAPIExtensionClient apiextensionsclient.Interface,
 	klusterletClient operatorv1client.KlusterletInterface,
 	kubeClient kubernetes.Interface,
-	workClient workclient.Interface,
+	appliedManifestWorkClient workv1client.AppliedManifestWorkInterface,
 	kubeInformerFactory informers.SharedInformerFactory,
 	klusterletInformer operatorv1informers.KlusterletInformer,
 ) *Klusterlet {
@@ -57,19 +59,20 @@ func NewKlusterlet(
 			klusterletInformer,
 			kubeInformerFactory.Core().V1().Secrets(),
 			kubeInformerFactory.Apps().V1().Deployments(),
-			workClient.WorkV1().AppliedManifestWorks(),
+			appliedManifestWorkClient,
 			recorder,
 		),
 		cleanupController: klusterletcontroller.NewKlusterletCleanupController(
 			kubeClient,
 			controlplaneKubeClient,
 			controlplaneClusterClient,
+			controlplaneWorkClient,
 			controlplaneAPIExtensionClient,
 			klusterletClient,
 			klusterletInformer,
 			kubeInformerFactory.Core().V1().Secrets(),
 			kubeInformerFactory.Apps().V1().Deployments(),
-			workClient.WorkV1().AppliedManifestWorks(),
+			appliedManifestWorkClient,
 			recorder,
 		),
 		statusController: statuscontroller.NewKlusterletStatusController(

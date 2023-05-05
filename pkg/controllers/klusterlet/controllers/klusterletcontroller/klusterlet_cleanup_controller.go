@@ -27,6 +27,7 @@ import (
 	operatorv1client "open-cluster-management.io/api/client/operator/clientset/versioned/typed/operator/v1"
 	operatorinformer "open-cluster-management.io/api/client/operator/informers/externalversions/operator/v1"
 	operatorlister "open-cluster-management.io/api/client/operator/listers/operator/v1"
+	workclient "open-cluster-management.io/api/client/work/clientset/versioned"
 	workv1client "open-cluster-management.io/api/client/work/clientset/versioned/typed/work/v1"
 	operatorapiv1 "open-cluster-management.io/api/operator/v1"
 
@@ -38,6 +39,7 @@ type klusterletCleanupController struct {
 	kubeClient                kubernetes.Interface
 	controlplaneKubeClient    kubernetes.Interface
 	controlplaneClusterClient clusterclient.Interface
+	controlplaneWorkClient    workclient.Interface
 	apiExtensionClient        apiextensionsclient.Interface
 	appliedManifestWorkClient workv1client.AppliedManifestWorkInterface
 	klusterletClient          operatorv1client.KlusterletInterface
@@ -49,6 +51,7 @@ func NewKlusterletCleanupController(
 	kubeClient kubernetes.Interface,
 	controlplaneKubeClient kubernetes.Interface,
 	controlplaneClusterClient clusterclient.Interface,
+	controlplaneWorkClient workclient.Interface,
 	apiExtensionClient apiextensionsclient.Interface,
 	klusterletClient operatorv1client.KlusterletInterface,
 	klusterletInformer operatorinformer.KlusterletInformer,
@@ -60,6 +63,7 @@ func NewKlusterletCleanupController(
 		kubeClient:                kubeClient,
 		controlplaneKubeClient:    controlplaneKubeClient,
 		controlplaneClusterClient: controlplaneClusterClient,
+		controlplaneWorkClient:    controlplaneWorkClient,
 		apiExtensionClient:        apiExtensionClient,
 		appliedManifestWorkClient: appliedManifestWorkClient,
 		klusterletClient:          klusterletClient,
@@ -116,6 +120,17 @@ func (n *klusterletCleanupController) sync(ctx context.Context, controllerContex
 		HubKubeConfigSecret:                    helpers.HubKubeConfigSecret(klusterlet),
 		ExternalManagedClusterKubeConfigSecret: helpers.ExternalManagedClusterKubeConfigSecret(klusterlet),
 		InstallMode:                            klusterlet.Spec.DeployOption.Mode,
+	}
+
+	// cleanup managed cluster and its manifest works on the controlplane in hosted mode
+	if config.InstallMode == operatorapiv1.InstallModeHosted {
+		if err := n.deleteManifestWorks(ctx, controllerContext, config); err != nil {
+			return err
+		}
+
+		if err := helpers.DeleteManagedCluster(ctx, n.controlplaneClusterClient, config.ClusterName); err != nil {
+			return err
+		}
 	}
 
 	reconcilers := []klusterletReconcile{
@@ -197,10 +212,19 @@ func (n *klusterletCleanupController) sync(ctx context.Context, controllerContex
 		return err
 	}
 
-	return n.finalClenup(ctx, config)
+	// delete external managed cluster kubeconfig secret on management cluster in hosted mode
+	if config.InstallMode == operatorapiv1.InstallModeHosted {
+		if err := n.kubeClient.CoreV1().Secrets(config.AgentNamespace).Delete(
+			ctx, config.ExternalManagedClusterKubeConfigSecret, metav1.DeleteOptions{}); err != nil {
+			return err
+		}
+
+	}
+
+	return nil
 }
 
-func (r *klusterletCleanupController) checkConnectivity(ctx context.Context,
+func (n *klusterletCleanupController) checkConnectivity(ctx context.Context,
 	amwClient workv1client.AppliedManifestWorkInterface,
 	klusterlet *operatorapiv1.Klusterlet) (cleanupManagedClusterResources bool, err error) {
 	_, err = amwClient.List(ctx, metav1.ListOptions{})
@@ -289,21 +313,33 @@ func (n *klusterletCleanupController) removeKlusterletFinalizers(ctx context.Con
 	return nil
 }
 
-func (n *klusterletCleanupController) finalClenup(ctx context.Context, config klusterletConfig) error {
-	if config.InstallMode != operatorapiv1.InstallModeHosted {
+func (n *klusterletCleanupController) deleteManifestWorks(
+	ctx context.Context, ctrlContext factory.SyncContext, config klusterletConfig) error {
+	works, err := n.controlplaneWorkClient.WorkV1().ManifestWorks(config.ClusterName).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	if len(works.Items) == 0 {
 		return nil
 	}
 
-	if err := n.kubeClient.CoreV1().Secrets(config.AgentNamespace).Delete(
-		ctx, config.ExternalManagedClusterKubeConfigSecret, metav1.DeleteOptions{}); err != nil {
+	unavailable, err := helpers.IsClusterUnavailable(ctx, n.controlplaneClusterClient, config.ClusterName)
+	if err != nil {
 		return err
 	}
 
-	if err := n.controlplaneClusterClient.ClusterV1().ManagedClusters().Delete(
-		ctx, config.ClusterName, metav1.DeleteOptions{}); err != nil {
+	if unavailable {
+		// managed cluster is unavailable, force delete all manifestworks
+		return helpers.DeleteAllManifestWorks(ctx, n.controlplaneWorkClient, works.Items, true)
+	}
+
+	if err := helpers.DeleteAllManifestWorks(ctx, n.controlplaneWorkClient, works.Items, false); err != nil {
 		return err
 	}
 
+	// requeue klusterlet to wait the manifestworks is deleted
+	ctrlContext.Queue().AddAfter(config.KlusterletName, 10*time.Second)
 	return nil
 }
 
