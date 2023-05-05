@@ -2,19 +2,25 @@ package e2e_test
 
 import (
 	"fmt"
+	"os"
 
 	ginkgo "github.com/onsi/ginkgo/v2"
 	gomega "github.com/onsi/gomega"
-
 	clusterinfov1beta1 "github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
-
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
+	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
+	policyv1 "open-cluster-management.io/governance-policy-propagator/api/v1"
 
 	"github.com/stolostron/multicluster-controlplane/test/e2e/util"
+)
+
+const (
+	policyName      = "policy-limitrange"
+	policyNamespace = "default"
+	limitrangeName  = "container-mem-limit-range"
 )
 
 var _ = ginkgo.Describe("hosted mode loopback test", ginkgo.Ordered, func() {
@@ -60,7 +66,7 @@ var _ = ginkgo.Describe("hosted mode loopback test", ginkgo.Ordered, func() {
 		ginkgo.By("Ensure the resources are cleaned on the management cluster", func() {
 			gomega.Eventually(func() error {
 				deploy := fmt.Sprintf("%s-multicluster-controlplane-agent", hostedManagedClusterName)
-				_, err := managementKubeClinet.AppsV1().Deployments(controlPlaneNamespace).Get(ctx, deploy, metav1.GetOptions{})
+				_, err := managementKubeClient.AppsV1().Deployments(controlPlaneNamespace).Get(ctx, deploy, metav1.GetOptions{})
 				if err != nil && !errors.IsNotFound(err) {
 					return err
 				}
@@ -69,7 +75,7 @@ var _ = ginkgo.Describe("hosted mode loopback test", ginkgo.Ordered, func() {
 				}
 
 				hubSecret := fmt.Sprintf("%s-hub-kubeconfig-secret", hostedManagedClusterName)
-				_, err = managementKubeClinet.CoreV1().Secrets(controlPlaneNamespace).Get(ctx, hubSecret, metav1.GetOptions{})
+				_, err = managementKubeClient.CoreV1().Secrets(controlPlaneNamespace).Get(ctx, hubSecret, metav1.GetOptions{})
 				if err != nil && !errors.IsNotFound(err) {
 					return err
 				}
@@ -78,7 +84,7 @@ var _ = ginkgo.Describe("hosted mode loopback test", ginkgo.Ordered, func() {
 				}
 
 				externalSecret := fmt.Sprintf("%s-external-managedcluster-kubeconfig", hostedManagedClusterName)
-				_, err = managementKubeClinet.CoreV1().Secrets(controlPlaneNamespace).Get(ctx, externalSecret, metav1.GetOptions{})
+				_, err = managementKubeClient.CoreV1().Secrets(controlPlaneNamespace).Get(ctx, externalSecret, metav1.GetOptions{})
 				if err != nil && !errors.IsNotFound(err) {
 					return err
 				}
@@ -87,7 +93,7 @@ var _ = ginkgo.Describe("hosted mode loopback test", ginkgo.Ordered, func() {
 				}
 
 				bootstrapSecret := "multicluster-controlplane-svc-kubeconfig"
-				_, err = managementKubeClinet.CoreV1().Secrets(controlPlaneNamespace).Get(ctx, bootstrapSecret, metav1.GetOptions{})
+				_, err = managementKubeClient.CoreV1().Secrets(controlPlaneNamespace).Get(ctx, bootstrapSecret, metav1.GetOptions{})
 				if err != nil {
 					return err
 				}
@@ -179,7 +185,85 @@ var _ = ginkgo.Describe("hosted mode loopback test", ginkgo.Ordered, func() {
 
 	ginkgo.Context("policy should work fine", func() {
 		ginkgo.It("should be able to propagate policies", func() {
-			ginkgo.By("TODO", func() {})
+			ginkgo.By("Apply clusterset label for hostedCluster", func() {
+				gomega.Eventually(func() error {
+					patch := []byte("{\"metadata\": {\"labels\": {\"cluster.open-cluster-management.io/clusterset\": \"clusterset1\"}}}")
+					_, err := clusterClient.ClusterV1().ManagedClusters().Patch(ctx,
+						hostedManagedClusterName, types.MergePatchType, patch, metav1.PatchOptions{})
+					if err != nil {
+						return err
+					}
+					return nil
+				}).WithTimeout(timeout).ShouldNot(gomega.HaveOccurred())
+			})
+
+			ginkgo.By("Apply policy to the controlplane", func() {
+				_, err := util.Kubectl(os.Getenv("CONTROLPLANE_KUBECONFIG"), "apply", "-f", "./test/e2e/testdata/limitrange-policy-placement.yaml")
+				if err != nil {
+					fmt.Print(err)
+				}
+				gomega.Expect(err).Should(gomega.Succeed())
+			})
+
+			ginkgo.By("Verify the policy is propagated to the managed cluster", func() {
+				gomega.Eventually(func() error {
+					_, err := managementDynamicClient.Resource(policyv1.GroupVersion.WithResource("policies")).
+						Namespace(hostedManagedClusterName).Get(ctx, policyNamespace+"."+policyName, metav1.GetOptions{})
+					if err != nil {
+						return err
+					}
+					return nil
+				}).WithTimeout(timeout).ShouldNot(gomega.HaveOccurred())
+			})
+
+			ginkgo.By("Enforce the policy to the managed cluster", func() {
+				gomega.Eventually(func() error {
+					policy, err := dynamicClient.Resource(policyv1.GroupVersion.WithResource("policies")).
+						Namespace("default").Get(ctx, "policy-limitrange", metav1.GetOptions{})
+					if err != nil {
+						return err
+					}
+
+					policy.Object["spec"].(map[string]interface{})["remediationAction"] = "enforce"
+					_, err = dynamicClient.Resource(policyv1.GroupVersion.WithResource("policies")).
+						Namespace(policyNamespace).Update(ctx, policy, metav1.UpdateOptions{})
+					if err != nil {
+						return err
+					}
+					return nil
+				}).WithTimeout(timeout).ShouldNot(gomega.HaveOccurred())
+			})
+
+			ginkgo.By("Verify the policy is compliant", func() {
+				gomega.Eventually(func() error {
+					var err error
+					policy, err := managementDynamicClient.Resource(policyv1.GroupVersion.WithResource("policies")).
+						Namespace(hostedManagedClusterName).Get(ctx, policyNamespace+"."+policyName, metav1.GetOptions{})
+					if err != nil {
+						return err
+					}
+
+					statusObj, ok := policy.Object["status"]
+					if ok {
+						status := statusObj.(map[string]interface{})
+						if status["compliant"] == "Compliant" {
+							return nil
+						}
+					}
+					return fmt.Errorf("policy is not compliant")
+				}).WithTimeout(timeout).ShouldNot(gomega.HaveOccurred())
+			})
+
+			ginkgo.By("Verify the policy is enforced to the managed cluster", func() {
+				gomega.Eventually(func() error {
+					_, err := hostedSpokeKubeClient.CoreV1().LimitRanges(policyNamespace).
+						Get(ctx, limitrangeName, metav1.GetOptions{})
+					if err != nil {
+						return err
+					}
+					return nil
+				}).WithTimeout(timeout).ShouldNot(gomega.HaveOccurred())
+			})
 		})
 	})
 

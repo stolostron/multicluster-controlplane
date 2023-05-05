@@ -2,13 +2,19 @@ package agent
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
-	v1 "k8s.io/api/core/v1"
+	gktemplatesv1 "github.com/open-policy-agent/frameworks/constraint/pkg/apis/templates/v1"
+	gktemplatesv1beta1 "github.com/open-policy-agent/frameworks/constraint/pkg/apis/templates/v1beta1"
+	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
+	openshiftoauthclientset "github.com/openshift/client-go/oauth/clientset/versioned"
+	clusterinfov1beta1 "github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/dynamic"
@@ -18,34 +24,28 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
+	clusterclientset "open-cluster-management.io/api/client/cluster/clientset/versioned"
+	clusterv1 "open-cluster-management.io/api/cluster/v1"
+	configpolicyv1 "open-cluster-management.io/config-policy-controller/api/v1"
+	"open-cluster-management.io/config-policy-controller/controllers"
+	configcommon "open-cluster-management.io/config-policy-controller/pkg/common"
+	"open-cluster-management.io/governance-policy-framework-addon/controllers/secretsync"
+	policyv1 "open-cluster-management.io/governance-policy-propagator/api/v1"
+	msav1alpha1 "open-cluster-management.io/managed-serviceaccount/api/v1alpha1"
+	"open-cluster-management.io/multicluster-controlplane/pkg/agent"
+	"open-cluster-management.io/multicluster-controlplane/pkg/features"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
-	openshiftoauthclientset "github.com/openshift/client-go/oauth/clientset/versioned"
-
-	gktemplatesv1 "github.com/open-policy-agent/frameworks/constraint/pkg/apis/templates/v1"
-	gktemplatesv1beta1 "github.com/open-policy-agent/frameworks/constraint/pkg/apis/templates/v1beta1"
-
-	clusterinfov1beta1 "github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
 	"github.com/stolostron/multicluster-controlplane/pkg/agent/addons"
 	"github.com/stolostron/multicluster-controlplane/pkg/agent/addons/manifests"
 	"github.com/stolostron/multicluster-controlplane/pkg/feature"
 	"github.com/stolostron/multicluster-controlplane/pkg/helpers"
-
-	clusterclientset "open-cluster-management.io/api/client/cluster/clientset/versioned"
-	clusterv1 "open-cluster-management.io/api/cluster/v1"
-	configpolicyv1 "open-cluster-management.io/config-policy-controller/api/v1"
-	"open-cluster-management.io/governance-policy-framework-addon/controllers/secretsync"
-	policyv1 "open-cluster-management.io/governance-policy-propagator/api/v1"
-	"open-cluster-management.io/governance-policy-propagator/controllers/common"
-	msav1alpha1 "open-cluster-management.io/managed-serviceaccount/api/v1alpha1"
-	"open-cluster-management.io/multicluster-controlplane/pkg/agent"
-	"open-cluster-management.io/multicluster-controlplane/pkg/features"
-
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
-	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 var scheme = runtime.NewScheme()
@@ -62,11 +62,14 @@ func init() {
 	utilruntime.Must(gktemplatesv1beta1.AddToScheme(scheme))
 }
 
-var requiredCRDFiles = []string{
+var agentRequiredCRDFiles = []string{
 	"crds/clusters.open-cluster-management.io_clusterclaims.crd.yaml",
+	"crds/work.open-cluster-management.io_appliedmanifestworks.crd.yaml",
+}
+
+var policyRequiredCRDFiles = []string{
 	"crds/policy.open-cluster-management.io_configurationpolicies.crd.yaml",
 	"crds/policy.open-cluster-management.io_policies.crd.yaml",
-	"crds/work.open-cluster-management.io_appliedmanifestworks.crd.yaml",
 }
 
 type AgentOptions struct {
@@ -114,7 +117,21 @@ func (a *AgentOptions) RunAddOns(ctx context.Context) error {
 		return err
 	}
 
-	if err := helpers.EnsureCRDs(ctx, crdClient, manifests.AgentCRDFiles, requiredCRDFiles...); err != nil {
+	if err := helpers.EnsureCRDs(ctx, crdClient, manifests.AgentCRDFiles, agentRequiredCRDFiles...); err != nil {
+		return err
+	}
+
+	// in hosted mode, the hostingKubeConfig is for the management cluster.
+	// in default mode, the hostingKubeConfig is for the managed cluster.
+	hostingKubeConfig, err := rest.InClusterConfig()
+	if err != nil {
+		return err
+	}
+	hostingCRDClient, err := apiextensionsclient.NewForConfig(hostingKubeConfig)
+	if err != nil {
+		return err
+	}
+	if err := helpers.EnsureCRDs(ctx, hostingCRDClient, manifests.AgentCRDFiles, policyRequiredCRDFiles...); err != nil {
 		return err
 	}
 
@@ -130,7 +147,7 @@ func (a *AgentOptions) RunAddOns(ctx context.Context) error {
 		return err
 	}
 
-	spokeManager, err := a.newSpokeManager(spokeKubeConfig, scheme)
+	hostingManager, err := a.newHostingManager(scheme)
 	if err != nil {
 		return err
 	}
@@ -180,14 +197,13 @@ func (a *AgentOptions) RunAddOns(ctx context.Context) error {
 
 	if features.DefaultAgentMutableFeatureGate.Enabled(feature.ConfigurationPolicy) {
 		klog.Info("starting configuration policy addon agent")
+
 		if err := addons.StartPolicyAgent(
 			ctx,
 			clusterName,
 			spokeKubeConfig,
 			hubManager,
-			spokeManager,
-			kubeClient,
-			dynamicClient,
+			hostingManager,
 			a.PolicyAgentConfig,
 		); err != nil {
 			klog.Fatalf("failed to setup policy addon, %v", err)
@@ -219,9 +235,9 @@ func (a *AgentOptions) RunAddOns(ctx context.Context) error {
 	}()
 
 	go func() {
-		klog.Info("starting the embedded controller-runtime manager in controlplane agent")
-		if err := spokeManager.Start(ctx); err != nil {
-			klog.Fatalf("failed to start embedded controller-runtime manager, %v", err)
+		klog.Info("starting the embedded hosting controller-runtime manager in controlplane agent")
+		if err := hostingManager.Start(ctx); err != nil {
+			klog.Fatalf("failed to start embedded hosting controller-runtime manager, %v", err)
 		}
 	}()
 
@@ -236,7 +252,7 @@ func (a *AgentOptions) newHubManager(config *rest.Config, scheme *runtime.Scheme
 		NewCache: cache.BuilderWithOptions(
 			cache.Options{
 				SelectorsByObject: cache.SelectorsByObject{
-					&v1.Secret{}: {
+					&corev1.Secret{}: {
 						Field: fields.SelectorFromSet(fields.Set{"metadata.name": secretsync.SecretName}),
 					},
 				},
@@ -250,7 +266,7 @@ func (a *AgentOptions) newHubManager(config *rest.Config, scheme *runtime.Scheme
 				MaxIntervalInSeconds: 1,
 				// This is the default spam key function except it adds the reason and message as well.
 				// https://github.com/kubernetes/client-go/blob/v0.23.3/tools/record/events_cache.go#L70-L82
-				SpamKeyFunc: func(event *v1.Event) string {
+				SpamKeyFunc: func(event *corev1.Event) string {
 					return strings.Join(
 						[]string{
 							event.Source.Component,
@@ -276,20 +292,62 @@ func (a *AgentOptions) newHubManager(config *rest.Config, scheme *runtime.Scheme
 	return mgr, nil
 }
 
-func (a *AgentOptions) newSpokeManager(config *rest.Config, scheme *runtime.Scheme) (manager.Manager, error) {
-	crdLabelSelector := labels.SelectorFromSet(map[string]string{common.APIGroup + "/policy-type": "template"})
-	mgr, err := ctrl.NewManager(config, ctrl.Options{
+func (a *AgentOptions) newHostingManager(scheme *runtime.Scheme) (manager.Manager, error) {
+
+	cfg, err := config.GetConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	cacheSelectors := cache.SelectorsByObject{
+		&apiextensionsv1.CustomResourceDefinition{}: {
+			Field: fields.SelectorFromSet(fields.Set{"metadata.name": controllers.CRDName}),
+		},
+	}
+
+	ctrlKey, err := configcommon.GetOperatorNamespacedName()
+	if err != nil {
+		return nil, err
+	}
+
+	cacheSelectors[&appsv1.Deployment{}] = cache.ObjectSelector{
+		Field: fields.SelectorFromSet(fields.Set{
+			"metadata.namespace": ctrlKey.Namespace,
+			"metadata.name":      ctrlKey.Name,
+		}),
+	}
+
+	watchNamespace, err := configcommon.GetWatchNamespace()
+	if err != nil {
+		return nil, err
+	}
+
+	if strings.Contains(watchNamespace, ",") {
+		return nil, fmt.Errorf("multiple watched namespaces are not allowed for this controller")
+	}
+
+	if watchNamespace != "" {
+		cacheSelectors[&configpolicyv1.ConfigurationPolicy{}] = cache.ObjectSelector{
+			Field: fields.SelectorFromSet(fields.Set{
+				"metadata.namespace": watchNamespace,
+			}),
+		}
+		cacheSelectors[&policyv1.Policy{}] = cache.ObjectSelector{
+			Field: fields.SelectorFromSet(fields.Set{
+				"metadata.namespace": watchNamespace,
+			}),
+		}
+	}
+
+	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme:             scheme,
 		MetricsBindAddress: "0", //TODO think about the mertics later
 		NewCache: cache.BuilderWithOptions(
 			cache.Options{
-				SelectorsByObject: cache.SelectorsByObject{
-					&apiextensionsv1.CustomResourceDefinition{}: {
-						Label: crdLabelSelector,
-					},
-				},
+				SelectorsByObject: cacheSelectors,
 			},
 		),
+		ClientDisableCacheFor: []client.Object{&corev1.Secret{}},
 		// Override the EventBroadcaster so that the spam filter will not ignore events for the policy but with
 		// different messages if a large amount of events for that policy are sent in a short time.
 		EventBroadcaster: record.NewBroadcasterWithCorrelatorOptions(
@@ -298,7 +356,7 @@ func (a *AgentOptions) newSpokeManager(config *rest.Config, scheme *runtime.Sche
 				MaxIntervalInSeconds: 1,
 				// This is the default spam key function except it adds the reason and message as well.
 				// https://github.com/kubernetes/client-go/blob/v0.23.3/tools/record/events_cache.go#L70-L82
-				SpamKeyFunc: func(event *v1.Event) string {
+				SpamKeyFunc: func(event *corev1.Event) string {
 					return strings.Join(
 						[]string{
 							event.Source.Component,

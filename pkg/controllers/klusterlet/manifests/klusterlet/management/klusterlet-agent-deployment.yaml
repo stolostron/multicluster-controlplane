@@ -35,6 +35,8 @@ spec:
         env:
         - name: OPERATOR_NAME
           value: {{ .KlusterletName }}-multicluster-controlplane-agent
+        - name: WATCH_NAMESPACE
+          value: {{ .ClusterName }}
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:

@@ -2,6 +2,7 @@ package util
 
 import (
 	"context"
+	"os/exec"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -83,4 +84,10 @@ func NewClaim() *clusterv1alpha1.ClusterClaim {
 			Value: rand.String(6),
 		},
 	}
+}
+
+func Kubectl(kubeConfig string, args ...string) (string, error) {
+	args = append([]string{"--kubeconfig", kubeConfig}, args...)
+	output, err := exec.Command("kubectl", args...).CombinedOutput()
+	return string(output), err
 }

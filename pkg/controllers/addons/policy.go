@@ -18,6 +18,7 @@ import (
 	metricsctrl "open-cluster-management.io/governance-policy-propagator/controllers/policymetrics"
 	policysetctrl "open-cluster-management.io/governance-policy-propagator/controllers/policyset"
 	propagatorctrl "open-cluster-management.io/governance-policy-propagator/controllers/propagator"
+	rootpolicystatusctrl "open-cluster-management.io/governance-policy-propagator/controllers/rootpolicystatus"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -86,6 +87,16 @@ func SetupPolicyWithManager(ctx context.Context, mgr ctrl.Manager, kubeconfig *r
 		KeyRotationDays:         30,
 		MaxConcurrentReconciles: 10,
 		Scheme:                  mgr.GetScheme(),
+	}
+
+	// TODO: allow MaxConcurrentReconciles passed in as a parameter
+	if err = (&rootpolicystatusctrl.RootPolicyStatusReconciler{
+		Client:                  mgr.GetClient(),
+		MaxConcurrentReconciles: 5,
+		RootPolicyLocks:         &sync.Map{},
+		Scheme:                  mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		return err
 	}
 
 	// need to limit to

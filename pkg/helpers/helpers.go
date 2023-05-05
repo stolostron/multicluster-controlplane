@@ -51,6 +51,7 @@ func EnsureCRDs(ctx context.Context, client apiextensionsclient.Interface, fs em
 					required,
 				)
 				if err != nil {
+					klog.Errorf("fail to apply %s due to %v", crdFileName, err)
 					return false, nil
 				}
 
