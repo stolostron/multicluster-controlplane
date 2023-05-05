@@ -23,17 +23,17 @@ import (
 	"github.com/stolostron/multicluster-controlplane/test/e2e/util"
 )
 
-const (
-	policyName      = "policy-limitrange"
-	policyNamespace = "default"
-	limitrangeName  = "container-mem-limit-range"
-)
-
 var _ = ginkgo.Describe("hosted mode loopback test", ginkgo.Ordered, func() {
+	var controlPlaneNamespace string
+	var hostedManagedClusterName string
+
 	ginkgo.BeforeEach(func() {
+		controlPlaneNamespace = os.Getenv("CONTROLPLANE_NAMESPACE")
+		hostedManagedClusterName = os.Getenv("HOSTED_MANAGED_CLUSTER")
+
 		ginkgo.By(fmt.Sprintf("Wait for klusterlet %s available", hostedManagedClusterName), func() {
 			gomega.Eventually(func() error {
-				klusterlet, err := klusterletClient.Get(ctx, hostedManagedClusterName, metav1.GetOptions{})
+				klusterlet, err := controlplaneClients.klusterletClient.Get(ctx, hostedManagedClusterName, metav1.GetOptions{})
 				if err != nil {
 					return err
 				}
@@ -55,7 +55,7 @@ var _ = ginkgo.Describe("hosted mode loopback test", ginkgo.Ordered, func() {
 
 		ginkgo.By(fmt.Sprintf("Wait for hosted managed cluster %s available", hostedManagedClusterName), func() {
 			gomega.Eventually(func() error {
-				hostedCluster, err := clusterClient.ClusterV1().ManagedClusters().Get(ctx, hostedManagedClusterName, metav1.GetOptions{})
+				hostedCluster, err := controlplaneClients.clusterClient.ClusterV1().ManagedClusters().Get(ctx, hostedManagedClusterName, metav1.GetOptions{})
 				if err != nil {
 					return err
 				}
@@ -71,7 +71,7 @@ var _ = ginkgo.Describe("hosted mode loopback test", ginkgo.Ordered, func() {
 	ginkgo.AfterAll(func() {
 		ginkgo.By("Ensure the resources are cleaned on the controlplane", func() {
 			gomega.Eventually(func() error {
-				_, err := clusterClient.ClusterV1().ManagedClusters().Get(ctx, hostedManagedClusterName, metav1.GetOptions{})
+				_, err := controlplaneClients.clusterClient.ClusterV1().ManagedClusters().Get(ctx, hostedManagedClusterName, metav1.GetOptions{})
 				if err != nil && !errors.IsNotFound(err) {
 					return err
 				}
@@ -79,7 +79,7 @@ var _ = ginkgo.Describe("hosted mode loopback test", ginkgo.Ordered, func() {
 					return fmt.Errorf("the hosted managed cluster %s still exists", hostedManagedClusterName)
 				}
 
-				works, err := workClient.WorkV1().ManifestWorks(hostedManagedClusterName).List(ctx, metav1.ListOptions{})
+				works, err := controlplaneClients.workClient.WorkV1().ManifestWorks(hostedManagedClusterName).List(ctx, metav1.ListOptions{})
 				if err != nil {
 					return err
 				}
@@ -94,7 +94,7 @@ var _ = ginkgo.Describe("hosted mode loopback test", ginkgo.Ordered, func() {
 		ginkgo.By("Ensure the resources are cleaned on the management cluster", func() {
 			gomega.Eventually(func() error {
 				deploy := fmt.Sprintf("%s-multicluster-controlplane-agent", hostedManagedClusterName)
-				_, err := managementKubeClient.AppsV1().Deployments(controlPlaneNamespace).Get(ctx, deploy, metav1.GetOptions{})
+				_, err := managementClusterClients.kubeClient.AppsV1().Deployments(controlPlaneNamespace).Get(ctx, deploy, metav1.GetOptions{})
 				if err != nil && !errors.IsNotFound(err) {
 					return err
 				}
@@ -103,7 +103,7 @@ var _ = ginkgo.Describe("hosted mode loopback test", ginkgo.Ordered, func() {
 				}
 
 				hubSecret := fmt.Sprintf("%s-hub-kubeconfig-secret", hostedManagedClusterName)
-				_, err = managementKubeClient.CoreV1().Secrets(controlPlaneNamespace).Get(ctx, hubSecret, metav1.GetOptions{})
+				_, err = managementClusterClients.kubeClient.CoreV1().Secrets(controlPlaneNamespace).Get(ctx, hubSecret, metav1.GetOptions{})
 				if err != nil && !errors.IsNotFound(err) {
 					return err
 				}
@@ -112,7 +112,7 @@ var _ = ginkgo.Describe("hosted mode loopback test", ginkgo.Ordered, func() {
 				}
 
 				externalSecret := fmt.Sprintf("%s-external-managedcluster-kubeconfig", hostedManagedClusterName)
-				_, err = managementKubeClient.CoreV1().Secrets(controlPlaneNamespace).Get(ctx, externalSecret, metav1.GetOptions{})
+				_, err = managementClusterClients.kubeClient.CoreV1().Secrets(controlPlaneNamespace).Get(ctx, externalSecret, metav1.GetOptions{})
 				if err != nil && !errors.IsNotFound(err) {
 					return err
 				}
@@ -121,7 +121,7 @@ var _ = ginkgo.Describe("hosted mode loopback test", ginkgo.Ordered, func() {
 				}
 
 				bootstrapSecret := "multicluster-controlplane-svc-kubeconfig"
-				_, err = managementKubeClient.CoreV1().Secrets(controlPlaneNamespace).Get(ctx, bootstrapSecret, metav1.GetOptions{})
+				_, err = managementClusterClients.kubeClient.CoreV1().Secrets(controlPlaneNamespace).Get(ctx, bootstrapSecret, metav1.GetOptions{})
 				if err != nil {
 					return err
 				}
@@ -136,7 +136,7 @@ var _ = ginkgo.Describe("hosted mode loopback test", ginkgo.Ordered, func() {
 					"appliedmanifestworks.work.open-cluster-management.io",
 					"clusterclaims.cluster.open-cluster-management.io",
 				} {
-					crd, err := hostedCRDsClient.ApiextensionsV1().CustomResourceDefinitions().Get(ctx, name, metav1.GetOptions{})
+					crd, err := hostedSpokeClients.crdsClient.ApiextensionsV1().CustomResourceDefinitions().Get(ctx, name, metav1.GetOptions{})
 					if err != nil {
 						return err
 					}
@@ -146,7 +146,7 @@ var _ = ginkgo.Describe("hosted mode loopback test", ginkgo.Ordered, func() {
 					}
 				}
 
-				works, err := hostedSpokeWorkClient.WorkV1().AppliedManifestWorks().List(ctx, metav1.ListOptions{})
+				works, err := hostedSpokeClients.workClient.WorkV1().AppliedManifestWorks().List(ctx, metav1.ListOptions{})
 				if err != nil {
 					return err
 				}
@@ -159,11 +159,11 @@ var _ = ginkgo.Describe("hosted mode loopback test", ginkgo.Ordered, func() {
 		})
 
 		ginkgo.By("Delete the hosted managed cluster namespace from controlplane", func() {
-			err := kubeClient.CoreV1().Namespaces().Delete(ctx, hostedManagedClusterName, metav1.DeleteOptions{})
+			err := controlplaneClients.kubeClient.CoreV1().Namespaces().Delete(ctx, hostedManagedClusterName, metav1.DeleteOptions{})
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 			gomega.Eventually(func() error {
-				_, err := kubeClient.CoreV1().Namespaces().Get(ctx, hostedManagedClusterName, metav1.GetOptions{})
+				_, err := controlplaneClients.kubeClient.CoreV1().Namespaces().Get(ctx, hostedManagedClusterName, metav1.GetOptions{})
 				if err != nil && !errors.IsNotFound(err) {
 					return err
 				}
@@ -180,7 +180,7 @@ var _ = ginkgo.Describe("hosted mode loopback test", ginkgo.Ordered, func() {
 			workName := fmt.Sprintf("%s-%s", hostedManagedClusterName, rand.String(6))
 			configMapName := fmt.Sprintf("%s-%s", hostedManagedClusterName, rand.String(6))
 			ginkgo.By(fmt.Sprintf("Create a manifestwork %q in the cluster %q", workName, hostedManagedClusterName), func() {
-				_, err := workClient.WorkV1().ManifestWorks(hostedManagedClusterName).Create(
+				_, err := controlplaneClients.workClient.WorkV1().ManifestWorks(hostedManagedClusterName).Create(
 					ctx,
 					&workv1.ManifestWork{
 						ObjectMeta: metav1.ObjectMeta{
@@ -201,7 +201,7 @@ var _ = ginkgo.Describe("hosted mode loopback test", ginkgo.Ordered, func() {
 
 			ginkgo.By("Waiting the manifestwork becomes available", func() {
 				gomega.Expect(wait.Poll(1*time.Second, timeout, func() (bool, error) {
-					work, err := workClient.WorkV1().ManifestWorks(hostedManagedClusterName).Get(ctx, workName, metav1.GetOptions{})
+					work, err := controlplaneClients.workClient.WorkV1().ManifestWorks(hostedManagedClusterName).Get(ctx, workName, metav1.GetOptions{})
 					if errors.IsNotFound(err) {
 						return false, nil
 					}
@@ -218,7 +218,7 @@ var _ = ginkgo.Describe("hosted mode loopback test", ginkgo.Ordered, func() {
 			})
 
 			ginkgo.By("Get the configmap that was created by manifestwork", func() {
-				_, err := hostedSpokeKubeClient.CoreV1().ConfigMaps(util.DefaultNamespace).Get(ctx, configMapName, metav1.GetOptions{})
+				_, err := hostedSpokeClients.kubeClient.CoreV1().ConfigMaps(util.DefaultNamespace).Get(ctx, configMapName, metav1.GetOptions{})
 				gomega.Expect(err).ToNot(gomega.HaveOccurred())
 			})
 		})
@@ -227,7 +227,7 @@ var _ = ginkgo.Describe("hosted mode loopback test", ginkgo.Ordered, func() {
 	ginkgo.Context("work manager should work fine", func() {
 		ginkgo.It("should have a synced clusterinfo", func() {
 			gomega.Eventually(func() error {
-				clusterInfo, err := util.GetResource(ctx, dynamicClient, util.ClusterInfoGVR, hostedManagedClusterName, hostedManagedClusterName)
+				clusterInfo, err := util.GetResource(ctx, controlplaneClients.dynamicClient, util.ClusterInfoGVR, hostedManagedClusterName, hostedManagedClusterName)
 				if err != nil {
 					return err
 				}
@@ -242,15 +242,15 @@ var _ = ginkgo.Describe("hosted mode loopback test", ginkgo.Ordered, func() {
 
 		ginkgo.It("should have required claims", func() {
 			gomega.Eventually(func() error {
-				if _, err := hostedSpokeClusterClient.ClusterV1alpha1().ClusterClaims().Get(ctx, util.IDClaim, metav1.GetOptions{}); err != nil {
+				if _, err := hostedSpokeClients.clusterClient.ClusterV1alpha1().ClusterClaims().Get(ctx, util.IDClaim, metav1.GetOptions{}); err != nil {
 					return err
 				}
 
-				if _, err := hostedSpokeClusterClient.ClusterV1alpha1().ClusterClaims().Get(ctx, util.VersionClaim, metav1.GetOptions{}); err != nil {
+				if _, err := hostedSpokeClients.clusterClient.ClusterV1alpha1().ClusterClaims().Get(ctx, util.VersionClaim, metav1.GetOptions{}); err != nil {
 					return err
 				}
 
-				claimNames, err := util.GetManagedClusterClaims(ctx, clusterClient, hostedManagedClusterName)
+				claimNames, err := util.GetManagedClusterClaims(ctx, controlplaneClients.clusterClient, hostedManagedClusterName)
 				if err != nil {
 					return err
 				}
@@ -273,7 +273,7 @@ var _ = ginkgo.Describe("hosted mode loopback test", ginkgo.Ordered, func() {
 			ginkgo.By("Apply clusterset label for hostedCluster", func() {
 				gomega.Eventually(func() error {
 					patch := []byte("{\"metadata\": {\"labels\": {\"cluster.open-cluster-management.io/clusterset\": \"clusterset1\"}}}")
-					_, err := clusterClient.ClusterV1().ManagedClusters().Patch(ctx,
+					_, err := controlplaneClients.clusterClient.ClusterV1().ManagedClusters().Patch(ctx,
 						hostedManagedClusterName, types.MergePatchType, patch, metav1.PatchOptions{})
 					if err != nil {
 						return err
@@ -282,36 +282,10 @@ var _ = ginkgo.Describe("hosted mode loopback test", ginkgo.Ordered, func() {
 				}).WithTimeout(timeout).ShouldNot(gomega.HaveOccurred())
 			})
 
-			ginkgo.By("Apply policy to the controlplane", func() {
-				_, err := util.Kubectl(os.Getenv("CONTROLPLANE_KUBECONFIG"), "apply", "-f", "./test/e2e/testdata/limitrange-policy-placement.yaml")
-				if err != nil {
-					fmt.Print(err)
-				}
-				gomega.Expect(err).Should(gomega.Succeed())
-			})
-
 			ginkgo.By("Verify the policy is propagated to the managed cluster", func() {
 				gomega.Eventually(func() error {
-					_, err := managementDynamicClient.Resource(policyv1.GroupVersion.WithResource("policies")).
+					_, err := managementClusterClients.dynamicClient.Resource(policyv1.GroupVersion.WithResource("policies")).
 						Namespace(hostedManagedClusterName).Get(ctx, policyNamespace+"."+policyName, metav1.GetOptions{})
-					if err != nil {
-						return err
-					}
-					return nil
-				}).WithTimeout(timeout).ShouldNot(gomega.HaveOccurred())
-			})
-
-			ginkgo.By("Enforce the policy to the managed cluster", func() {
-				gomega.Eventually(func() error {
-					policy, err := dynamicClient.Resource(policyv1.GroupVersion.WithResource("policies")).
-						Namespace("default").Get(ctx, "policy-limitrange", metav1.GetOptions{})
-					if err != nil {
-						return err
-					}
-
-					policy.Object["spec"].(map[string]interface{})["remediationAction"] = "enforce"
-					_, err = dynamicClient.Resource(policyv1.GroupVersion.WithResource("policies")).
-						Namespace(policyNamespace).Update(ctx, policy, metav1.UpdateOptions{})
 					if err != nil {
 						return err
 					}
@@ -322,7 +296,7 @@ var _ = ginkgo.Describe("hosted mode loopback test", ginkgo.Ordered, func() {
 			ginkgo.By("Verify the policy is compliant", func() {
 				gomega.Eventually(func() error {
 					var err error
-					policy, err := managementDynamicClient.Resource(policyv1.GroupVersion.WithResource("policies")).
+					policy, err := managementClusterClients.dynamicClient.Resource(policyv1.GroupVersion.WithResource("policies")).
 						Namespace(hostedManagedClusterName).Get(ctx, policyNamespace+"."+policyName, metav1.GetOptions{})
 					if err != nil {
 						return err
@@ -341,7 +315,7 @@ var _ = ginkgo.Describe("hosted mode loopback test", ginkgo.Ordered, func() {
 
 			ginkgo.By("Verify the policy is enforced to the managed cluster", func() {
 				gomega.Eventually(func() error {
-					_, err := hostedSpokeKubeClient.CoreV1().LimitRanges(policyNamespace).
+					_, err := hostedSpokeClients.kubeClient.CoreV1().LimitRanges(policyNamespace).
 						Get(ctx, limitrangeName, metav1.GetOptions{})
 					if err != nil {
 						return err
@@ -354,11 +328,11 @@ var _ = ginkgo.Describe("hosted mode loopback test", ginkgo.Ordered, func() {
 
 	ginkgo.Context("delete the hosted managed cluster", func() {
 		ginkgo.It("should delete the klusterlet", func() {
-			err := klusterletClient.Delete(ctx, hostedManagedClusterName, metav1.DeleteOptions{})
+			err := controlplaneClients.klusterletClient.Delete(ctx, hostedManagedClusterName, metav1.DeleteOptions{})
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 			gomega.Eventually(func() error {
-				_, err := klusterletClient.Get(ctx, hostedManagedClusterName, metav1.GetOptions{})
+				_, err := controlplaneClients.klusterletClient.Get(ctx, hostedManagedClusterName, metav1.GetOptions{})
 				if err != nil && !errors.IsNotFound(err) {
 					return err
 				}

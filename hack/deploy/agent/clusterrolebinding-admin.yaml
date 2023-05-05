@@ -1,13 +1,14 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: open-cluster-management:multicluster-controlplane-agent:work-execution-admin
+  name: open-cluster-management:multicluster-controlplane-agent:execution-admin
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  # We deploy a controller that could work with permission lower than cluster-admin, the tradeoff is
-  # responsivity because list/watch cannot be maintained over too many namespaces.
-  name: admin
+  # The policy agent need cluster-admin permission to enforcing configuration policies.
+  # TODO consider to use adim instead of cluster-admin, when user need some special permissions to deploy
+  # their works or polices, user can escalate their permissions manually.
+  name: cluster-admin
 subjects:
 - kind: ServiceAccount
   name: multicluster-controlplane-agent-sa

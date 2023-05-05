@@ -18,6 +18,7 @@ import (
 	"open-cluster-management.io/multicluster-controlplane/pkg/servers/options"
 
 	controller "github.com/stolostron/multicluster-controlplane/pkg/controllers"
+	"github.com/stolostron/multicluster-controlplane/pkg/controllers/selfmanagement"
 )
 
 func init() {
@@ -48,6 +49,7 @@ func NewManager() *cobra.Command {
 
 			server := servers.NewServer(*options)
 			server.AddController("next-gen-controlplane-controllers", controller.InstallControllers)
+			server.AddController("next-gen-controlplane-self-management", selfmanagement.InstallControllers(options))
 
 			return server.Start(stopChan)
 		},
