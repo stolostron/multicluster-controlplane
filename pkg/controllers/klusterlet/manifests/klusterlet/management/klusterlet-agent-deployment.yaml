@@ -25,6 +25,7 @@ spec:
           - "agent"
           - "--cluster-name={{ .ClusterName }}"
           - "--hub-kubeconfig-secret={{ .HubKubeConfigSecret }}"
+          - "--work-agent-id={{ .AgentID }}"
           - "--bootstrap-kubeconfig=/spoke/bootstrap/kubeconfig"
           {{if ne .InstallMode "Hosted"}}
           - "--feature-gates=AddonManagement=true"

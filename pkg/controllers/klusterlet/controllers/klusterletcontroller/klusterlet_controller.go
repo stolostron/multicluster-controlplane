@@ -114,6 +114,7 @@ type klusterletConfig struct {
 	HubKubeConfigSecret       string
 	BootStrapKubeConfigSecret string
 
+	AgentID    string
 	AgentImage string
 
 	ExternalManagedClusterKubeConfigSecret string
@@ -148,6 +149,7 @@ func (n *klusterletController) sync(ctx context.Context, controllerContext facto
 		KlusterletNamespace:                    helpers.KlusterletNamespace(klusterlet),
 		AgentNamespace:                         helpers.AgentNamespace(klusterlet),
 		ClusterName:                            helpers.ClusterName(klusterlet),
+		AgentID:                                string(klusterlet.UID),
 		AgentImage:                             image,
 		BootStrapKubeConfigSecret:              helpers.BootstrapHubKubeConfigSecret(klusterlet),
 		HubKubeConfigSecret:                    helpers.HubKubeConfigSecret(klusterlet),
