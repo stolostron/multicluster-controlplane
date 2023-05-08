@@ -268,6 +268,11 @@ func (a *AgentOptions) newHubManager(clusterName string) (manager.Manager, error
 		if err != nil {
 			return nil, err
 		}
+		cacheSelectors[&corev1.Event{}] = cache.ObjectSelector{
+			Field: fields.SelectorFromSet(fields.Set{
+				"metadata.namespace": watchNamespace,
+			}),
+		}
 	}
 
 	mgr, err := ctrl.NewManager(hubKubeConfig, ctrl.Options{
@@ -353,6 +358,11 @@ func (a *AgentOptions) newHostingManager() (manager.Manager, error) {
 			}),
 		}
 		cacheSelectors[&policyv1.Policy{}] = cache.ObjectSelector{
+			Field: fields.SelectorFromSet(fields.Set{
+				"metadata.namespace": watchNamespace,
+			}),
+		}
+		cacheSelectors[&corev1.Event{}] = cache.ObjectSelector{
 			Field: fields.SelectorFromSet(fields.Set{
 				"metadata.namespace": watchNamespace,
 			}),
