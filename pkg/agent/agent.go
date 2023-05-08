@@ -15,9 +15,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/selection"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -278,14 +276,7 @@ func (a *AgentOptions) newHubManager(clusterName string) (manager.Manager, error
 		MetricsBindAddress: "0", //TODO think about the mertics later
 		NewCache: cache.BuilderWithOptions(
 			cache.Options{
-				SelectorsByObject: cache.SelectorsByObject{
-					&corev1.Secret{}: {
-						Field: fields.SelectorFromSet(fields.Set{"metadata.name": secretsync.SecretName}),
-					},
-					&policyv1.Policy{}: {
-						Label: labels.NewSelector().Add(*r),
-					},
-				},
+				SelectorsByObject: cacheSelectors,
 			},
 		),
 		// Override the EventBroadcaster so that the spam filter will not ignore events for the policy but with
