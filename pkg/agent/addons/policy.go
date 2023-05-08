@@ -136,7 +136,7 @@ func StartPolicyAgent(
 
 	depReconciler, depEvents := depclient.NewControllerRuntimeSource()
 
-	watcher, err := depclient.New(kubeConfig, depReconciler, nil)
+	watcher, err := depclient.New(hostingManager.GetConfig(), depReconciler, nil)
 	if err != nil {
 		return err
 	}
