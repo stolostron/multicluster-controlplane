@@ -8,7 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 	genericapiserver "k8s.io/apiserver/pkg/server"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"github.com/stolostron/multicluster-controlplane/pkg/agent"
 )

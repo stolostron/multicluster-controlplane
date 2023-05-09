@@ -27,7 +27,6 @@ import (
 	policyv1beta1 "open-cluster-management.io/governance-policy-propagator/api/v1beta1"
 	authv1alpha1 "open-cluster-management.io/managed-serviceaccount/api/v1alpha1"
 	placementrulev1 "open-cluster-management.io/multicloud-operators-subscription/pkg/apis/apps/placementrule/v1"
-	placementrulecontroller "open-cluster-management.io/multicloud-operators-subscription/pkg/placementrule/controller"
 	"open-cluster-management.io/multicluster-controlplane/pkg/controllers/ocmcontroller"
 	"open-cluster-management.io/multicluster-controlplane/pkg/features"
 
@@ -116,11 +115,6 @@ func InstallControllers(stopCh <-chan struct{}, aggregatorConfig *aggregatorapis
 				controlplaneDynamicClient,
 			); err != nil {
 				klog.Fatalf("failed to setup policy controller %v", err)
-			}
-
-			klog.Info("starting placementrule controller")
-			if err := placementrulecontroller.AddToManager(mgr); err != nil {
-				klog.Fatalf("failed to setup placement rule controller", err)
 			}
 		}
 
