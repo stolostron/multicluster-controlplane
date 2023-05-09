@@ -23,39 +23,35 @@ import (
 )
 
 const (
-	timeout        = 60 * time.Second
-	addonTimeout   = 120 * time.Second
-	agentNamespace = "multicluster-controlplane-agent"
+	timeout      = 60 * time.Second
+	addonTimeout = 120 * time.Second
+
+	agentNamespace  = "multicluster-controlplane-agent"
+	policyName      = "policy-limitrange"
+	policyNamespace = "default"
+	limitrangeName  = "container-mem-limit-range"
 )
 
-var ctx = context.TODO()
-
-var (
-	controlPlaneNamespace    string
-	managedClusterName       string
-	hostedManagedClusterName string
-
-	// management clients
-	managementKubeClient    kubernetes.Interface
-	managementDynamicClient dynamic.Interface
-
-	// controlplane clients
+type clients struct {
 	kubeClient       kubernetes.Interface
 	dynamicClient    dynamic.Interface
+	crdsClient       apiextensionsclient.Interface
 	clusterClient    clusterclient.Interface
 	workClient       workclient.Interface
 	klusterletClient operatorv1client.KlusterletInterface
 	saClient         saclient.Interface
+}
 
-	// default spoke clients
-	spokeKubeClient    kubernetes.Interface
-	spokeClusterClient clusterclient.Interface
+var ctx = context.TODO()
 
-	// hosted spoke clients
-	hostedSpokeKubeClient    kubernetes.Interface
-	hostedSpokeClusterClient clusterclient.Interface
-	hostedSpokeWorkClient    workclient.Interface
-	hostedCRDsClient         apiextensionsclient.Interface
+var (
+	managementClusterClients *clients
+
+	selfControlplaneClients *clients
+	controlplaneClients     *clients
+
+	spokeClients       *clients
+	hostedSpokeClients *clients
 )
 
 func TestE2E(t *testing.T) {
@@ -65,97 +61,34 @@ func TestE2E(t *testing.T) {
 
 var _ = ginkgo.BeforeSuite(func() {
 	err := func() error {
-		controlPlaneNamespace = os.Getenv("CONTROLPLANE_NAMESPACE")
-		managedClusterName = os.Getenv("MANAGED_CLUSTER")
-		hostedManagedClusterName = os.Getenv("HOSTED_MANAGED_CLUSTER")
+		var err error
 
-		managementConfig, err := clientcmd.BuildConfigFromFlags("", os.Getenv("MANAGEMENT_KUBECONFIG"))
+		// init management cluster clients
+		managementClusterClients, err = initClinents("MANAGEMENT_KUBECONFIG")
 		if err != nil {
 			return err
 		}
 
-		managementKubeClient, err = kubernetes.NewForConfig(managementConfig)
+		// init self management clients
+		selfControlplaneClients, err = initClinents("SELF_CONTROLPLANE_KUBECONFIG")
 		if err != nil {
 			return err
 		}
 
-		managementDynamicClient, err = dynamic.NewForConfig(managementConfig)
+		// init controlplane clients
+		controlplaneClients, err = initClinents("CONTROLPLANE_KUBECONFIG")
 		if err != nil {
 			return err
 		}
 
-		controlplaneConfig, err := clientcmd.BuildConfigFromFlags("", os.Getenv("CONTROLPLANE_KUBECONFIG"))
+		// init managed cluster clients
+		spokeClients, err = initClinents("MANAGED_CLUSTER_KUBECONFIG")
 		if err != nil {
 			return err
 		}
 
-		kubeClient, err = kubernetes.NewForConfig(controlplaneConfig)
-		if err != nil {
-			return err
-		}
-
-		dynamicClient, err = dynamic.NewForConfig(controlplaneConfig)
-		if err != nil {
-			return err
-		}
-
-		clusterClient, err = clusterclient.NewForConfig(controlplaneConfig)
-		if err != nil {
-			return err
-		}
-
-		workClient, err = workclient.NewForConfig(controlplaneConfig)
-		if err != nil {
-			return err
-		}
-
-		operatorClient, err := operatorv1client.NewForConfig(controlplaneConfig)
-		if err != nil {
-			return err
-		}
-		klusterletClient = operatorClient.Klusterlets()
-
-		saClient, err = saclient.NewForConfig(controlplaneConfig)
-		if err != nil {
-			return err
-		}
-
-		spokeConfig, err := clientcmd.BuildConfigFromFlags("", os.Getenv("MANAGED_CLUSTER_KUBECONFIG"))
-		if err != nil {
-			return err
-		}
-
-		spokeKubeClient, err = kubernetes.NewForConfig(spokeConfig)
-		if err != nil {
-			return err
-		}
-
-		spokeClusterClient, err = clusterclient.NewForConfig(spokeConfig)
-		if err != nil {
-			return err
-		}
-
-		hostedSpokeConfig, err := clientcmd.BuildConfigFromFlags("", os.Getenv("HOSTED_MANAGED_CLUSTER_KUBECONFIG"))
-		if err != nil {
-			return err
-		}
-
-		hostedSpokeKubeClient, err = kubernetes.NewForConfig(hostedSpokeConfig)
-		if err != nil {
-			return err
-		}
-
-		hostedSpokeClusterClient, err = clusterclient.NewForConfig(hostedSpokeConfig)
-		if err != nil {
-			return err
-		}
-
-		hostedSpokeWorkClient, err = workclient.NewForConfig(hostedSpokeConfig)
-		if err != nil {
-			return err
-		}
-
-		hostedCRDsClient, err = apiextensionsclient.NewForConfig(hostedSpokeConfig)
+		// init hosted managed cluster clients
+		hostedSpokeClients, err = initClinents("HOSTED_MANAGED_CLUSTER_KUBECONFIG")
 		if err != nil {
 			return err
 		}
@@ -165,3 +98,60 @@ var _ = ginkgo.BeforeSuite(func() {
 
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 })
+
+func initClinents(configEnv string) (*clients, error) {
+	configPath := os.Getenv(configEnv)
+	if len(configPath) == 0 {
+		ginkgo.GinkgoWriter.Printf("Ignore the env %q, because it is not set.\n", configEnv)
+		return nil, nil
+	}
+
+	config, err := clientcmd.BuildConfigFromFlags("", configPath)
+	if err != nil {
+		return nil, err
+	}
+	kubeClient, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
+	dynamicClient, err := dynamic.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
+	crdsClient, err := apiextensionsclient.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
+	clusterClient, err := clusterclient.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
+	workClient, err := workclient.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
+	operatorClient, err := operatorv1client.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
+	saClient, err := saclient.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
+	return &clients{
+		kubeClient:       kubeClient,
+		dynamicClient:    dynamicClient,
+		crdsClient:       crdsClient,
+		clusterClient:    clusterClient,
+		workClient:       workClient,
+		klusterletClient: operatorClient.Klusterlets(),
+		saClient:         saClient,
+	}, nil
+}

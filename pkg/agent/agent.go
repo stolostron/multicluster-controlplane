@@ -75,6 +75,8 @@ var policyRequiredCRDFiles = []string{
 type AgentOptions struct {
 	*agent.AgentOptions
 	*addons.PolicyAgentConfig
+	hubKubeConfig *rest.Config
+	clusterName   string
 }
 
 func NewAgentOptions() *AgentOptions {
@@ -84,40 +86,34 @@ func NewAgentOptions() *AgentOptions {
 			// TODO pass them via parameters
 			DecryptionConcurrency: 5,
 			EvaluationConcurrency: 2,
-			EnableMetrics:         true,
 			Frequency:             10,
 		},
 	}
 }
 
-func (a *AgentOptions) RunAddOns(ctx context.Context) error {
-	// TODO should use o.registrationAgent.HubKubeconfigDir + "/kubeconfig"
-	hubKubeConfig, err := clientcmd.BuildConfigFromFlags("", a.RegistrationAgent.BootstrapKubeconfig)
-	if err != nil {
-		return err
-	}
+func (a *AgentOptions) WithHubKubeConfig(hubKubeConfig *rest.Config) *AgentOptions {
+	a.hubKubeConfig = hubKubeConfig
+	return a
+}
 
+func (a *AgentOptions) WithClusterName(clusterName string) *AgentOptions {
+	a.clusterName = clusterName
+	return a
+}
+
+func (a *AgentOptions) RunAddOns(ctx context.Context) error {
+	// the spokeKubeConfig is always for the managed cluster.
 	spokeKubeConfig, err := clientcmd.BuildConfigFromFlags("", a.RegistrationAgent.SpokeKubeconfig)
 	if err != nil {
 		return err
 	}
 
-	kubeClient, err := kubernetes.NewForConfig(spokeKubeConfig)
+	spokeCRDClient, err := apiextensionsclient.NewForConfig(spokeKubeConfig)
 	if err != nil {
 		return err
 	}
 
-	dynamicClient, err := dynamic.NewForConfig(spokeKubeConfig)
-	if err != nil {
-		return err
-	}
-
-	crdClient, err := apiextensionsclient.NewForConfig(spokeKubeConfig)
-	if err != nil {
-		return err
-	}
-
-	if err := helpers.EnsureCRDs(ctx, crdClient, manifests.AgentCRDFiles, agentRequiredCRDFiles...); err != nil {
+	if err := helpers.EnsureCRDs(ctx, spokeCRDClient, manifests.AgentCRDFiles, agentRequiredCRDFiles...); err != nil {
 		return err
 	}
 
@@ -135,6 +131,11 @@ func (a *AgentOptions) RunAddOns(ctx context.Context) error {
 		return err
 	}
 
+	clusterName := a.clusterName
+	if len(clusterName) == 0 {
+		clusterName = a.RegistrationAgent.ClusterName
+	}
+
 	opts := &zap.Options{
 		// enable development mode for more human-readable output, extra stack traces and logging information, etc
 		// disable this in final release
@@ -142,22 +143,31 @@ func (a *AgentOptions) RunAddOns(ctx context.Context) error {
 	}
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(opts)))
 
-	hubManager, err := a.newHubManager(hubKubeConfig, scheme)
+	hubManager, err := a.newHubManager(clusterName)
 	if err != nil {
 		return err
 	}
 
-	hostingManager, err := a.newHostingManager(scheme)
+	hostingManager, err := a.newHostingManager()
 	if err != nil {
 		return err
 	}
 
-	clusterName := a.RegistrationAgent.ClusterName
 	startCtrlMgr := false
 
 	if features.DefaultAgentMutableFeatureGate.Enabled(feature.ManagedClusterInfo) {
 		// start managed cluster info controller
 		klog.Info("starting managed cluster info addon agent")
+		kubeClient, err := kubernetes.NewForConfig(spokeKubeConfig)
+		if err != nil {
+			return err
+		}
+
+		dynamicClient, err := dynamic.NewForConfig(spokeKubeConfig)
+		if err != nil {
+			return err
+		}
+
 		clusterClient, err := clusterclientset.NewForConfig(spokeKubeConfig)
 		if err != nil {
 			return err
@@ -244,10 +254,21 @@ func (a *AgentOptions) RunAddOns(ctx context.Context) error {
 	return nil
 }
 
-func (a *AgentOptions) newHubManager(config *rest.Config, scheme *runtime.Scheme) (manager.Manager, error) {
-	mgr, err := ctrl.NewManager(config, ctrl.Options{
+func (a *AgentOptions) newHubManager(clusterName string) (manager.Manager, error) {
+	var err error
+
+	hubKubeConfig := a.hubKubeConfig
+	if hubKubeConfig == nil {
+		// TODO should use o.registrationAgent.HubKubeconfigDir + "/kubeconfig"
+		hubKubeConfig, err = clientcmd.BuildConfigFromFlags("", a.RegistrationAgent.BootstrapKubeconfig)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	mgr, err := ctrl.NewManager(hubKubeConfig, ctrl.Options{
 		Scheme:             scheme,
-		Namespace:          a.RegistrationAgent.ClusterName,
+		Namespace:          clusterName,
 		MetricsBindAddress: "0", //TODO think about the mertics later
 		NewCache: cache.BuilderWithOptions(
 			cache.Options{
@@ -292,8 +313,7 @@ func (a *AgentOptions) newHubManager(config *rest.Config, scheme *runtime.Scheme
 	return mgr, nil
 }
 
-func (a *AgentOptions) newHostingManager(scheme *runtime.Scheme) (manager.Manager, error) {
-
+func (a *AgentOptions) newHostingManager() (manager.Manager, error) {
 	cfg, err := config.GetConfig()
 	if err != nil {
 		return nil, err

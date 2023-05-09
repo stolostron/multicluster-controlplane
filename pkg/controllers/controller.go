@@ -92,7 +92,8 @@ func InstallControllers(stopCh <-chan struct{}, aggregatorConfig *aggregatorapis
 	go func() {
 		ctrl.SetLogger(klogr.New())
 		mgr, err := ctrl.NewManager(loopbackRestConfig, ctrl.Options{
-			Scheme: scheme,
+			Scheme:             scheme,
+			MetricsBindAddress: "0", //TODO think about the mertics later
 		})
 		if err != nil {
 			klog.Fatalf("unable to start manager %v", err)

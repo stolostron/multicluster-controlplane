@@ -14,10 +14,6 @@ if [ "$LOAD_IMAGE" = true ]; then
 fi
 
 echo "##### Deploy etcd in the cluster $management_cluster ..."
-etd_ca_dir=${output}/etcd_ca
-etc_ca="${etd_ca_dir}/ca.pem"
-etc_cert="${etd_ca_dir}/client.pem"
-etc_key="${etd_ca_dir}/client-key.pem"
 cp $REPO_DIR/hack/deploy/etcd/statefulset.yaml $REPO_DIR/hack/deploy/etcd/statefulset.yaml.tmp
 ${SED} -i "s/gp2/standard/g" $REPO_DIR/hack/deploy/etcd/statefulset.yaml
 pushd ${REPO_DIR}
@@ -30,7 +26,6 @@ mv $REPO_DIR/hack/deploy/etcd/statefulset.yaml.tmp $REPO_DIR/hack/deploy/etcd/st
 
 echo "##### Deploy multicluster controlplanes ..."
 external_host_ip=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${management_cluster}-control-plane)
-
 for i in $(seq 1 "${CONTROLPLANE_NUMBER}"); do
   namespace=multicluster-controlplane-$i
   external_host_port="3008$i"
@@ -62,10 +57,10 @@ echo "##### Create and import managed cluters ..."
 for i in $(seq 1 "${CONTROLPLANE_NUMBER}"); do
   managed_cluster_name="controlplane$i-mc"
   kind create cluster --name $managed_cluster_name --kubeconfig $cluster_dir/$managed_cluster_name.kubeconfig
-if [ "$LOAD_IMAGE" = true ]; then
-  echo "Load $IMAGE_NAME to the cluster $managed_cluster_name ..."
-  kind load docker-image $IMAGE_NAME --name $managed_cluster_name
-fi
+  if [ "$LOAD_IMAGE" = true ]; then
+    echo "Load $IMAGE_NAME to the cluster $managed_cluster_name ..."
+    kind load docker-image $IMAGE_NAME --name $managed_cluster_name
+  fi
 done
 
 for i in $(seq 1 "${CONTROLPLANE_NUMBER}"); do
@@ -105,10 +100,10 @@ echo "##### Create and import hosted cluters ..."
 for i in $(seq 1 "${CONTROLPLANE_NUMBER}"); do
   hosted_cluster_name="controlplane$i-hosted-mc"
   kind create cluster --name $hosted_cluster_name --kubeconfig $cluster_dir/$hosted_cluster_name.kubeconfig
-if [ "$LOAD_IMAGE" = true ]; then
-  echo "Load $IMAGE_NAME to the cluster $hosted_cluster_name ..."
-  kind load docker-image $IMAGE_NAME --name $hosted_cluster_name
-fi
+  if [ "$LOAD_IMAGE" = true ]; then
+    echo "Load $IMAGE_NAME to the cluster $hosted_cluster_name ..."
+    kind load docker-image $IMAGE_NAME --name $hosted_cluster_name
+  fi
 done
 
 for i in $(seq 1 "${CONTROLPLANE_NUMBER}"); do
@@ -132,4 +127,10 @@ spec:
   deployOption:
     mode: Hosted
 EOF
+done
+
+echo "#### Prepare policies for each controlplane ..."
+for i in $(seq 1 "${CONTROLPLANE_NUMBER}"); do
+  hubkubeconfig="${cluster_dir}/controlplane$i.kubeconfig"
+  kubectl --kubeconfig $hubkubeconfig apply -f $REPO_DIR/test/e2e/testdata/limitrange-policy-placement.yaml
 done

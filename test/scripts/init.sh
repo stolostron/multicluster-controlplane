@@ -13,9 +13,12 @@ CONTROLPLANE_NUMBER=${CONTROLPLANE_NUMBER:-2}
 
 output="${REPO_DIR}/_output"
 cluster_dir="${output}/kubeconfig"
-controlplane_deploy_dir="${output}/controlplane/deploy"
+etd_ca_dir=${output}/etcd_ca
+etc_ca="${etd_ca_dir}/ca.pem"
+etc_cert="${etd_ca_dir}/client.pem"
+etc_key="${etd_ca_dir}/client-key.pem"
 
-management_cluster="controlplane-management"
+management_cluster="management"
 
 kubeconfig="${cluster_dir}/${management_cluster}.kubeconfig"
 
@@ -26,12 +29,5 @@ if [ "$(uname)" = 'Darwin' ]; then
 fi
 
 mkdir -p ${cluster_dir}
-mkdir -p ${controlplane_deploy_dir}
-
-for i in $(seq 1 "${CONTROLPLANE_NUMBER}"); do
-  deploy_dir=${controlplane_deploy_dir}/multicluster-controlplane-$i
-  mkdir -p ${deploy_dir}
-  cp -r ${REPO_DIR}/hack/deploy/controlplane/* $deploy_dir
-done
 
 echo "Controlplane number : $CONTROLPLANE_NUMBER"

@@ -124,8 +124,15 @@ func (n *klusterletCleanupController) sync(ctx context.Context, controllerContex
 
 	// cleanup managed cluster and its manifest works on the controlplane in hosted mode
 	if config.InstallMode == operatorapiv1.InstallModeHosted {
-		if err := n.deleteManifestWorks(ctx, controllerContext, config); err != nil {
+		hasRemainedWorks, err := n.deleteManifestWorks(ctx, config)
+		if err != nil {
 			return err
+		}
+
+		if hasRemainedWorks {
+			// requeue klusterlet to wait the manifestworks is deleted
+			controllerContext.Queue().AddAfter(config.KlusterletName, 5*time.Second)
+			return nil
 		}
 
 		if err := helpers.DeleteManagedCluster(ctx, n.controlplaneClusterClient, config.ClusterName); err != nil {
@@ -218,7 +225,6 @@ func (n *klusterletCleanupController) sync(ctx context.Context, controllerContex
 			ctx, config.ExternalManagedClusterKubeConfigSecret, metav1.DeleteOptions{}); err != nil {
 			return err
 		}
-
 	}
 
 	return nil
@@ -313,34 +319,34 @@ func (n *klusterletCleanupController) removeKlusterletFinalizers(ctx context.Con
 	return nil
 }
 
-func (n *klusterletCleanupController) deleteManifestWorks(
-	ctx context.Context, ctrlContext factory.SyncContext, config klusterletConfig) error {
+func (n *klusterletCleanupController) deleteManifestWorks(ctx context.Context, config klusterletConfig) (bool, error) {
 	works, err := n.controlplaneWorkClient.WorkV1().ManifestWorks(config.ClusterName).List(ctx, metav1.ListOptions{})
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	if len(works.Items) == 0 {
-		return nil
+		return false, nil
 	}
 
 	unavailable, err := helpers.IsClusterUnavailable(ctx, n.controlplaneClusterClient, config.ClusterName)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	if unavailable {
 		// managed cluster is unavailable, force delete all manifestworks
-		return helpers.DeleteAllManifestWorks(ctx, n.controlplaneWorkClient, works.Items, true)
+		if err := helpers.DeleteAllManifestWorks(ctx, n.controlplaneWorkClient, works.Items, true); err != nil {
+			return false, err
+		}
+		return true, nil
 	}
 
 	if err := helpers.DeleteAllManifestWorks(ctx, n.controlplaneWorkClient, works.Items, false); err != nil {
-		return err
+		return false, err
 	}
 
-	// requeue klusterlet to wait the manifestworks is deleted
-	ctrlContext.Queue().AddAfter(config.KlusterletName, 10*time.Second)
-	return nil
+	return true, nil
 }
 
 func isTCPTimeOutError(err error) bool {
