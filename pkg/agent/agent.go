@@ -39,7 +39,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"github.com/stolostron/multicluster-controlplane/pkg/agent/addons"
@@ -135,13 +134,6 @@ func (a *AgentOptions) RunAddOns(ctx context.Context) error {
 	if len(clusterName) == 0 {
 		clusterName = a.RegistrationAgent.ClusterName
 	}
-
-	opts := &zap.Options{
-		// enable development mode for more human-readable output, extra stack traces and logging information, etc
-		// disable this in final release
-		Development: true,
-	}
-	ctrl.SetLogger(zap.New(zap.UseFlagOptions(opts)))
 
 	hubManager, err := a.newHubManager(clusterName)
 	if err != nil {
@@ -256,17 +248,36 @@ func (a *AgentOptions) RunAddOns(ctx context.Context) error {
 
 func (a *AgentOptions) newHubManager(clusterName string) (manager.Manager, error) {
 
-	r, err := labels.NewRequirement("policy.open-cluster-management.io/root-policy", selection.DoesNotExist, nil)
-	if err != nil {
-		return nil, err
-	}
-
+	var err error
 	hubKubeConfig := a.hubKubeConfig
 	if hubKubeConfig == nil {
 		// TODO should use o.registrationAgent.HubKubeconfigDir + "/kubeconfig"
 		hubKubeConfig, err = clientcmd.BuildConfigFromFlags("", a.RegistrationAgent.BootstrapKubeconfig)
 		if err != nil {
 			return nil, err
+		}
+	}
+
+	cacheSelectors := cache.SelectorsByObject{
+		&corev1.Secret{}: {
+			Field: fields.SelectorFromSet(fields.Set{"metadata.name": secretsync.SecretName}),
+		},
+	}
+
+	watchNamespace, err := configcommon.GetWatchNamespace()
+	if err != nil {
+		return nil, err
+	}
+
+	if strings.Contains(watchNamespace, ",") {
+		return nil, fmt.Errorf("multiple watched namespaces are not allowed for this controller")
+	}
+
+	if watchNamespace != "" {
+		cacheSelectors[&policyv1.Policy{}] = cache.ObjectSelector{
+			Field: fields.SelectorFromSet(fields.Set{
+				"metadata.namespace": watchNamespace,
+			}),
 		}
 		cacheSelectors[&corev1.Event{}] = cache.ObjectSelector{
 			Field: fields.SelectorFromSet(fields.Set{

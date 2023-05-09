@@ -3,6 +3,7 @@ package controller
 import (
 	"time"
 
+	clusterinfov1beta1 "github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -12,11 +13,7 @@ import (
 	kubescheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
-	"k8s.io/klog/v2/klogr"
 	aggregatorapiserver "k8s.io/kube-aggregator/pkg/apiserver"
-
-	ctrl "sigs.k8s.io/controller-runtime"
-
 	clusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	operatorclient "open-cluster-management.io/api/client/operator/clientset/versioned"
 	operatorinformer "open-cluster-management.io/api/client/operator/informers/externalversions"
@@ -29,8 +26,7 @@ import (
 	placementrulev1 "open-cluster-management.io/multicloud-operators-subscription/pkg/apis/apps/placementrule/v1"
 	"open-cluster-management.io/multicluster-controlplane/pkg/controllers/ocmcontroller"
 	"open-cluster-management.io/multicluster-controlplane/pkg/features"
-
-	clusterinfov1beta1 "github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/stolostron/multicluster-controlplane/pkg/controllers/addons"
 	"github.com/stolostron/multicluster-controlplane/pkg/controllers/klusterlet"
@@ -89,7 +85,6 @@ func InstallControllers(stopCh <-chan struct{}, aggregatorConfig *aggregatorapis
 	}
 
 	go func() {
-		ctrl.SetLogger(klogr.New())
 		mgr, err := ctrl.NewManager(loopbackRestConfig, ctrl.Options{
 			Scheme:             scheme,
 			MetricsBindAddress: "0", //TODO think about the mertics later

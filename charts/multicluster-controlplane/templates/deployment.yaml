@@ -32,6 +32,8 @@ spec:
         {{- if eq .Values.enableSelfManagement true }}
         - "--self-management"
         {{- end }}
+        resources:
+        {{- toYaml .Values.resources | nindent 10 }}
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
