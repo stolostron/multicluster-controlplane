@@ -39,7 +39,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"github.com/stolostron/multicluster-controlplane/pkg/agent/addons"
@@ -135,13 +134,6 @@ func (a *AgentOptions) RunAddOns(ctx context.Context) error {
 	if len(clusterName) == 0 {
 		clusterName = a.RegistrationAgent.ClusterName
 	}
-
-	opts := &zap.Options{
-		// enable development mode for more human-readable output, extra stack traces and logging information, etc
-		// disable this in final release
-		Development: true,
-	}
-	ctrl.SetLogger(zap.New(zap.UseFlagOptions(opts)))
 
 	hubManager, err := a.newHubManager(clusterName)
 	if err != nil {
@@ -255,8 +247,8 @@ func (a *AgentOptions) RunAddOns(ctx context.Context) error {
 }
 
 func (a *AgentOptions) newHubManager(clusterName string) (manager.Manager, error) {
-	var err error
 
+	var err error
 	hubKubeConfig := a.hubKubeConfig
 	if hubKubeConfig == nil {
 		// TODO should use o.registrationAgent.HubKubeconfigDir + "/kubeconfig"
@@ -266,17 +258,41 @@ func (a *AgentOptions) newHubManager(clusterName string) (manager.Manager, error
 		}
 	}
 
+	cacheSelectors := cache.SelectorsByObject{
+		&corev1.Secret{}: {
+			Field: fields.SelectorFromSet(fields.Set{"metadata.name": secretsync.SecretName}),
+		},
+	}
+
+	watchNamespace, err := configcommon.GetWatchNamespace()
+	if err != nil {
+		return nil, err
+	}
+
+	if strings.Contains(watchNamespace, ",") {
+		return nil, fmt.Errorf("multiple watched namespaces are not allowed for this controller")
+	}
+
+	if watchNamespace != "" {
+		cacheSelectors[&policyv1.Policy{}] = cache.ObjectSelector{
+			Field: fields.SelectorFromSet(fields.Set{
+				"metadata.namespace": watchNamespace,
+			}),
+		}
+		cacheSelectors[&corev1.Event{}] = cache.ObjectSelector{
+			Field: fields.SelectorFromSet(fields.Set{
+				"metadata.namespace": watchNamespace,
+			}),
+		}
+	}
+
 	mgr, err := ctrl.NewManager(hubKubeConfig, ctrl.Options{
 		Scheme:             scheme,
 		Namespace:          clusterName,
 		MetricsBindAddress: "0", //TODO think about the mertics later
 		NewCache: cache.BuilderWithOptions(
 			cache.Options{
-				SelectorsByObject: cache.SelectorsByObject{
-					&corev1.Secret{}: {
-						Field: fields.SelectorFromSet(fields.Set{"metadata.name": secretsync.SecretName}),
-					},
-				},
+				SelectorsByObject: cacheSelectors,
 			},
 		),
 		// Override the EventBroadcaster so that the spam filter will not ignore events for the policy but with
@@ -353,6 +369,11 @@ func (a *AgentOptions) newHostingManager() (manager.Manager, error) {
 			}),
 		}
 		cacheSelectors[&policyv1.Policy{}] = cache.ObjectSelector{
+			Field: fields.SelectorFromSet(fields.Set{
+				"metadata.namespace": watchNamespace,
+			}),
+		}
+		cacheSelectors[&corev1.Event{}] = cache.ObjectSelector{
 			Field: fields.SelectorFromSet(fields.Set{
 				"metadata.namespace": watchNamespace,
 			}),

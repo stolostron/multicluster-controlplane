@@ -12,6 +12,7 @@ require (
 	github.com/stolostron/cluster-lifecycle-api v0.0.0-20230222063645-5b18b26381ff
 	github.com/stolostron/kubernetes-dependency-watches v0.2.0
 	github.com/stolostron/multicloud-operators-foundation v0.0.0-20230421063046-ea49a1804ad6
+	go.uber.org/zap v1.24.0
 	k8s.io/api v0.26.3
 	k8s.io/apiextensions-apiserver v0.26.3
 	k8s.io/apimachinery v0.26.3
@@ -22,7 +23,7 @@ require (
 	k8s.io/kube-aggregator v0.26.2
 	k8s.io/utils v0.0.0-20230313181309-38a27ef9d749
 	open-cluster-management.io/api v0.10.1-0.20230404062739-ddf72e2f1bea
-	open-cluster-management.io/config-policy-controller v0.10.1-0.20230417151128-8b47f7e354fa
+	open-cluster-management.io/config-policy-controller v0.10.1-0.20230503155526-1fa8cc0d6c2b
 	open-cluster-management.io/governance-policy-framework-addon v0.10.1-0.20230417151126-bf5b2a1a8374
 	open-cluster-management.io/governance-policy-propagator v0.10.1-0.20230417150644-67cf84a174d3
 	open-cluster-management.io/managed-serviceaccount v0.2.1-0.20230417132409-29cfad7b18c0
@@ -175,7 +176,7 @@ require (
 	github.com/pquerna/cachecontrol v0.1.0 // indirect
 	github.com/prometheus/client_golang v1.15.0 // indirect
 	github.com/spf13/pflag v1.0.6-0.20210604193023-d5e0c0615ace // indirect
-	github.com/stolostron/go-template-utils/v3 v3.1.0 // indirect
+	github.com/stolostron/go-template-utils/v3 v3.2.0 // indirect
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20220101234140-673ab2c3ae75 // indirect
 	go.etcd.io/etcd/server/v3 v3.5.7 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.35.0 // indirect
@@ -190,7 +191,6 @@ require (
 	go.opentelemetry.io/proto/otlp v0.19.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/crypto v0.8.0 // indirect
 	golang.org/x/exp v0.0.0-20230321023759-10a507213a29 // indirect
 	golang.org/x/net v0.9.0 // indirect

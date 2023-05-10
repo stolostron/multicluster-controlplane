@@ -643,8 +643,8 @@ github.com/stoewer/go-strcase v1.3.0 h1:g0eASXYtp+yvN9fK8sH94oCIk0fau9uV1/ZdJ0AV
 github.com/stoewer/go-strcase v1.3.0/go.mod h1:fAH5hQ5pehh+j3nZfvwdk2RgEgQjAoM8wodgtPmh1xo=
 github.com/stolostron/cluster-lifecycle-api v0.0.0-20230222063645-5b18b26381ff h1:psHMqHMefkFtr7y4JT5tz8oKwmChvLJe/cHUUM9tcMI=
 github.com/stolostron/cluster-lifecycle-api v0.0.0-20230222063645-5b18b26381ff/go.mod h1:pNeVzujoHsTHDloNHVfp1QPYlQy8MkXMuuZme96/x8M=
-github.com/stolostron/go-template-utils/v3 v3.1.0 h1:wizzuURDnI2fewOx/AxHLpKx06FXUGjkUnMjdcgat3o=
-github.com/stolostron/go-template-utils/v3 v3.1.0/go.mod h1:k9qoQ/OH/jOQI5ovfC11QJ6ApWsa3E5rmbkfUAEUF3g=
+github.com/stolostron/go-template-utils/v3 v3.2.0 h1:q0rkOg3tZoOdnt199/BzGprRo6elbthuXTaOndj8rcg=
+github.com/stolostron/go-template-utils/v3 v3.2.0/go.mod h1:YckC6JM+gf4HZK1+qGQAQ5f6uR5qSMGu/npsauJ1W3U=
 github.com/stolostron/kubernetes-dependency-watches v0.2.0 h1:5MWK4xv5OOglyov7qoiKQ/M1Q5MTrEKSWuh/ed3zauQ=
 github.com/stolostron/kubernetes-dependency-watches v0.2.0/go.mod h1:zFj8nBxKVn9QtmQIMlM0QSIqRSCKoMUtoY8G6Q+LJAc=
 github.com/stolostron/multicloud-operators-foundation v0.0.0-20230421063046-ea49a1804ad6 h1:iTZrfOCSA45Ch4qd5Z1WPCN4C7Ka3NSeG3vUF6MAEq8=
@@ -1277,8 +1277,8 @@ open-cluster-management.io/addon-framework v0.6.1 h1:gnBZaCRgtiPRjCBJoaRqMivajng
 open-cluster-management.io/addon-framework v0.6.1/go.mod h1:Uu4XC3Ec0ATS7U73PJtzAP4NCDfbDBVy1k5RUUwQDqY=
 open-cluster-management.io/api v0.10.1-0.20230310025041-ca0770573954 h1:u+X8exw4O1FCJ9DZBvpQMLsAxL5kQWGAAoZL+I50AX8=
 open-cluster-management.io/api v0.10.1-0.20230310025041-ca0770573954/go.mod h1:TjWobG3dTZJf/Ye04358/F/381RjE/+HXVDGMnZBpjc=
-open-cluster-management.io/config-policy-controller v0.10.1-0.20230417151128-8b47f7e354fa h1:CdzueATHkwjw4yybR7o53muXW6Erj6M7oZLblWdwl9A=
-open-cluster-management.io/config-policy-controller v0.10.1-0.20230417151128-8b47f7e354fa/go.mod h1:J7lrKGcpKsL0POmIOao3+hmSSIG/Euavlc/Vt6kheJk=
+open-cluster-management.io/config-policy-controller v0.10.1-0.20230503155526-1fa8cc0d6c2b h1:u7kWvRMmhMUL1VxW3WglPcKF5fdfg6kd5/5g6WREQGo=
+open-cluster-management.io/config-policy-controller v0.10.1-0.20230503155526-1fa8cc0d6c2b/go.mod h1:ZEbJqs9oSSMGcDJreNY1c2OR/hxWn/zERqdPQp9jcO8=
 open-cluster-management.io/governance-policy-framework-addon v0.10.1-0.20230417151126-bf5b2a1a8374 h1:Cb0i1FQFl9B+BxI+dx63pwkRf6Ob9SWhZk587lNX0gg=
 open-cluster-management.io/governance-policy-framework-addon v0.10.1-0.20230417151126-bf5b2a1a8374/go.mod h1:bQvwTprdwbrA8GEWdsVCzSqfq9UNQFbiHYZtb3tXzaY=
 open-cluster-management.io/governance-policy-propagator v0.10.1-0.20230417150644-67cf84a174d3 h1:5gNKFHAJaVaxXeX4dgPUgxX77nc3Axishp2mFyFztWk=

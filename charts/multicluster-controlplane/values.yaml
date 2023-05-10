@@ -43,3 +43,9 @@ loadbalancer:
 nodeport:
   enabled: false
   port: 30443
+
+resources:
+  limits:
+    memory: 6Gi #100 mc + 41 policies
+  requests:
+    memory: 1Gi
