@@ -15,7 +15,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/wait"
 
@@ -281,18 +280,6 @@ var _ = ginkgo.Describe("default mode loopback test", func() {
 
 	ginkgo.Context("policy should work fine", func() {
 		ginkgo.It("should be able to propagate policies", func() {
-			ginkgo.By("Apply clusterset label for hostedCluster", func() {
-				gomega.Eventually(func() error {
-					patch := []byte("{\"metadata\": {\"labels\": {\"cluster.open-cluster-management.io/clusterset\": \"clusterset1\"}}}")
-					_, err := controlplaneClients.clusterClient.ClusterV1().ManagedClusters().Patch(ctx,
-						managedClusterName, types.MergePatchType, patch, metav1.PatchOptions{})
-					if err != nil {
-						return err
-					}
-					return nil
-				}).WithTimeout(timeout).ShouldNot(gomega.HaveOccurred())
-			})
-
 			ginkgo.By("Verify the policy is propagated to the managed cluster", func() {
 				gomega.Eventually(func() error {
 					_, err := controlplaneClients.dynamicClient.Resource(policyv1.GroupVersion.WithResource("policies")).
