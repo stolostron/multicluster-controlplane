@@ -3,6 +3,7 @@ module github.com/stolostron/multicluster-controlplane
 go 1.19
 
 require (
+	github.com/IBM/controller-filtered-cache v0.3.6
 	github.com/onsi/ginkgo/v2 v2.9.1
 	github.com/onsi/gomega v1.27.4
 	github.com/open-policy-agent/frameworks/constraint v0.0.0-20220504221328-9db6a6b27c97
@@ -13,15 +14,15 @@ require (
 	github.com/stolostron/kubernetes-dependency-watches v0.2.0
 	github.com/stolostron/multicloud-operators-foundation v0.0.0-20230421063046-ea49a1804ad6
 	go.uber.org/zap v1.24.0
-	k8s.io/api v0.26.3
+	k8s.io/api v0.27.1
 	k8s.io/apiextensions-apiserver v0.26.3
-	k8s.io/apimachinery v0.26.3
+	k8s.io/apimachinery v0.27.1
 	k8s.io/apiserver v0.26.3
 	k8s.io/client-go v12.0.0+incompatible
 	k8s.io/component-base v0.26.3
-	k8s.io/klog/v2 v2.90.1
+	k8s.io/klog/v2 v2.100.1
 	k8s.io/kube-aggregator v0.26.2
-	k8s.io/utils v0.0.0-20230313181309-38a27ef9d749
+	k8s.io/utils v0.0.0-20230505201702-9f6742963106
 	open-cluster-management.io/api v0.10.1-0.20230404062739-ddf72e2f1bea
 	open-cluster-management.io/config-policy-controller v0.10.1-0.20230503155526-1fa8cc0d6c2b
 	open-cluster-management.io/governance-policy-framework-addon v0.10.1-0.20230417151126-bf5b2a1a8374
@@ -29,7 +30,7 @@ require (
 	open-cluster-management.io/managed-serviceaccount v0.2.1-0.20230417132409-29cfad7b18c0
 	open-cluster-management.io/multicloud-operators-subscription v0.10.0
 	open-cluster-management.io/multicluster-controlplane v0.1.1-0.20230504023756-c413c84de560
-	sigs.k8s.io/controller-runtime v0.14.5
+	sigs.k8s.io/controller-runtime v0.14.6
 )
 
 require (
@@ -120,7 +121,7 @@ require (
 	go.etcd.io/etcd/raft/v3 v3.5.7 // indirect
 	go.starlark.net v0.0.0-20230302034142-4b1e35fe2254 // indirect
 	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/term v0.7.0 // indirect
+	golang.org/x/term v0.8.0 // indirect
 	golang.org/x/text v0.9.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
@@ -131,8 +132,8 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/cli-runtime v0.27.1 // indirect
-	k8s.io/cloud-provider v0.26.1 // indirect
-	k8s.io/component-helpers v0.26.1 // indirect
+	k8s.io/cloud-provider v0.26.3 // indirect
+	k8s.io/component-helpers v0.26.3 // indirect
 	k8s.io/kubectl v0.27.1 // indirect
 	k8s.io/kubelet v0.0.0 // indirect
 	k8s.io/mount-utils v0.25.4 // indirect
@@ -149,7 +150,7 @@ require (
 require (
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
-	golang.org/x/oauth2 v0.7.0 // indirect
+	golang.org/x/oauth2 v0.8.0 // indirect
 	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1 // indirect
 	google.golang.org/grpc v1.54.0 // indirect
 	open-cluster-management.io/placement v0.10.0 // indirect
@@ -164,6 +165,7 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-logr/zapr v1.2.3 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
+	github.com/gobuffalo/flect v1.0.2 // indirect
 	github.com/golang/glog v1.1.1 // indirect
 	github.com/google/btree v1.1.2 // indirect
 	github.com/google/cel-go v0.14.0 // indirect
@@ -193,16 +195,16 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.8.0 // indirect
 	golang.org/x/exp v0.0.0-20230321023759-10a507213a29 // indirect
-	golang.org/x/net v0.9.0 // indirect
-	golang.org/x/sys v0.7.0 // indirect
+	golang.org/x/net v0.10.0 // indirect
+	golang.org/x/sys v0.8.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	golang.org/x/tools v0.7.0 // indirect
 	k8s.io/cluster-bootstrap v0.25.4 // indirect
-	k8s.io/controller-manager v0.26.1 // indirect
+	k8s.io/controller-manager v0.26.3 // indirect
 	k8s.io/klog v1.0.0 // indirect
 	k8s.io/kms v0.26.3 // indirect
 	k8s.io/kube-controller-manager v0.0.0 // indirect
-	k8s.io/kube-openapi v0.0.0-20230327201221-f5883ff37f0c // indirect
+	k8s.io/kube-openapi v0.0.0-20230501164219-8b0f38b5fd1f // indirect
 	k8s.io/kubernetes v1.26.3 // indirect
 	open-cluster-management.io/addon-framework v0.6.1 // indirect
 	open-cluster-management.io/registration v0.10.1-0.20230419032057-69e686faa191 // indirect
@@ -212,24 +214,26 @@ require (
 // replace these repos because of imported k8s.io/kubernetes v1.26.3
 replace (
 	gopkg.in/square/go-jose.v2 => gopkg.in/square/go-jose.v2 v2.2.2
-	k8s.io/cli-runtime => k8s.io/cli-runtime v0.26.1
-	k8s.io/code-generator => k8s.io/code-generator v0.26.1
-	k8s.io/component-helpers => k8s.io/component-helpers v0.26.1
-	k8s.io/controller-manager => k8s.io/controller-manager v0.26.1
-	k8s.io/cri-api => k8s.io/cri-api v0.26.1
-	k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.26.1
-	k8s.io/kube-controller-manager => k8s.io/kube-controller-manager v0.26.1
-	k8s.io/kube-proxy => k8s.io/kube-proxy v0.26.1
-	k8s.io/kube-scheduler => k8s.io/kube-scheduler v0.26.1
-	k8s.io/kubectl => k8s.io/kubectl v0.26.1
-	k8s.io/kubelet => k8s.io/kubelet v0.26.1
-	k8s.io/legacy-cloud-providers => k8s.io/legacy-cloud-providers v0.26.1
-	k8s.io/mount-utils => k8s.io/mount-utils v0.26.1
-	k8s.io/pod-security-admission => k8s.io/pod-security-admission v0.26.1
-	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.26.1
+	k8s.io/api => k8s.io/api v0.26.3
+	k8s.io/apimachinery => k8s.io/apimachinery v0.26.3
+	k8s.io/cli-runtime => k8s.io/cli-runtime v0.26.3
+	k8s.io/code-generator => k8s.io/code-generator v0.26.3
+	k8s.io/component-helpers => k8s.io/component-helpers v0.26.3
+	k8s.io/controller-manager => k8s.io/controller-manager v0.26.3
+	k8s.io/cri-api => k8s.io/cri-api v0.26.3
+	k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.26.3
+	k8s.io/kube-controller-manager => k8s.io/kube-controller-manager v0.26.3
+	k8s.io/kube-proxy => k8s.io/kube-proxy v0.26.3
+	k8s.io/kube-scheduler => k8s.io/kube-scheduler v0.26.3
+	k8s.io/kubectl => k8s.io/kubectl v0.26.3
+	k8s.io/kubelet => k8s.io/kubelet v0.26.3
+	k8s.io/legacy-cloud-providers => k8s.io/legacy-cloud-providers v0.26.3
+	k8s.io/mount-utils => k8s.io/mount-utils v0.26.3
+	k8s.io/pod-security-admission => k8s.io/pod-security-admission v0.26.3
+	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.26.3
 )
 
-// replace these repos because of k8s.io/cli-runtime v0.26.1
+// replace these repos because of k8s.io/cli-runtime v0.26.3
 replace (
 	sigs.k8s.io/kustomize/api => sigs.k8s.io/kustomize/api v0.12.1
 	sigs.k8s.io/kustomize/kyaml => sigs.k8s.io/kustomize/kyaml v0.13.9

@@ -7,6 +7,7 @@ import (
 	"net/http/pprof"
 	"strings"
 
+	"github.com/IBM/controller-filtered-cache/filteredcache"
 	gktemplatesv1 "github.com/open-policy-agent/frameworks/constraint/pkg/apis/templates/v1"
 	gktemplatesv1beta1 "github.com/open-policy-agent/frameworks/constraint/pkg/apis/templates/v1beta1"
 	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
@@ -16,8 +17,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -37,7 +38,6 @@ import (
 	"open-cluster-management.io/multicluster-controlplane/pkg/agent"
 	"open-cluster-management.io/multicluster-controlplane/pkg/features"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
@@ -260,9 +260,9 @@ func (a *AgentOptions) newHubManager(clusterName string) (manager.Manager, error
 		}
 	}
 
-	cacheSelectors := cache.SelectorsByObject{
-		&corev1.Secret{}: {
-			Field: fields.SelectorFromSet(fields.Set{"metadata.name": secretsync.SecretName}),
+	gvkLabelsMap := map[schema.GroupVersionKind][]filteredcache.Selector{
+		corev1.SchemeGroupVersion.WithKind("Secret"): {
+			{FieldSelector: fmt.Sprintf("metadata.name==%s", secretsync.SecretName)},
 		},
 	}
 
@@ -270,21 +270,12 @@ func (a *AgentOptions) newHubManager(clusterName string) (manager.Manager, error
 	if err != nil {
 		return nil, err
 	}
-
-	if strings.Contains(watchNamespace, ",") {
-		return nil, fmt.Errorf("multiple watched namespaces are not allowed for this controller")
-	}
-
 	if watchNamespace != "" {
-		cacheSelectors[&policyv1.Policy{}] = cache.ObjectSelector{
-			Field: fields.SelectorFromSet(fields.Set{
-				"metadata.namespace": watchNamespace,
-			}),
+		gvkLabelsMap[policyv1.SchemeGroupVersion.WithKind("Policy")] = []filteredcache.Selector{
+			{FieldSelector: fmt.Sprintf("metadata.namespace==%s", watchNamespace)},
 		}
-		cacheSelectors[&corev1.Event{}] = cache.ObjectSelector{
-			Field: fields.SelectorFromSet(fields.Set{
-				"metadata.namespace": watchNamespace,
-			}),
+		gvkLabelsMap[corev1.SchemeGroupVersion.WithKind("Event")] = []filteredcache.Selector{
+			{FieldSelector: fmt.Sprintf("metadata.namespace==%s", watchNamespace)},
 		}
 	}
 
@@ -292,11 +283,7 @@ func (a *AgentOptions) newHubManager(clusterName string) (manager.Manager, error
 		Scheme:             scheme,
 		Namespace:          clusterName,
 		MetricsBindAddress: ":8383", //TODO think about the mertics later
-		NewCache: cache.BuilderWithOptions(
-			cache.Options{
-				SelectorsByObject: cacheSelectors,
-			},
-		),
+		NewCache:           filteredcache.NewEnhancedFilteredCacheBuilder(gvkLabelsMap),
 		// Override the EventBroadcaster so that the spam filter will not ignore events for the policy but with
 		// different messages if a large amount of events for that policy are sent in a short time.
 		EventBroadcaster: record.NewBroadcasterWithCorrelatorOptions(
@@ -341,9 +328,9 @@ func (a *AgentOptions) newHostingManager() (manager.Manager, error) {
 		return nil, err
 	}
 
-	cacheSelectors := cache.SelectorsByObject{
-		&apiextensionsv1.CustomResourceDefinition{}: {
-			Field: fields.SelectorFromSet(fields.Set{"metadata.name": controllers.CRDName}),
+	gvkLabelsMap := map[schema.GroupVersionKind][]filteredcache.Selector{
+		apiextensionsv1.SchemeGroupVersion.WithKind("CustomResourceDefinition"): {
+			{FieldSelector: fmt.Sprintf("metadata.name==%s", controllers.CRDName)},
 		},
 	}
 
@@ -351,49 +338,35 @@ func (a *AgentOptions) newHostingManager() (manager.Manager, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	cacheSelectors[&appsv1.Deployment{}] = cache.ObjectSelector{
-		Field: fields.SelectorFromSet(fields.Set{
-			"metadata.namespace": ctrlKey.Namespace,
-			"metadata.name":      ctrlKey.Name,
-		}),
+	gvkLabelsMap[appsv1.SchemeGroupVersion.WithKind("Deployment")] = []filteredcache.Selector{
+		{
+			FieldSelector: fmt.Sprintf(
+				"metadata.namespace==%s,metadata.name==%s",
+				ctrlKey.Namespace, ctrlKey.Name,
+			),
+		},
 	}
 
 	watchNamespace, err := configcommon.GetWatchNamespace()
 	if err != nil {
 		return nil, err
 	}
-
-	if strings.Contains(watchNamespace, ",") {
-		return nil, fmt.Errorf("multiple watched namespaces are not allowed for this controller")
-	}
-
 	if watchNamespace != "" {
-		cacheSelectors[&configpolicyv1.ConfigurationPolicy{}] = cache.ObjectSelector{
-			Field: fields.SelectorFromSet(fields.Set{
-				"metadata.namespace": watchNamespace,
-			}),
+		gvkLabelsMap[configpolicyv1.GroupVersion.WithKind("ConfigurationPolicy")] = []filteredcache.Selector{
+			{FieldSelector: fmt.Sprintf("metadata.namespace==%s", watchNamespace)},
 		}
-		cacheSelectors[&policyv1.Policy{}] = cache.ObjectSelector{
-			Field: fields.SelectorFromSet(fields.Set{
-				"metadata.namespace": watchNamespace,
-			}),
+		gvkLabelsMap[policyv1.SchemeGroupVersion.WithKind("Policy")] = []filteredcache.Selector{
+			{FieldSelector: fmt.Sprintf("metadata.namespace==%s", watchNamespace)},
 		}
-		cacheSelectors[&corev1.Event{}] = cache.ObjectSelector{
-			Field: fields.SelectorFromSet(fields.Set{
-				"metadata.namespace": watchNamespace,
-			}),
+		gvkLabelsMap[corev1.SchemeGroupVersion.WithKind("Event")] = []filteredcache.Selector{
+			{FieldSelector: fmt.Sprintf("metadata.namespace==%s", watchNamespace)},
 		}
 	}
 
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
-		Scheme:             scheme,
-		MetricsBindAddress: ":8384", //TODO think about the mertics later
-		NewCache: cache.BuilderWithOptions(
-			cache.Options{
-				SelectorsByObject: cacheSelectors,
-			},
-		),
+		Scheme:                scheme,
+		MetricsBindAddress:    ":8384", //TODO think about the mertics later
+		NewCache:              filteredcache.NewEnhancedFilteredCacheBuilder(gvkLabelsMap),
 		ClientDisableCacheFor: []client.Object{&corev1.Secret{}},
 		// Override the EventBroadcaster so that the spam filter will not ignore events for the policy but with
 		// different messages if a large amount of events for that policy are sent in a short time.
