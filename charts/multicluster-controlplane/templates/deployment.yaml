@@ -41,6 +41,8 @@ spec:
               - ALL
           privileged: false
           runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
         volumeMounts: 
         - name: controlplane-config
           mountPath: /controlplane_config
