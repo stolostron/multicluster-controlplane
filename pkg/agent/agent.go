@@ -3,6 +3,8 @@ package agent
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"net/http/pprof"
 	"strings"
 
 	gktemplatesv1 "github.com/open-policy-agent/frameworks/constraint/pkg/apis/templates/v1"
@@ -289,7 +291,7 @@ func (a *AgentOptions) newHubManager(clusterName string) (manager.Manager, error
 	mgr, err := ctrl.NewManager(hubKubeConfig, ctrl.Options{
 		Scheme:             scheme,
 		Namespace:          clusterName,
-		MetricsBindAddress: "0", //TODO think about the mertics later
+		MetricsBindAddress: ":8383", //TODO think about the mertics later
 		NewCache: cache.BuilderWithOptions(
 			cache.Options{
 				SelectorsByObject: cacheSelectors,
@@ -323,6 +325,10 @@ func (a *AgentOptions) newHubManager(clusterName string) (manager.Manager, error
 		),
 	})
 	if err != nil {
+		return nil, err
+	}
+
+	if err := registerDebugEndpoint(mgr.AddMetricsExtraHandler); err != nil {
 		return nil, err
 	}
 
@@ -382,7 +388,7 @@ func (a *AgentOptions) newHostingManager() (manager.Manager, error) {
 
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme:             scheme,
-		MetricsBindAddress: "0", //TODO think about the mertics later
+		MetricsBindAddress: ":8384", //TODO think about the mertics later
 		NewCache: cache.BuilderWithOptions(
 			cache.Options{
 				SelectorsByObject: cacheSelectors,
@@ -420,5 +426,42 @@ func (a *AgentOptions) newHostingManager() (manager.Manager, error) {
 		return nil, err
 	}
 
+	if err := registerDebugEndpoint(mgr.AddMetricsExtraHandler); err != nil {
+		return nil, err
+	}
+
 	return mgr, nil
+}
+
+func registerDebugEndpoint(register func(string, http.Handler) error) error {
+	err := register("/debug/", http.Handler(http.DefaultServeMux))
+	if err != nil {
+		return err
+	}
+	err = register("/debug/pprof/", http.HandlerFunc(pprof.Index))
+	if err != nil {
+		return err
+	}
+	err = register("/debug/pprof/cmdline", http.HandlerFunc(pprof.Cmdline))
+	if err != nil {
+		return err
+	}
+	err = register("/debug/pprof/block", http.Handler(pprof.Handler("block")))
+	if err != nil {
+		return err
+	}
+	err = register("/debug/pprof/profile", http.HandlerFunc(pprof.Profile))
+	if err != nil {
+		return err
+	}
+	err = register("/debug/pprof/symobol", http.HandlerFunc(pprof.Symbol))
+	if err != nil {
+		return err
+	}
+	err = register("/debug/pprof/trace", http.HandlerFunc(pprof.Trace))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
