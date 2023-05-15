@@ -17,6 +17,7 @@ enableSelfManagement: false
 
 apiserver:
   externalHostname: ""
+  externalPort: 443
   ca: ""
   cakey: ""
 etcd:

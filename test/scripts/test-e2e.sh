@@ -36,26 +36,24 @@ done
 echo "##### Run self management loopback test ..."
 # deploy a controlplane with self-management
 external_host_ip=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${management_cluster}-control-plane)
+
 kubectl --kubeconfig $kubeconfig create namespace multicluster-controlplane
-helm template multicluster-controlplane charts/multicluster-controlplane \
-    -n multicluster-controlplane \
-    --set route.enabled=false \
-    --set nodeport.enabled=true \
-    --set nodeport.port=30080 \
-    --set apiserver.externalHostname=${external_host_ip} \
-    --set image=${IMAGE_NAME} \
-    --set enableSelfManagement=true \
-    --set autoApprovalBootstrapUsers="system:admin" \
-    --set etcd.mode=external \
-    --set 'etcd.servers={"http://etcd-0.etcd.multicluster-controlplane-etcd:2379","http://etcd-1.etcd.multicluster-controlplane-etcd:2379","http://etcd-2.etcd.multicluster-controlplane-etcd:2379"}' \
-    --set-file etcd.ca="${etc_ca}" \
-    --set-file etcd.cert="${etc_cert}" \
-    --set-file etcd.certkey="${etc_key}" | kubectl --kubeconfig $kubeconfig apply -f - 
+
+pushd ${REPO_DIR}
+export EXTERNAL_HOSTNAME=${external_host_ip}
+export NODE_PORT="30080"
+export SELF_MANAGEMENT="true"
+make deploy
+unset EXTERNAL_HOSTNAME
+unset NODE_PORT
+unset SELF_MANAGEMENT
+popd
+
+kubectl --kubeconfig $kubeconfig apply -f ${REPO_DIR}/_output/controlplane/multicluster-controlplane.yaml
 
 wait_seconds="90"; until [[ $((wait_seconds--)) -eq 0 ]] || eval "kubectl --kubeconfig $kubeconfig -n multicluster-controlplane get secrets multicluster-controlplane-kubeconfig &> /dev/null" ; do sleep 1; done
 
 kubectl --kubeconfig $kubeconfig -n multicluster-controlplane get secrets multicluster-controlplane-kubeconfig -ojsonpath='{.data.kubeconfig}' | base64 -d > "${cluster_dir}"/controlplane.kubeconfig
-kubectl --kubeconfig "${cluster_dir}"/controlplane.kubeconfig config set-cluster multicluster-controlplane --server=https://${external_host_ip}:30080
 
 wait_seconds="90"; until [[ $((wait_seconds--)) -eq 0 ]] || eval "kubectl --kubeconfig "${cluster_dir}"/controlplane.kubeconfig get crds policies.policy.open-cluster-management.io &> /dev/null" ; do sleep 1; done
 

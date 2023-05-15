@@ -3,81 +3,120 @@
 
 This repository is an extension to [open-cluster-management-io/multicluster-controlplane](https://github.com/open-cluster-management-io/multicluster-controlplane). It provides a way to run in-process components, which can provide some new capabilities to support auto-import the managed clusters and deploy the configuration policy on the matched managed clusters.
 
-## Install multicluster-controlplane
-
-### Option 1: Start multicluster-controlplane with embedded etcd on Openshift Cluster
-#### Build image
+## Run multicluster-controlplane as a local binary
 
 ```bash
-$ export IMAGE_NAME=<customized image. default is quay.io/stolostron/multicluster-controlplane:latest>
-$ make build-image push-image
+make run
 ```
 
-#### Deploy controlplane 
-Set environment variables firstly and then deploy controlplane.
-* `HUB_NAME` (optional) is the namespace where the controlplane is deployed in. The default is `multicluster-controlplane`.
+## Deploy multicluster-controlplane in a cluster
+
+### Prepare
+
+1. An Openshift Cluster or a KinD cluster
+2. Run the following command to check the required deploy tools
+
+    ```bash
+    make setup-dep
+    ```
+
+3. (Optional) Deploy an external etcd for multicluster-controlplane
+
+    ```bash
+    make deploy-etcd
+    ```
+
+    **Note**: If you deploy the etcd on the KinD cluster, you need set the environment variable `STORAGE_CLASS_NAME` to `standard`
+
+    ```bash
+    STORAGE_CLASS_NAME=standard make deploy-etcd
+    ```
+
+### Deploy
+
+1. Set the environment variable `KUBECONFIG` to your cluster kubeconfig path
+
+    ```bash
+    export KUBECONFIG=<the kubeconfig path of your cluster>
+    ```
+
+2. (Optional) If your cluster is a KinD cluster, we will use `NODE_PORT` to expose multicluster-controlplane service, you need set your KinD cluster interal IP and `NODE_PORT` with the environment variables
+
+    ```bash
+    export EXTERNAL_HOSTNAME=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' <the name of your KinD cluster>-control-plane)
+    export NODE_PORT=<the node port of your KinD cluster>
+    ```
+
+3. (Optional) If you deployed the external etcd, set the environment variable `ETCD_MOD` to `external`
+
+    ```bash
+    export ETCD_MOD=external
+    ```
+
+4. (Optional) If you want to enable the self management, set the environment variable `SELF_MANAGEMENT` to `true`
+
+    ```bash
+    export SELF_MANAGEMENT=true
+    ```
+
+5. Run following command to deploy a multicluster-controlplane on your cluster
+
+    ```bash
+    make deploy
+    ```
+
+After the multicluster-controlplane is deployed, getting the multicluster-controlplane kubeconfig with following command to access the multicluster-controlplane
+
 ```bash
-$ export HUB_NAME=<hub name>
-$ make deploy
+kubectl -n multicluster-controlplane get secrets multicluster-controlplane-kubeconfig -ojsonpath='{.data.kubeconfig}' | base64 -d > multicluster-controlplane.kubeconfig
 ```
 
-### Option 2: Start multicluster-controlplane with external etcd on Openshift Cluster 
+## Join a cluster
 
-#### Deploy etcd
-Set environmrnt variables and deploy etcd.
-* `ETCD_NS` (optional) is the namespace where the etcd is deployed in. The default is `multicluster-controlplane-etcd`.
-
-For example:
-```bash
-$ export ETCD_NS=<etcd namespace>
-$ make deploy-etcd
-```
-
-#### Build image
-```bash
-$ export IMAGE_NAME=<customized image. default is quay.io/stolostron/multicluster-controlplane:latest>
-$ make build-image push-image
-```
-
-#### Deploy controlplane
-Set environment variables and deploy controlplane.
-* `HUB_NAME` (optional) is the namespace where the controlplane is deployed in. The default is `multicluster-controlplane`.
-
-For example: 
-```bash
-$ export HUB_NAME=<hub name>
-$ make deploy-with-external-etcd
-```
-
-### Option 3: Start multicluster-controlplane as a local binary
+### Join a cluster with defalut mode
 
 ```bash
-$ make all
+export KUBECONFIG=<the kubeconfig path of your managed cluster>
+export CONTROLPLANE_KUBECONFIG=<the kubeconfig path of your multicluster-controlplane>
+
+make deploy-agent
 ```
 
-### Option 4: Start multicluster-controlplane with embedded etcd on KinD cluster
-You can specify the environment `CONTROLPLANE_NUMBER` indicates the number of generated controlplanes
+### Join a cluster with hosted mode
+
+1. Create a secret that contains your cluster kubeconfig on the multicluster-controlplane
 
 ```bash
-$ make deploy-on-kind
+export KUBECONFIG=<the kubeconfig path of your multicluster-controlplane>
+export CLUSTER_NAME=<the name of your cluster>
+
+kubectl create namespace $CLUSTER_NAME
+kubectl -n $CLUSTER_NAME create secret generic managedcluster-kubeconfig --from-file kubeconfig=<the kubeconfig path of your managed cluster>
 ```
 
-## Access the controlplane and join cluster
+2. Create a klusterlet to import your cluster on the multicluster-controlplane
 
-The kubeconfig file of the controlplane is in the dir `hack/deploy/cert-${HUB_NAME}/kubeconfig`.
-
-You can use clusteradm to access and join a cluster.
 ```bash
-$ clusteradm --kubeconfig=<kubeconfig file> get token --use-bootstrap-token
-$ clusteradm join --hub-token <hub token> --hub-apiserver <hub apiserver> --cluster-name <cluster_name>
-$ clusteradm --kubeconfig=<kubeconfig file> accept --clusters <cluster_name>
+cat <<EOF | kubectl apply -f -
+apiVersion: operator.open-cluster-management.io/v1
+kind: Klusterlet
+metadata:
+  name: $CLUSTER_NAME
+spec:
+  deployOption:
+    mode: Hosted
+EOF
 ```
 
-> **Warning**
-> clusteradm version should be v0.4.1 or later
+## Uninstall the multicluster-controlplane from your cluster
 
+Run following command to uninstall the multicluster-controlplane from your cluster
 
-## Undeploy the controlplane
 ```bash
-$ make destroy
+make destroy
 ```
+
+**Note**: Before you uninstall your controlplane, you may need to cleanup your managed clusters on the controlplane firstly.
+
+- For hosted managed clusters, you can delete the klusterlet to cleanup the resource of your managed cluster
+- For other managed clusters, you can delete the managed clusters to cleanup the resource of your managed cluster
