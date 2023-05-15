@@ -9,9 +9,9 @@ require (
 	github.com/openshift/client-go v0.0.0-20230120202327-72f107311084
 	github.com/openshift/library-go v0.0.0-20230321160537-6ac65c5454f9
 	github.com/spf13/cobra v1.6.1
-	github.com/stolostron/cluster-lifecycle-api v0.0.0-20230222063645-5b18b26381ff
+	github.com/stolostron/cluster-lifecycle-api v0.0.0-20230510064049-824d580bc143
 	github.com/stolostron/kubernetes-dependency-watches v0.2.0
-	github.com/stolostron/multicloud-operators-foundation v0.0.0-20230421063046-ea49a1804ad6
+	github.com/stolostron/multicloud-operators-foundation v0.0.0-20230515064036-8fdf17323dd0
 	go.uber.org/zap v1.24.0
 	k8s.io/api v0.26.3
 	k8s.io/apiextensions-apiserver v0.26.3
@@ -37,7 +37,7 @@ require (
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xeipuuv/gojsonschema v1.2.0 // indirect
-	helm.sh/helm/v3 v3.10.3 // indirect
+	helm.sh/helm/v3 v3.11.1 // indirect
 )
 
 require (
