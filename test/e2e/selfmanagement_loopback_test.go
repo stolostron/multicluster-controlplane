@@ -11,24 +11,32 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/wait"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	workv1 "open-cluster-management.io/api/work/v1"
 	policyv1 "open-cluster-management.io/governance-policy-propagator/api/v1"
 )
 
-const selfClusterName = "local-cluster"
-
 var _ = ginkgo.Describe("self management loopback test", func() {
+	var selfClusterName string
+
 	ginkgo.BeforeEach(func() {
-		ginkgo.By(fmt.Sprintf("Wait for managed cluster %s available", selfClusterName), func() {
+		ginkgo.By("Wait for self management cluster is available", func() {
 			gomega.Eventually(func() error {
-				managedCluster, err := selfControlplaneClients.clusterClient.ClusterV1().ManagedClusters().Get(ctx, selfClusterName, metav1.GetOptions{})
+				clusters, err := selfControlplaneClients.clusterClient.ClusterV1().ManagedClusters().List(ctx, metav1.ListOptions{
+					LabelSelector: "multicluster-controlplane.open-cluster-management.io/selfmanagement",
+				})
+
 				if err != nil {
 					return err
 				}
 
+				if len(clusters.Items) != 1 {
+					return fmt.Errorf("failed to list selfmanagement clusters, %+v", clusters)
+				}
+
+				managedCluster := clusters.Items[0]
+				selfClusterName = managedCluster.Name
 				if !meta.IsStatusConditionTrue(managedCluster.Status.Conditions, clusterv1.ManagedClusterConditionAvailable) {
 					return fmt.Errorf("expected cluster %s is available, but failed", selfClusterName)
 				}
@@ -40,8 +48,8 @@ var _ = ginkgo.Describe("self management loopback test", func() {
 
 	ginkgo.Context("manifestworks should work fine", func() {
 		ginkgo.It("should be able to create/delete manifestoworks", func() {
-			workName := fmt.Sprintf("%s-%s", selfClusterName, rand.String(6))
-			configMapName := fmt.Sprintf("%s-%s", selfClusterName, rand.String(6))
+			workName := selfClusterName
+			configMapName := selfClusterName
 
 			ginkgo.By(fmt.Sprintf("Create a manifestwork %q in the cluster %q", workName, selfClusterName), func() {
 				_, err := selfControlplaneClients.workClient.WorkV1().ManifestWorks(selfClusterName).Create(
