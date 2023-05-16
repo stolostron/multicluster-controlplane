@@ -1,123 +1,110 @@
 # Copyright Contributors to the Open Cluster Management project
 #!/usr/bin/env bash
 
-#################################
-# include the -=magic=-
-# you can pass command line args
-#
-# example:
-# to disable simulated typing
-# . ../demo-magic.sh -d
-#
-# pass -h to see all options
-#################################
-. ./demo-magic.sh
+REPO_DIR="$(cd "$(dirname ${BASH_SOURCE[0]})/../.." ; pwd -P)"
 
-
-########################
-# Configure the options
-########################
-
-#
 # speed at which to simulate typing. bigger num = faster
-#
-TYPE_SPEED=60
+TYPE_SPEED=120
 
-#
 # custom prompt
-#
 # see http://www.tldp.org/HOWTO/Bash-Prompt-HOWTO/bash-prompt-escape-sequences.html for escape sequences
-#
 DEMO_PROMPT="${GREEN}➜ ${CYAN}\W ${COLOR_RESET}"
-ROOT_DIR="$(pwd)"
-controlplane_number=${1:-1}
-managedcluster_number=${2:-1}
-
-SED=sed
-if [ "$(uname)" = 'Darwin' ]; then
-  # run `brew install gnu-${SED}` to install gsed
-  SED=gsed
-fi
-
-if [[ "$3" == "clean" ]]; then
-  for i in $(seq 1 "${controlplane_number}"); do
-    namespace=multicluster-controlplane-$i
-    oc delete ns $namespace
-    for j in $(seq 1 "$managedcluster_number"); do
-      kind delete cluster --name $namespace-mc-$j
-    done
-    rm -rf ${ROOT_DIR}/../deploy/cert-${namespace}
-  done
-  oc delete -k multicluster-global-hub-lite/deploy/server -n default
-  rm -rf multicluster-global-hub-lite
-  exit
-fi
 
 # text color
 DEMO_CMD_COLOR=$BLACK
 
-# hide the evidence
+source ${REPO_DIR}/hack/demo/demo-magic.sh
+
+function comment() {
+  echo -e '\033[0;33m>>> '$1' <<<\033[0m'
+}
+
+set -o nounset
+
 clear
 
-for i in $(seq 1 "${controlplane_number}"); do
+management_kubeconfig=${MANAGEMENT_KUBECONFIG:-"clusters/management.kubeconfig"}
+hosted_cluster1_kubeconfig=${HOSTED_CLUSTER1_KUBECONFIG:-"clusters/hosted_cluster1.kubeconfig"}
+hosted_cluster2_kubeconfig=${HOSTED_CLUSTER2_KUBECONFIG:-"clusters/hosted_cluster2.kubeconfig"}
+kind_cluster_kubeconfig=${KIND_CLUSTER_KUBECONFIG:-"clusters/kind_cluster.kubeconfig"}
+controlplane_kubeconfig="./controlplane.kubeconfig"
 
-  # put your demo awesomeness here
-  namespace=multicluster-controlplane-$i
-  p "deploy standalone controlplane and addons(policy and managedserviceaccount) in namespace ${namespace}"
-  export HUB_NAME="${namespace}"
-  rm -rf ${ROOT_DIR}/../deploy/controlplane/ocmconfig.yaml
-  pei "cd ../.. && make deploy"
-  cd ${ROOT_DIR}
-  pei "oc get pod -n ${namespace}"
+###### start the demo
+comment "Demo 1: Run controlplane as a black box in an OpenShift cluster."
 
-  CERTS_DIR=${ROOT_DIR}/../deploy/cert-${namespace}
-  mkdir ${CERTS_DIR}
-  cp ${ROOT_DIR}/../../$namespace.kubeconfig ${CERTS_DIR}/controlplane-kubeconfig
-  hubkubeconfig=${CERTS_DIR}/controlplane-kubeconfig
-  for j in $(seq 1 "$managedcluster_number"); do
-    managed_cluster_name="$namespace-mc-$j"
-    p "create a KinD cluster as a managedcluster"
-    pei "kind create cluster --name $managed_cluster_name --kubeconfig ${CERTS_DIR}/mc-$j-kubeconfig"
-  
-    agent_namespace="multicluster-controlplane-agent"
-    agent_deploy_dir="${ROOT_DIR}/../deploy/agent"
-    cp -f $hubkubeconfig $agent_deploy_dir/hub-kubeconfig
+p "There is a controlplane with self-management enabled on the multicluster-controlplane namespace in a cluster (management cluster)"
+pe "kubectl --kubeconfig ${management_kubeconfig} -n multicluster-controlplane get deploy,routes,secrets"
 
-    # temporary solution. will be replaced once clusteradm supports it
-    cp $agent_deploy_dir/deployment.yaml $agent_deploy_dir/deployment.yaml.tmp
-    ${SED} -i "s/cluster-name=cluster1/cluster-name=$managed_cluster_name/" $agent_deploy_dir/deployment.yaml
-    kustomize build ${ROOT_DIR}/../deploy/agent | oc --kubeconfig ${CERTS_DIR}/mc-$j-kubeconfig -n ${agent_namespace} apply -f -
-    cp $agent_deploy_dir/deployment.yaml.tmp $agent_deploy_dir/deployment.yaml
+p "Expose the controlplane kubeconfig from secret multicluster-controlplane-kubeconfig"
+pe "kubectl --kubeconfig ${management_kubeconfig} -n multicluster-controlplane get secrets multicluster-controlplane-kubeconfig -ojsonpath='{.data.kubeconfig}' | base64 -d > ${controlplane_kubeconfig}"
 
-    wait_seconds="90"; until [[ $((wait_seconds--)) -eq 0 ]] || eval "oc --kubeconfig $hubkubeconfig get csr --ignore-not-found | grep ^$managed_cluster_name &> /dev/null" ; do sleep 1; done
-    oc --kubeconfig $hubkubeconfig get csr --ignore-not-found -oname | grep ^certificatesigningrequest.certificates.k8s.io/$managed_cluster_name | xargs -n 1 oc --kubeconfig $hubkubeconfig adm certificate approve
-    oc --kubeconfig $hubkubeconfig patch managedcluster $managed_cluster_name -p='{"spec":{"hubAcceptsClient":true}}' --type=merge
-  
-    pei "oc --kubeconfig=$hubkubeconfig get managedcluster"
-    oc --kubeconfig=$hubkubeconfig label managedcluster $managed_cluster_name "cluster.open-cluster-management.io/clusterset"=default
-    
-  done
-done
+p "The apirescources of this controlplane"
+pe "kubectl --kubeconfig ${controlplane_kubeconfig} api-resources"
 
-# show a prompt so as not to reveal our true nature after
-# the demo has concluded
+p "The crds of this controlplane"
+pe "kubectl --kubeconfig ${controlplane_kubeconfig} get crds"
 
-p "deploy the global hub in default namespace"
-rm -rf multicluster-global-hub-lite
-git clone git@github.com:clyang82/multicluster-global-hub-lite.git
-pei "cd multicluster-global-hub-lite && make deploy && cd .."
+p "There is a self management cluster in the controlplane"
+pe "kubectl --kubeconfig ${controlplane_kubeconfig} get managedcluster -l multicluster-controlplane.open-cluster-management.io/selfmanagement"
 
-for i in $(seq 1 "${controlplane_number}"); do
+cluster_name=$(kubectl --kubeconfig ${controlplane_kubeconfig} get managedclusters -l multicluster-controlplane.open-cluster-management.io/selfmanagement | awk '{print $1}' | tail -n 1)
 
-  namespace=multicluster-controlplane-$i
-  p "deploy syncer into namespace ${namespace}"
-  oc create secret generic multicluster-global-hub-kubeconfig --from-file=kubeconfig=multicluster-global-hub-lite/deploy/server/certs/kube-aggregator.kubeconfig -n ${namespace}
-  pei "oc apply -n ${namespace} -k multicluster-global-hub-lite/deploy/syncer"
-  oc --kubeconfig multicluster-global-hub-lite/deploy/server/certs/kube-aggregator.kubeconfig create ns ${namespace}
+p "The cluster has required cluster claims in the controlplane"
+pe "kubectl --kubeconfig ${controlplane_kubeconfig} get managedcluster ${cluster_name} -ojsonpath={.status.clusterClaims}"
+echo ""
 
-done
+p "Enforce the rescoruces with policy in the management cluster"
+pe "cat ./policy/limitrange.yaml"
+pe "kubectl --kubeconfig ${controlplane_kubeconfig} apply -f ./policy/limitrange.yaml"
+pe "kubectl --kubeconfig ${controlplane_kubeconfig} get policy --all-namespaces -w"
+pe "kubectl --kubeconfig ${management_kubeconfig} -n default get limitranges"
 
-cp multicluster-global-hub-lite/deploy/server/certs/kube-aggregator.kubeconfig /tmp/global-hub-kubeconfig
-p "Use oc --kubeconfig /tmp/global-hub-kubeconfig to access the global hub"
+p "The resouce usage of controlplane"
+pe "kubectl --kubeconfig ${management_kubeconfig} -n multicluster-controlplane top pods --use-protocol-buffers"
 
-p ""
+comment "###### Demo 2: Run controlplane with agent in hosted mode. ######"
+
+p "Import an openshift cluster 'hosted-cluster1' in hosted mode to the controlplane"
+pe "kubectl --kubeconfig ${controlplane_kubeconfig} create namespace hosted-cluster1"
+pe "kubectl --kubeconfig ${controlplane_kubeconfig} -n hosted-cluster1 create secret generic managedcluster-kubeconfig --from-file kubeconfig=${hosted_cluster1_kubeconfig}"
+pe "kubectl --kubeconfig ${controlplane_kubeconfig} apply -f ./klusterlet/hosted-cluster1.yaml"
+
+p "Import the other openshift cluster 'hosted-cluster2' in hosted mode to the controlplane"
+pe "kubectl --kubeconfig ${controlplane_kubeconfig} create namespace hosted-cluster2"
+pe "kubectl --kubeconfig ${controlplane_kubeconfig} -n hosted-cluster2 create secret generic managedcluster-kubeconfig --from-file kubeconfig=${hosted_cluster2_kubeconfig}"
+pe "kubectl --kubeconfig ${controlplane_kubeconfig} apply -f ./klusterlet/hosted-cluster2.yaml"
+
+p "Two agents are deployed by the controlplane to connect the openshift clusters in hosted mode"
+pe "kubectl --kubeconfig ${management_kubeconfig} -n multicluster-controlplane get pods -w"
+pe "kubectl --kubeconfig ${controlplane_kubeconfig} get managedclusters -w"
+pe "kubectl --kubeconfig ${controlplane_kubeconfig} get policy --all-namespaces -w"
+
+comment "###### Demo 3: Run multiple controlplane instances in a cluster. ######"
+controlplane_1_kubeconfig="./controlplane-1.kubeconfig"
+p "Deploy the other controlplane in this cluster"
+pe "kubectl --kubeconfig ${management_kubeconfig} create namespace multicluster-controlplane-1"
+pe "helm template multicluster-controlplane ${REPO_DIR}/charts/multicluster-controlplane -n multicluster-controlplane-1 | kubectl --kubeconfig ${management_kubeconfig} apply -f -"
+pe "kubectl --kubeconfig ${management_kubeconfig} -n multicluster-controlplane-1 get pods -w"
+pe "kubectl --kubeconfig ${management_kubeconfig} -n multicluster-controlplane-1 get secrets multicluster-controlplane-kubeconfig -ojsonpath='{.data.kubeconfig}' | base64 -d > ${controlplane_1_kubeconfig}"
+
+p "Import a KinD cluster in default mode"
+pushd ${REPO_DIR}
+export KUBECONFIG=${REPO_DIR}/hack/demo/${kind_cluster_kubeconfig}
+export CONTROLPLANE_KUBECONFIG=${REPO_DIR}/hack/demo/${controlplane_1_kubeconfig}
+export CLUSTER_NAME="kind"
+pe "make deploy-agent"
+unset KUBECONFIG
+unset CONTROLPLANE_KUBECONFIG
+unset CLUSTER_NAME
+popd
+
+p "The agent in the KinD cluster"
+pe "kubectl --kubeconfig ${kind_cluster_kubeconfig} -n multicluster-controlplane-agent get pods -w"
+
+p "The managed cluster in the multicluster-controlplane-1"
+pe "kubectl --kubeconfig ${controlplane_1_kubeconfig} get managedclusters -w"
+
+p "Enforce the resouces with policy in the kind cluster"
+pe "kubectl --kubeconfig ${controlplane_1_kubeconfig} apply -f ./policy/limitrange.yaml"
+pe "kubectl --kubeconfig ${controlplane_1_kubeconfig} get policy --all-namespaces -w"
+pe "kubectl --kubeconfig ${kind_cluster_kubeconfig} -n default get limitranges"
