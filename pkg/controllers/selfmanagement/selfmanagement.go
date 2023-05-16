@@ -5,7 +5,6 @@ import (
 	"os"
 	"time"
 
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -44,22 +43,22 @@ func InstallControllers(options *options.ServerRunOptions) func(<-chan struct{},
 			}
 
 			// wait for the agent is registered
-			if err := waitForClusterAvailable(ctx, clusterClient, options.SelfManagementClusterName); err != nil {
-				klog.Fatalf("failed to wait for self management cluster %s available, %v",
-					options.SelfManagementClusterName, err)
+			clusterName, err := waitForClusterAvailable(ctx, clusterClient, options.SelfManagementClusterName)
+			if err != nil {
+				klog.Fatalf("failed to wait for self management cluster available, %v", err)
 			}
 
 			// set required env
 			if err := os.Setenv("OPERATOR_NAME", "multicluster-controlplane"); err != nil {
 				klog.Fatalf("failed to set env `OPERATOR_NAME`, %v", err)
 			}
-			if err := os.Setenv("WATCH_NAMESPACE", options.SelfManagementClusterName); err != nil {
+			if err := os.Setenv("WATCH_NAMESPACE", clusterName); err != nil {
 				klog.Fatalf("failed to set evn `WATCH_NAMESPACE`, %v", err)
 			}
 
 			agentOptions := agent.NewAgentOptions().
 				WithHubKubeConfig(hubRestConfig).
-				WithClusterName(options.SelfManagementClusterName)
+				WithClusterName(clusterName)
 
 			klog.Info("starting addon agents")
 			if err := agentOptions.RunAddOns(ctx); err != nil {
@@ -73,17 +72,27 @@ func InstallControllers(options *options.ServerRunOptions) func(<-chan struct{},
 	}
 }
 
-func waitForClusterAvailable(ctx context.Context, clusterClient clusterclient.Interface, name string) error {
-	return wait.PollImmediate(5*time.Second, 10*time.Minute, func() (bool, error) {
-		cluster, err := clusterClient.ClusterV1().ManagedClusters().Get(ctx, name, metav1.GetOptions{})
-		if errors.IsNotFound(err) {
-			return false, nil
-		}
+func waitForClusterAvailable(ctx context.Context, clusterClient clusterclient.Interface, name string) (string, error) {
+	var clusterName string
+	if err := wait.PollImmediate(5*time.Second, 10*time.Minute, func() (bool, error) {
+		clusters, err := clusterClient.ClusterV1().ManagedClusters().List(context.TODO(), metav1.ListOptions{
+			LabelSelector: "multicluster-controlplane.open-cluster-management.io/selfmanagement",
+		})
 
 		if err != nil {
 			return false, err
 		}
 
+		if len(clusters.Items) != 1 {
+			return false, nil
+		}
+
+		cluster := clusters.Items[0]
+		clusterName = cluster.Name
 		return meta.IsStatusConditionTrue(cluster.Status.Conditions, clusterv1.ManagedClusterConditionAvailable), nil
-	})
+	}); err != nil {
+		return "", err
+	}
+
+	return clusterName, nil
 }

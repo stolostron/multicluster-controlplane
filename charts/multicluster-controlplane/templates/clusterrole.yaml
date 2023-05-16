@@ -68,4 +68,7 @@ rules:
 - apiGroups: ["work.open-cluster-management.io"]
   resources: ["appliedmanifestworks/finalizers"]
   verbs: ["update"]
+- apiGroups: ["config.openshift.io"]
+  resources: ["clusterversions"]
+  verbs: ["get", "list"]
 {{ end }}
