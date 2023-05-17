@@ -2,19 +2,33 @@
 # Get started 
 
 ## Prerequisites
-1. Connect to an OpenShift cluster
-2. Install the latest [clusteradm](https://github.com/open-cluster-management-io/clusteradm#install-the-clusteradm-command-line)
-3. Install the latest [kustomize](https://kubectl.docs.kubernetes.io/installation/kustomize/binaries/)
-4. Install [KinD](https://github.com/kubernetes-sigs/kind) in your local host. We create KinD cluster as managed cluster.
+1. An OpenShift cluster as the management cluster, and deploy a controlplane in this cluster
+    ```bash
+        export SELF_MANAGEMENT=true
+        make deploy
+    ```
+2. An OpenShift cluster as the managed cluster `hosted-cluster1`
+3. An OpenShift cluster as the managed cluster `hosted-cluster2`
+4. A KinD cluster as managed cluster
 
-## Install
+## Run
 
 ```bash
-    ./next-generation.sh 2 (the number of control planes) 1 (the number of managed cluster per control plane)
+export MANAGEMENT_KUBECONFIG=<your management cluster kubeconfig file path>
+export HOSTED_CLUSTER1_KUBECONFIG=<your hosted cluster1 kubeconfig file path>
+export HOSTED_CLUSTER2_KUBECONFIG=<your hosted cluster2 kubeconfig file path>
+export KIND_CLUSTER_KUBECONFIG=<your kind cluster kubeconfig file path>
+
+./next-generation.sh
 ```
 
 ## Clean up
 
 ```bash
-    ./next-generation.sh 2 1 clean
+export MANAGEMENT_KUBECONFIG=<your management cluster kubeconfig file path>
+export HOSTED_CLUSTER1_KUBECONFIG=<your hosted cluster1 kubeconfig file path>
+export HOSTED_CLUSTER2_KUBECONFIG=<your hosted cluster2 kubeconfig file path>
+export KIND_CLUSTER_KUBECONFIG=<your kind cluster kubeconfig file path>
+
+./clean-up.sh
 ```
