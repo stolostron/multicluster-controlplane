@@ -152,6 +152,7 @@ func InstallControllers(stopCh <-chan struct{}, aggregatorConfig *aggregatorapis
 			klog.Info("starting klusterlet")
 			klusterlet := klusterlet.NewKlusterlet(
 				controlplaneKubeClient,
+				controlplaneDynamicClient,
 				controlplaneClusterClient,
 				controlplaneWorkClient,
 				controlplaneCRDClient,

@@ -6,15 +6,24 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/klog/v2"
 
 	clusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	workclient "open-cluster-management.io/api/client/work/clientset/versioned"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	workv1 "open-cluster-management.io/api/work/v1"
+	policyv1 "open-cluster-management.io/config-policy-controller/api/v1"
 )
+
+var policyGVR = schema.GroupVersionResource{
+	Group:    policyv1.GroupVersion.Group,
+	Version:  policyv1.GroupVersion.Version,
+	Resource: "policies",
+}
 
 func IsClusterUnavailable(ctx context.Context, clusterClient clusterclient.Interface, name string) (bool, error) {
 	cluster, err := clusterClient.ClusterV1().ManagedClusters().Get(ctx, name, metav1.GetOptions{})
@@ -56,6 +65,32 @@ func DeleteManagedCluster(ctx context.Context, clusterClient clusterclient.Inter
 
 	klog.Infof("The managed cluster %s is deleted", clusterName)
 	return nil
+}
+
+func DeletePolicies(ctx context.Context, dynamicClient dynamic.Interface, clusterName string) error {
+	plocies, err := dynamicClient.Resource(policyGVR).Namespace(clusterName).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	errs := []error{}
+	for _, plociy := range plocies.Items {
+		if err := dynamicClient.Resource(policyGVR).Namespace(clusterName).
+			Delete(ctx, plociy.GetName(), metav1.DeleteOptions{}); err != nil {
+			errs = append(errs, err)
+			continue
+		}
+
+		if len(plociy.GetFinalizers()) != 0 {
+			patch := "{\"metadata\": {\"finalizers\":[]}}"
+			if _, err := dynamicClient.Resource(policyGVR).Namespace(clusterName).
+				Patch(ctx, plociy.GetName(), types.MergePatchType, []byte(patch), metav1.PatchOptions{}); err != nil {
+				errs = append(errs, err)
+			}
+		}
+	}
+
+	return utilerrors.NewAggregate(errs)
 }
 
 func DeleteAllManifestWorks(

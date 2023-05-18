@@ -6,6 +6,7 @@ import (
 	"github.com/openshift/library-go/pkg/controller/factory"
 
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 
@@ -40,6 +41,7 @@ func (k *Klusterlet) Start(ctx context.Context) {
 
 func NewKlusterlet(
 	controlplaneKubeClient kubernetes.Interface,
+	controlplaneDynamicClient dynamic.Interface,
 	controlplaneClusterClient clusterclient.Interface,
 	controlplaneWorkClient workclient.Interface,
 	controlplaneAPIExtensionClient apiextensionsclient.Interface,
@@ -65,6 +67,7 @@ func NewKlusterlet(
 		cleanupController: klusterletcontroller.NewKlusterletCleanupController(
 			kubeClient,
 			controlplaneKubeClient,
+			controlplaneDynamicClient,
 			controlplaneClusterClient,
 			controlplaneWorkClient,
 			controlplaneAPIExtensionClient,

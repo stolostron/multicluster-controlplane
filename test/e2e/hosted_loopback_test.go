@@ -86,6 +86,15 @@ var _ = ginkgo.Describe("hosted mode loopback test", ginkgo.Ordered, func() {
 					return fmt.Errorf("the manifest works %d still exist in %s", len(works.Items), hostedManagedClusterName)
 				}
 
+				polices, err := controlplaneClients.dynamicClient.Resource(policyv1.GroupVersion.WithResource("policies")).
+					Namespace(hostedManagedClusterName).List(ctx, metav1.ListOptions{})
+				if err != nil {
+					return err
+				}
+				if len(polices.Items) != 0 {
+					return fmt.Errorf("the polices %d still exist in %s", len(polices.Items), hostedManagedClusterName)
+				}
+
 				return nil
 			}).WithTimeout(timeout).ShouldNot(gomega.HaveOccurred())
 		})
@@ -117,6 +126,14 @@ var _ = ginkgo.Describe("hosted mode loopback test", ginkgo.Ordered, func() {
 				}
 				if err == nil {
 					return fmt.Errorf("the external secrect %s/%s still exists", controlPlaneNamespace, externalSecret)
+				}
+
+				_, err = managementClusterClients.kubeClient.CoreV1().Namespaces().Get(ctx, hostedManagedClusterName, metav1.GetOptions{})
+				if err != nil && !errors.IsNotFound(err) {
+					return err
+				}
+				if err == nil {
+					return fmt.Errorf("the managed cluser namespace %s/%s still exists", controlPlaneNamespace, externalSecret)
 				}
 
 				bootstrapSecret := "multicluster-controlplane-svc-kubeconfig"

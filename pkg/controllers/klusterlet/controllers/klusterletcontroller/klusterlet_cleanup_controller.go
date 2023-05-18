@@ -18,6 +18,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/client-go/dynamic"
 	appsinformer "k8s.io/client-go/informers/apps/v1"
 	coreinformer "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
@@ -38,6 +39,7 @@ import (
 type klusterletCleanupController struct {
 	kubeClient                kubernetes.Interface
 	controlplaneKubeClient    kubernetes.Interface
+	controlplaneDynamicClient dynamic.Interface
 	controlplaneClusterClient clusterclient.Interface
 	controlplaneWorkClient    workclient.Interface
 	apiExtensionClient        apiextensionsclient.Interface
@@ -50,6 +52,7 @@ type klusterletCleanupController struct {
 func NewKlusterletCleanupController(
 	kubeClient kubernetes.Interface,
 	controlplaneKubeClient kubernetes.Interface,
+	controlplaneDynamicClient dynamic.Interface,
 	controlplaneClusterClient clusterclient.Interface,
 	controlplaneWorkClient workclient.Interface,
 	apiExtensionClient apiextensionsclient.Interface,
@@ -62,6 +65,7 @@ func NewKlusterletCleanupController(
 	controller := &klusterletCleanupController{
 		kubeClient:                kubeClient,
 		controlplaneKubeClient:    controlplaneKubeClient,
+		controlplaneDynamicClient: controlplaneDynamicClient,
 		controlplaneClusterClient: controlplaneClusterClient,
 		controlplaneWorkClient:    controlplaneWorkClient,
 		apiExtensionClient:        apiExtensionClient,
@@ -219,8 +223,20 @@ func (n *klusterletCleanupController) sync(ctx context.Context, controllerContex
 		return err
 	}
 
-	// delete external managed cluster kubeconfig secret on management cluster in hosted mode
+	// the hosted agent has been deleted, we can delete the internal resouces safely, include
+	// - policies in the managed cluster namespace on the controlplane
+	// - managed cluster namespace on management cluster
+	// - external managed cluster kubeconfig secret on management cluster
 	if config.InstallMode == operatorapiv1.InstallModeHosted {
+		if err := helpers.DeletePolicies(ctx, n.controlplaneDynamicClient, config.ClusterName); err != nil {
+			return err
+		}
+
+		if err := n.kubeClient.CoreV1().Namespaces().
+			Delete(ctx, config.ClusterName, metav1.DeleteOptions{}); err != nil {
+			return err
+		}
+
 		if err := n.kubeClient.CoreV1().Secrets(config.AgentNamespace).Delete(
 			ctx, config.ExternalManagedClusterKubeConfigSecret, metav1.DeleteOptions{}); err != nil {
 			return err
