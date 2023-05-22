@@ -17,6 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	controller "github.com/stolostron/multicluster-controlplane/pkg/controllers"
+	"github.com/stolostron/multicluster-controlplane/pkg/controllers/hostedcluster"
 	"github.com/stolostron/multicluster-controlplane/pkg/controllers/selfmanagement"
 )
 
@@ -56,6 +57,7 @@ func NewManager() *cobra.Command {
 
 			server := servers.NewServer(*options)
 			server.AddController("next-gen-controlplane-controllers", controller.InstallControllers)
+			server.AddController("next-gen-controlplane-hostedcluster", hostedcluster.InstallControllers)
 			server.AddController("next-gen-controlplane-self-management", selfmanagement.InstallControllers(options))
 
 			return server.Start(stopChan)

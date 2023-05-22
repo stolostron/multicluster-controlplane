@@ -219,6 +219,8 @@ func (n *klusterletCleanupController) sync(ctx context.Context, controllerContex
 		return utilerrors.NewAggregate(errs)
 	}
 
+	createdByController := klusterlet.GetAnnotations()[helpers.KlusterletOwnerAnnotation]
+
 	if err := n.removeKlusterletFinalizers(ctx, klusterlet.Name); err != nil {
 		return err
 	}
@@ -240,6 +242,14 @@ func (n *klusterletCleanupController) sync(ctx context.Context, controllerContex
 		if err := n.kubeClient.CoreV1().Secrets(config.AgentNamespace).Delete(
 			ctx, config.ExternalManagedClusterKubeConfigSecret, metav1.DeleteOptions{}); err != nil {
 			return err
+		}
+
+		// remove namespace in managedcluster if klusterlet is not created by user
+		if createdByController != "" {
+			if err := n.controlplaneKubeClient.CoreV1().Namespaces().
+				Delete(ctx, config.ClusterName, metav1.DeleteOptions{}); err != nil {
+				return err
+			}
 		}
 	}
 

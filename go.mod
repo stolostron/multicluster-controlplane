@@ -3,12 +3,13 @@ module github.com/stolostron/multicluster-controlplane
 go 1.19
 
 require (
-	github.com/onsi/ginkgo/v2 v2.9.1
-	github.com/onsi/gomega v1.27.4
+	github.com/onsi/ginkgo/v2 v2.9.4
+	github.com/onsi/gomega v1.27.6
 	github.com/open-policy-agent/frameworks/constraint v0.0.0-20220504221328-9db6a6b27c97
 	github.com/openshift/client-go v0.0.0-20230120202327-72f107311084
+	github.com/openshift/hypershift v0.1.6
 	github.com/openshift/library-go v0.0.0-20230321160537-6ac65c5454f9
-	github.com/spf13/cobra v1.6.1
+	github.com/spf13/cobra v1.7.0
 	github.com/stolostron/cluster-lifecycle-api v0.0.0-20230510064049-824d580bc143
 	github.com/stolostron/kubernetes-dependency-watches v0.2.0
 	github.com/stolostron/multicloud-operators-foundation v0.0.0-20230515064036-8fdf17323dd0
@@ -19,7 +20,7 @@ require (
 	k8s.io/apiserver v0.26.3
 	k8s.io/client-go v12.0.0+incompatible
 	k8s.io/component-base v0.26.3
-	k8s.io/klog/v2 v2.90.1
+	k8s.io/klog/v2 v2.100.1
 	k8s.io/kube-aggregator v0.26.2
 	k8s.io/utils v0.0.0-20230313181309-38a27ef9d749
 	open-cluster-management.io/api v0.10.1-0.20230404062739-ddf72e2f1bea
@@ -136,7 +137,7 @@ require (
 	k8s.io/kubectl v0.27.1 // indirect
 	k8s.io/kubelet v0.0.0 // indirect
 	k8s.io/mount-utils v0.25.4 // indirect
-	k8s.io/pod-security-admission v0.0.0 // indirect
+	k8s.io/pod-security-admission v0.23.5 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.1.1 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/kube-storage-version-migrator v0.0.5 // indirect
@@ -147,7 +148,7 @@ require (
 )
 
 require (
-	github.com/inconshreveable/mousetrap v1.0.1 // indirect
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	golang.org/x/oauth2 v0.7.0 // indirect
 	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1 // indirect
@@ -158,12 +159,14 @@ require (
 require (
 	cloud.google.com/go/compute v1.19.1 // indirect
 	github.com/antlr/antlr4/runtime/Go/antlr/v4 v4.0.0-20230321174746-8dcc6526cfb1 // indirect
+	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/cenkalti/backoff/v4 v4.1.3 // indirect
 	github.com/emicklei/go-restful v2.16.0+incompatible // indirect
 	github.com/go-logr/logr v1.2.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-logr/zapr v1.2.3 // indirect
-	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
+	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
+	github.com/gobuffalo/flect v1.0.2 // indirect
 	github.com/golang/glog v1.1.1 // indirect
 	github.com/google/btree v1.1.2 // indirect
 	github.com/google/cel-go v0.14.0 // indirect
@@ -174,7 +177,7 @@ require (
 	github.com/jonboulle/clockwork v0.3.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pquerna/cachecontrol v0.1.0 // indirect
-	github.com/prometheus/client_golang v1.15.0 // indirect
+	github.com/prometheus/client_golang v1.15.1 // indirect
 	github.com/spf13/pflag v1.0.6-0.20210604193023-d5e0c0615ace // indirect
 	github.com/stolostron/go-template-utils/v3 v3.2.0 // indirect
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20220101234140-673ab2c3ae75 // indirect
@@ -196,7 +199,7 @@ require (
 	golang.org/x/net v0.9.0 // indirect
 	golang.org/x/sys v0.7.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
-	golang.org/x/tools v0.7.0 // indirect
+	golang.org/x/tools v0.8.0 // indirect
 	k8s.io/cluster-bootstrap v0.25.4 // indirect
 	k8s.io/controller-manager v0.26.1 // indirect
 	k8s.io/klog v1.0.0 // indirect
@@ -207,6 +210,9 @@ require (
 	open-cluster-management.io/addon-framework v0.6.1 // indirect
 	open-cluster-management.io/registration v0.10.1-0.20230419032057-69e686faa191 // indirect
 	open-cluster-management.io/work v0.10.1-0.20230314090112-ee923cd5f632 // indirect
+	sigs.k8s.io/cluster-api v1.4.1 // indirect
+	sigs.k8s.io/cluster-api-provider-aws/v2 v2.0.2 // indirect
+	sigs.k8s.io/cluster-api-provider-ibmcloud v0.2.4 // indirect
 )
 
 // replace these repos because of imported k8s.io/kubernetes v1.26.3
@@ -244,6 +250,8 @@ replace (
 )
 
 replace k8s.io/client-go => k8s.io/client-go v0.26.3
+
+replace sigs.k8s.io/cluster-api-provider-aws/v2 => sigs.k8s.io/cluster-api-provider-aws/v2 v2.1.1
 
 replace open-cluster-management.io/api => open-cluster-management.io/api v0.10.1-0.20230310025041-ca0770573954
 
