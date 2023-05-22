@@ -92,7 +92,7 @@ func NewAgent() *cobra.Command {
 	flags.BoolVar(
 		&agentOptions.EnableMetrics,
 		"enable-metrics",
-		true,
+		false,
 		"Disable custom metrics collection",
 	)
 

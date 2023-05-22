@@ -13,7 +13,7 @@ rules:
 - apiGroups: [""]
   resources: ["secrets"]
   resourceNames: ["policy-encryption-key"]
-  verbs: ["get", "list", "watch"]
+  verbs: ["get", "list", "watch", "create", "delete", "update", "patch"]
 - apiGroups: ["policy.open-cluster-management.io"]
   resources: ["configurationpolicies", "policies"]
   verbs: ["get", "list", "watch", "create", "patch", "update", "delete"]
