@@ -3,6 +3,7 @@ module github.com/stolostron/multicluster-controlplane
 go 1.19
 
 require (
+	github.com/go-logr/logr v1.2.4
 	github.com/onsi/ginkgo/v2 v2.9.4
 	github.com/onsi/gomega v1.27.6
 	github.com/open-policy-agent/frameworks/constraint v0.0.0-20220504221328-9db6a6b27c97
@@ -162,7 +163,6 @@ require (
 	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/cenkalti/backoff/v4 v4.1.3 // indirect
 	github.com/emicklei/go-restful v2.16.0+incompatible // indirect
-	github.com/go-logr/logr v1.2.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-logr/zapr v1.2.3 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect

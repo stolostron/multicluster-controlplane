@@ -3,7 +3,9 @@ package hostedcluster
 import (
 	hyperv1beta1 "github.com/openshift/hypershift/api/v1beta1"
 
-	// _ "k8s.io/client-go/plugin/pkg/client/auth"
+	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	errors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
@@ -45,30 +47,39 @@ func InstallControllers(stopCh <-chan struct{}, aggregatorConfig *aggregatorapis
 		return err
 	}
 
+	kubeCRDClient, err := apiextensionsclient.NewForConfig(restConfig)
+	if err != nil {
+		return err
+	}
+
 	go func() {
-		mgr, err := ctrl.NewManager(restConfig, ctrl.Options{
-			Scheme:             scheme,
-			MetricsBindAddress: "0", //TODO think about the mertics later
-		})
-		if err != nil {
-			klog.Fatalf("unable to start manager %v", err)
-		}
+		// make sure hostedcluster CRD exist before running controller
+		_, err := kubeCRDClient.ApiextensionsV1().CustomResourceDefinitions().Get(ctx,
+			"hostedclusters.hypershift.openshift.io", metav1.GetOptions{})
+		if err == nil || !errors.IsNotFound(err) {
+			mgr, err := ctrl.NewManager(restConfig, ctrl.Options{
+				Scheme:             scheme,
+				MetricsBindAddress: "0", //TODO think about the mertics later
+			})
+			if err != nil {
+				klog.Fatalf("unable to start manager %v", err)
+			}
 
-		hostedClusterReconciler := controller.HostedClusterReconciler{
-			Client:                     mgr.GetClient(),
-			ControlplaneKubeClient:     controlplaneKubeClient,
-			ControlplaneOperatorClient: controlplaneOperatorClient,
-		}
+			hostedClusterReconciler := controller.HostedClusterReconciler{
+				Client:                     mgr.GetClient(),
+				ControlplaneKubeClient:     controlplaneKubeClient,
+				ControlplaneOperatorClient: controlplaneOperatorClient,
+			}
 
-		klog.Info("add hostedcluster controller to manager")
-		if err := hostedClusterReconciler.SetupWithManager(mgr); err != nil {
-			klog.Fatalf("failed to setup hostedcluster controller %v", err)
-		}
+			klog.Info("add hostedcluster controller to manager")
+			if err := hostedClusterReconciler.SetupWithManager(mgr); err != nil {
+				klog.Fatalf("failed to setup hostedcluster controller %v", err)
+			}
 
-		if err := mgr.Start(ctx); err != nil {
-			klog.Fatalf("failed to start controller manager, %v", err)
+			if err := mgr.Start(ctx); err != nil {
+				klog.Fatalf("failed to start controller manager, %v", err)
+			}
 		}
-
 		<-ctx.Done()
 	}()
 
