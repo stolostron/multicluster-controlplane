@@ -48,6 +48,8 @@ const (
 	FeatureGatesReasonInvalidExisting = "InvalidFeatureGatesExisting"
 )
 
+const KlusterletOwnerAnnotation = "operator.open-cluster-management.io/klusterlet-owner"
+
 var (
 	genericScheme = runtime.NewScheme()
 	genericCodecs = serializer.NewCodecFactory(genericScheme)
