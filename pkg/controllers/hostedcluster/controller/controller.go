@@ -77,7 +77,7 @@ func (r *HostedClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	// check klusterlet exist, if it already exists, then do nothing
-	if _, err := r.ControlplaneOperatorClient.OperatorV1().Klusterlets().Get(ctx, req.NamespacedName.Name, metav1.GetOptions{}); err != nil {
+	if _, err := r.ControlplaneOperatorClient.OperatorV1().Klusterlets().Get(ctx, req.NamespacedName.Name, metav1.GetOptions{}); err == nil {
 		return ctrl.Result{}, nil
 	}
 
