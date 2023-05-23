@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/go-logr/logr"
@@ -61,15 +62,17 @@ func (r *HostedClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			if err := r.pruneManagedClusterResources(ctx, log, hostedCluster); err != nil {
 				return ctrl.Result{}, err
 			}
-			hostedCluster.SetFinalizers(removeStr(hostedCluster.GetFinalizers(), hostedClusterImportFinalizer))
-			if err := r.Client.Update(ctx, hostedCluster, &client.UpdateOptions{}); err != nil {
-				if errors.IsConflict(err) {
-					log.V(4).Info("conflict when removing finalizer from hostedcluster instance", "hostedcluster", req.NamespacedName)
-					return ctrl.Result{Requeue: true}, nil
-				} else if err != nil {
-					log.Error(err, "unable to remove finalizer to hostedcluster instance", "hostedcluster", req.NamespacedName)
-					return ctrl.Result{}, err
-				}
+			finalizerMergePatch, err := json.Marshal(map[string]interface{}{
+				"metadata": map[string]interface{}{
+					"finalizers": removeStr(hostedCluster.GetFinalizers(), hostedClusterImportFinalizer),
+				},
+			})
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			if err := r.Client.Patch(ctx, hostedCluster, client.RawPatch(types.MergePatchType, finalizerMergePatch)); err != nil {
+				log.Error(err, "unable to remove finalizer from hostedcluster instance", "hostedcluster", req.NamespacedName)
+				return ctrl.Result{}, err
 			}
 		}
 
@@ -82,15 +85,19 @@ func (r *HostedClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	if !containStr(hostedCluster.GetFinalizers(), hostedClusterImportFinalizer) {
-		hostedCluster.SetFinalizers(append(hostedCluster.GetFinalizers(), hostedClusterImportFinalizer))
-		if err := r.Client.Update(ctx, hostedCluster, &client.UpdateOptions{}); err != nil {
-			if errors.IsConflict(err) {
-				log.Info("conflict when adding finalizer to hostedcluster instance", "hostedcluster", req.NamespacedName)
-				return ctrl.Result{Requeue: true}, nil
-			} else if err != nil {
-				log.Error(err, "unable to add finalizer to hostedcluster instance", "hostedcluster", req.NamespacedName)
-				return ctrl.Result{}, err
-			}
+		finalizerMergePatch, err := json.Marshal(map[string]interface{}{
+			"metadata": map[string]interface{}{
+				"finalizers": []string{
+					hostedClusterImportFinalizer,
+				},
+			},
+		})
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		if err := r.Client.Patch(ctx, hostedCluster, client.RawPatch(types.MergePatchType, finalizerMergePatch)); err != nil {
+			log.Error(err, "unable to add finalizer to hostedcluster instance", "hostedcluster", req.NamespacedName)
+			return ctrl.Result{}, err
 		}
 	}
 
