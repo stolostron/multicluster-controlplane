@@ -44,7 +44,7 @@ type HostedClusterReconciler struct {
 // move the current state of the cluster closer to the desired state.
 func (r *HostedClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
-	log.V(1).Info("Reconciling hostecluster", "namespace", req.NamespacedName.Namespace, "name", req.NamespacedName.Name)
+	log.V(4).Info("Reconciling hostecluster", "namespace", req.NamespacedName.Namespace, "name", req.NamespacedName.Name)
 
 	hostedCluster := &hyperv1beta1.HostedCluster{}
 	if err := r.Get(ctx, req.NamespacedName, hostedCluster); err != nil {
@@ -64,7 +64,7 @@ func (r *HostedClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			hostedCluster.SetFinalizers(removeStr(hostedCluster.GetFinalizers(), hostedClusterImportFinalizer))
 			if err := r.Client.Update(ctx, hostedCluster, &client.UpdateOptions{}); err != nil {
 				if errors.IsConflict(err) {
-					log.Info("conflict when removing finalizer from hostedcluster instance", "hostedcluster", req.NamespacedName)
+					log.V(4).Info("conflict when removing finalizer from hostedcluster instance", "hostedcluster", req.NamespacedName)
 					return ctrl.Result{Requeue: true}, nil
 				} else if err != nil {
 					log.Error(err, "unable to remove finalizer to hostedcluster instance", "hostedcluster", req.NamespacedName)
@@ -73,6 +73,11 @@ func (r *HostedClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			}
 		}
 
+		return ctrl.Result{}, nil
+	}
+
+	// check klusterlet exist, if it already exists, then do nothing
+	if _, err := r.ControlplaneOperatorClient.OperatorV1().Klusterlets().Get(ctx, req.NamespacedName.Name, metav1.GetOptions{}); err != nil {
 		return ctrl.Result{}, nil
 	}
 

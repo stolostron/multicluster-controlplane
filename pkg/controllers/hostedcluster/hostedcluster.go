@@ -31,6 +31,17 @@ func init() {
 func InstallControllers(stopCh <-chan struct{}, aggregatorConfig *aggregatorapiserver.Config) error {
 	ctx := ocmcontroller.GoContext(stopCh)
 
+	restConfig, err := rest.InClusterConfig()
+	if err != nil {
+		klog.Warning("Current runtime environment is not in a cluster, skip hostedcluster controller.")
+		return nil
+	}
+
+	kubeCRDClient, err := apiextensionsclient.NewForConfig(restConfig)
+	if err != nil {
+		return err
+	}
+
 	loopbackRestConfig := aggregatorConfig.GenericConfig.LoopbackClientConfig
 	loopbackRestConfig.ContentType = "application/json"
 	controlplaneKubeClient, err := kubernetes.NewForConfig(loopbackRestConfig)
@@ -38,16 +49,6 @@ func InstallControllers(stopCh <-chan struct{}, aggregatorConfig *aggregatorapis
 		return err
 	}
 	controlplaneOperatorClient, err := operatorclient.NewForConfig(loopbackRestConfig)
-	if err != nil {
-		return err
-	}
-
-	restConfig, err := rest.InClusterConfig()
-	if err != nil {
-		return err
-	}
-
-	kubeCRDClient, err := apiextensionsclient.NewForConfig(restConfig)
 	if err != nil {
 		return err
 	}
