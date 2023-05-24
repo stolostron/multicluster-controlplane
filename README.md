@@ -65,11 +65,32 @@ make run
     make deploy
     ```
 
+### Access the multicluster-controlplane
+
 After the multicluster-controlplane is deployed, getting the multicluster-controlplane kubeconfig with following command to access the multicluster-controlplane
 
 ```bash
 kubectl -n multicluster-controlplane get secrets multicluster-controlplane-kubeconfig -ojsonpath='{.data.kubeconfig}' | base64 -d > multicluster-controlplane.kubeconfig
 ```
+
+Or if you deployed the multicluster-controlplane on an Openshift Cluster, you can delegate the authentication with your cluster kube-apiserver, run following command to set a context in your cluster kubeconfig
+
+1. Login to your cluster with `oc login`
+
+2. Create a new context in your cluster kubeconfig
+
+    ```bash
+    ocp_route=$(oc -n multicluster-controlplane get route multicluster-controlplane -o jsonpath='{.status.ingress[0].host}')
+    oc -n openshift-kube-apiserver get cm kube-apiserver-server-ca -ojsonpath={'.data.ca-bundle\.crt'} > kube-apiserver-server-ca.crt
+    oc config set-cluster multicluster-controlplane --server="https://${ocp_route}" --embed-certs --certificate-authority=kube-apiserver-server-ca.crt
+    oc config set-context multicluster-controlplane --cluster=multicluster-controlplane --user=kube:admin --namespace=default
+    ```
+
+3. Specify the context when you access the `multicluster-controlplane`, e.g.
+
+    ```bash
+    oc --context multicluster-controlplane get managedclusters
+    ```
 
 ## Join a cluster
 
