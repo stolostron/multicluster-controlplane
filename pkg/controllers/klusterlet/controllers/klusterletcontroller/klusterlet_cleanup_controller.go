@@ -329,7 +329,7 @@ func (n *klusterletCleanupController) removeKlusterletFinalizers(ctx context.Con
 	if err != nil {
 		return err
 	}
-	var copiedFinalizers []string
+	copiedFinalizers := make([]string, len(klusterlet.Finalizers))
 	for i := range klusterlet.Finalizers {
 		if klusterlet.Finalizers[i] == klusterletFinalizer || klusterlet.Finalizers[i] == klusterletHostedFinalizer {
 			continue
@@ -419,9 +419,9 @@ func removeFinalizer(obj runtime.Object, finalizerName string) bool {
 		return false
 	}
 
-	var newFinalizers []string
 	accessor, _ := meta.Accessor(obj)
 	found := false
+	newFinalizers := make([]string, len(accessor.GetFinalizers()))
 	for _, finalizer := range accessor.GetFinalizers() {
 		if finalizer == finalizerName {
 			found = true
