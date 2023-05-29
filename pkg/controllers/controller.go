@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"time"
 
 	clusterinfov1beta1 "github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
@@ -27,6 +28,8 @@ import (
 	"open-cluster-management.io/multicluster-controlplane/pkg/features"
 	"open-cluster-management.io/multicluster-controlplane/pkg/util"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/stolostron/multicluster-controlplane/pkg/controllers/addons"
 	"github.com/stolostron/multicluster-controlplane/pkg/controllers/klusterlet"
@@ -88,6 +91,16 @@ func InstallControllers(stopCh <-chan struct{}, aggregatorConfig *aggregatorapis
 		mgr, err := ctrl.NewManager(loopbackRestConfig, ctrl.Options{
 			Scheme:             scheme,
 			MetricsBindAddress: "0", //TODO think about the mertics later
+			NewCache: cache.BuilderWithOptions(cache.Options{
+				DefaultTransform: func(obj interface{}) (interface{}, error) {
+					k8sObj, ok := obj.(client.Object)
+					if !ok {
+						return nil, fmt.Errorf("invalid type")
+					}
+					k8sObj.SetManagedFields(nil)
+					return k8sObj, nil
+				},
+			}),
 		})
 		if err != nil {
 			klog.Fatalf("unable to start manager %v", err)
