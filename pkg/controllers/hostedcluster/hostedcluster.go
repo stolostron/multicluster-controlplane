@@ -17,7 +17,7 @@ import (
 	"k8s.io/klog/v2"
 	aggregatorapiserver "k8s.io/kube-aggregator/pkg/apiserver"
 	operatorclient "open-cluster-management.io/api/client/operator/clientset/versioned"
-	"open-cluster-management.io/multicluster-controlplane/pkg/controllers/ocmcontroller"
+	"open-cluster-management.io/multicluster-controlplane/pkg/util"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/stolostron/multicluster-controlplane/pkg/controllers/hostedcluster/controller"
@@ -32,7 +32,7 @@ func init() {
 
 // InstallControllers installs next-gen controlplane controllers in hub cluster
 func InstallControllers(stopCh <-chan struct{}, aggregatorConfig *aggregatorapiserver.Config) error {
-	ctx := ocmcontroller.GoContext(stopCh)
+	ctx := util.GoContext(stopCh)
 
 	restConfig, err := rest.InClusterConfig()
 	if err != nil {

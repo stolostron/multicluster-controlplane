@@ -21,8 +21,8 @@ node_port=${NODE_PORT:-0}
 etcd_mod=${ETCD_MOD:-""}
 
 if [ "$uninstall"x = "uninstall"x ]; then
-    helm -n ${HUB_NAME} uninstall multicluster-controlplane
-    kubectl delete ns multicluster-controlplane --ignore-not-found
+    helm -n ${controlplane_namespace} uninstall ${controlplane_namespace}
+    kubectl delete ns ${controlplane_namespace} --ignore-not-found
     exit 0
 fi
 
@@ -59,4 +59,4 @@ if [ "${only_render}" = true ]; then
     exit 0
 fi
 
-helm install multicluster-controlplane ${REPO_DIR}/charts/multicluster-controlplane -n $controlplane_namespace $args
+helm install ${controlplane_namespace} ${REPO_DIR}/charts/multicluster-controlplane -n $controlplane_namespace $args

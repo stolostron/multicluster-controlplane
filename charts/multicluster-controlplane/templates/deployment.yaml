@@ -32,6 +32,9 @@ spec:
         {{- if eq .Values.enableSelfManagement true }}
         - "--self-management"
         {{- end }}
+        {{- if eq .Values.enableDelegatingAuthentication true }}
+        - "--delegating-authentication"
+        {{- end }}
         resources:
         {{- toYaml .Values.resources | nindent 10 }}
         securityContext:

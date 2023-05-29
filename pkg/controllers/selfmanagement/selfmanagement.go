@@ -14,8 +14,8 @@ import (
 
 	clusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
-	"open-cluster-management.io/multicluster-controlplane/pkg/controllers/ocmcontroller"
 	"open-cluster-management.io/multicluster-controlplane/pkg/servers/options"
+	"open-cluster-management.io/multicluster-controlplane/pkg/util"
 
 	"github.com/stolostron/multicluster-controlplane/pkg/agent"
 )
@@ -32,7 +32,7 @@ func InstallControllers(options *options.ServerRunOptions) func(<-chan struct{},
 		}
 
 		go func() {
-			ctx := ocmcontroller.GoContext(stopCh)
+			ctx := util.GoContext(stopCh)
 
 			hubRestConfig := aggregatorConfig.GenericConfig.LoopbackClientConfig
 			hubRestConfig.ContentType = "application/json"

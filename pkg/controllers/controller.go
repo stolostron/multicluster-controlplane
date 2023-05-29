@@ -24,8 +24,8 @@ import (
 	policyv1beta1 "open-cluster-management.io/governance-policy-propagator/api/v1beta1"
 	authv1alpha1 "open-cluster-management.io/managed-serviceaccount/api/v1alpha1"
 	placementrulev1 "open-cluster-management.io/multicloud-operators-subscription/pkg/apis/apps/placementrule/v1"
-	"open-cluster-management.io/multicluster-controlplane/pkg/controllers/ocmcontroller"
 	"open-cluster-management.io/multicluster-controlplane/pkg/features"
+	"open-cluster-management.io/multicluster-controlplane/pkg/util"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/stolostron/multicluster-controlplane/pkg/controllers/addons"
@@ -61,7 +61,7 @@ func init() {
 
 // InstallControllers installs next-gen controlplane controllers in hub cluster
 func InstallControllers(stopCh <-chan struct{}, aggregatorConfig *aggregatorapiserver.Config) error {
-	ctx := ocmcontroller.GoContext(stopCh)
+	ctx := util.GoContext(stopCh)
 	loopbackRestConfig := aggregatorConfig.GenericConfig.LoopbackClientConfig
 	loopbackRestConfig.ContentType = "application/json"
 

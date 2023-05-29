@@ -1295,8 +1295,8 @@ open-cluster-management.io/managed-serviceaccount v0.2.1-0.20230417132409-29cfad
 open-cluster-management.io/managed-serviceaccount v0.2.1-0.20230417132409-29cfad7b18c0/go.mod h1:Wmq9ivZEjfJT6MT6/CjEISlDNUtqa5aPhzQucJdGe74=
 open-cluster-management.io/multicloud-operators-subscription v0.10.0 h1:hSrncG11X4SRWT8f5RJPozGvEVe5HBbkkvCljq6FrnE=
 open-cluster-management.io/multicloud-operators-subscription v0.10.0/go.mod h1:vc0CvD8dbE/X7A1dOksmjvFRkQLCQSdZZureyHNBFPs=
-open-cluster-management.io/multicluster-controlplane v0.1.1-0.20230516061700-994b7a28362d h1:fWRbRnw+51T6XjY6iYmhHkd+BuBiWHGAIkAhb7iCiYQ=
-open-cluster-management.io/multicluster-controlplane v0.1.1-0.20230516061700-994b7a28362d/go.mod h1:VxhjIG0jsKTYk1FWO/wu1Ywv0Y1aJ722xOAl4xBOhf8=
+open-cluster-management.io/multicluster-controlplane v0.1.1-0.20230523085153-a3a00196be3f h1:S+Cwaszl3P6z6d9O9ftYOVX7Qv7G2cfhDtQ3FdDrCTs=
+open-cluster-management.io/multicluster-controlplane v0.1.1-0.20230523085153-a3a00196be3f/go.mod h1:VxhjIG0jsKTYk1FWO/wu1Ywv0Y1aJ722xOAl4xBOhf8=
 open-cluster-management.io/placement v0.10.0 h1:jljvrnB4sJ6zKXiawtTGSdWqzCbsKEFFyxnRX0dqfkc=
 open-cluster-management.io/placement v0.10.0/go.mod h1:xzpg+Krnm3AvRMV9juM4YAn6zkXhTmSJH8CFe9f9nKc=
 open-cluster-management.io/registration v0.10.1-0.20230419032057-69e686faa191 h1:K2qdNBIR88zFIz8vKXFq8S1AXm1VZTrSl0lETAwzA9U=
