@@ -92,6 +92,7 @@ func InstallControllers(stopCh <-chan struct{}, aggregatorConfig *aggregatorapis
 			Scheme:             scheme,
 			MetricsBindAddress: "0", //TODO think about the mertics later
 			NewCache: cache.BuilderWithOptions(cache.Options{
+				// remove unused fields beforing pushing to cache to optimize memory usage
 				DefaultTransform: func(obj interface{}) (interface{}, error) {
 					k8sObj, ok := obj.(client.Object)
 					if !ok {
