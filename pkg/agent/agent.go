@@ -286,13 +286,28 @@ func (a *AgentOptions) newHubManager(clusterName string) (manager.Manager, error
 		}
 	}
 
+	// remove unused fields beforing pushing to cache to optimize memory usage
+	transformer := func(obj interface{}) (interface{}, error) {
+		k8sObj, ok := obj.(client.Object)
+		if !ok {
+			return nil, fmt.Errorf("invalid type")
+		}
+		k8sObj.SetManagedFields(nil)
+		return k8sObj, nil
+	}
+	cacheTransformers := cache.TransformByObject{
+		&policyv1.Policy{}: transformer,
+	}
+
 	mgr, err := ctrl.NewManager(hubKubeConfig, ctrl.Options{
 		Scheme:             scheme,
 		Namespace:          clusterName,
 		MetricsBindAddress: "0", //TODO think about the mertics later
 		NewCache: cache.BuilderWithOptions(
 			cache.Options{
+				Scheme:            scheme, // added to workaround "no kind is registered for the type "v1.Policy" for scheme error
 				SelectorsByObject: cacheSelectors,
+				TransformByObject: cacheTransformers,
 			},
 		),
 		// Override the EventBroadcaster so that the spam filter will not ignore events for the policy but with
@@ -380,12 +395,28 @@ func (a *AgentOptions) newHostingManager() (manager.Manager, error) {
 		}
 	}
 
+	// remove unused fields beforing pushing to cache to optimize memory usage
+	transformer := func(obj interface{}) (interface{}, error) {
+		k8sObj, ok := obj.(client.Object)
+		if !ok {
+			return nil, fmt.Errorf("invalid type")
+		}
+		k8sObj.SetManagedFields(nil)
+		return k8sObj, nil
+	}
+	cacheTransformers := cache.TransformByObject{
+		&policyv1.Policy{}:                    transformer,
+		&configpolicyv1.ConfigurationPolicy{}: transformer,
+	}
+
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme:             scheme,
 		MetricsBindAddress: "0", //TODO think about the mertics later
 		NewCache: cache.BuilderWithOptions(
 			cache.Options{
+				Scheme:            scheme, // added to workaround "no kind is registered for the type "v1.Policy" for scheme error
 				SelectorsByObject: cacheSelectors,
+				TransformByObject: cacheTransformers,
 			},
 		),
 		ClientDisableCacheFor: []client.Object{&corev1.Secret{}},

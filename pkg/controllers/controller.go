@@ -92,14 +92,17 @@ func InstallControllers(stopCh <-chan struct{}, aggregatorConfig *aggregatorapis
 			Scheme:             scheme,
 			MetricsBindAddress: "0", //TODO think about the mertics later
 			NewCache: cache.BuilderWithOptions(cache.Options{
+				Scheme: scheme, // added to workaround "no kind is registered for the type "v1.Policy" for scheme error
 				// remove unused fields beforing pushing to cache to optimize memory usage
-				DefaultTransform: func(obj interface{}) (interface{}, error) {
-					k8sObj, ok := obj.(client.Object)
-					if !ok {
-						return nil, fmt.Errorf("invalid type")
-					}
-					k8sObj.SetManagedFields(nil)
-					return k8sObj, nil
+				TransformByObject: cache.TransformByObject{
+					&policyv1.Policy{}: func(obj interface{}) (interface{}, error) {
+						k8sObj, ok := obj.(client.Object)
+						if !ok {
+							return nil, fmt.Errorf("invalid type")
+						}
+						k8sObj.SetManagedFields(nil)
+						return k8sObj, nil
+					},
 				},
 			}),
 		})
