@@ -6,6 +6,8 @@ set -o nounset
 set -o pipefail
 set -o errexit
 
+etcd_mod=${ETCD_MOD:-""}
+
 echo "##### Create a management cluster with kind ..."
 kind create cluster --kubeconfig $kubeconfig --name $management_cluster
 if [ "$LOAD_IMAGE" = true ]; then
@@ -13,12 +15,14 @@ if [ "$LOAD_IMAGE" = true ]; then
   kind load docker-image $IMAGE_NAME --name $management_cluster
 fi
 
-echo "##### Deploy etcd in the cluster $management_cluster ..."
-pushd ${REPO_DIR}
-export KUBECONFIG=${kubeconfig}
-STORAGE_CLASS_NAME="standard" make deploy-etcd
-unset KUBECONFIG
-popd
+if [ "$etcd_mod"x = "external"x ]; then
+  echo "##### Deploy etcd in the cluster $management_cluster ..."
+  pushd ${REPO_DIR}
+  export KUBECONFIG=${kubeconfig}
+  STORAGE_CLASS_NAME="standard" make deploy-etcd
+  unset KUBECONFIG
+  popd
+fi
 
 echo "##### Deploy multicluster controlplanes ..."
 external_host_ip=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${management_cluster}-control-plane)
