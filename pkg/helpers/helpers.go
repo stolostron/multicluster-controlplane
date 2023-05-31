@@ -32,23 +32,30 @@ func init() {
 }
 
 func EnsureCRDs(ctx context.Context, client apiextensionsclient.Interface, fs embed.FS, crds ...string) error {
+	crdMap := make(map[string]*crdv1.CustomResourceDefinition, len(crds))
+	for _, crdFileName := range crds {
+		klog.Infof("waiting for crd %s", crdFileName)
+		template, err := fs.ReadFile(crdFileName)
+		utilruntime.Must(err)
+
+		objData := assets.MustCreateAssetFromTemplate(crdFileName, template, nil).Data
+		obj, _, err := genericCodec.Decode(objData, nil, nil)
+		utilruntime.Must(err)
+
+		switch required := obj.(type) {
+		case *crdv1.CustomResourceDefinition:
+			crdMap[crdFileName] = required
+		}
+	}
 	return wait.PollImmediate(1*time.Second, 5*time.Minute, func() (bool, error) {
 		for _, crdFileName := range crds {
 			klog.Infof("waiting for crd %s", crdFileName)
-			template, err := fs.ReadFile(crdFileName)
-			utilruntime.Must(err)
-
-			objData := assets.MustCreateAssetFromTemplate(crdFileName, template, nil).Data
-			obj, _, err := genericCodec.Decode(objData, nil, nil)
-			utilruntime.Must(err)
-
-			switch required := obj.(type) {
-			case *crdv1.CustomResourceDefinition:
+			if crdObj, ok := crdMap[crdFileName]; ok && crdObj != nil {
 				crd, _, err := resourceapply.ApplyCustomResourceDefinitionV1(
 					ctx,
 					client.ApiextensionsV1(),
 					util.NewLoggingRecorder("crd-generator"),
-					required,
+					crdObj,
 				)
 				if err != nil {
 					klog.Errorf("fail to apply %s due to %v", crdFileName, err)
@@ -60,6 +67,8 @@ func EnsureCRDs(ctx context.Context, client apiextensionsclient.Interface, fs em
 				}
 
 				klog.Infof("crd %s is ready", crd.Name)
+				// reset crd opinter to nil to avoid duplicated apply
+				crdMap[crdFileName] = nil
 			}
 		}
 
