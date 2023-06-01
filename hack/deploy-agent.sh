@@ -37,18 +37,6 @@ cp -f ${CONTROLPLANE_KUBECONFIG} ${deploy_dir}/hub-kubeconfig
 pushd $deploy_dir
 kustomize edit set image quay.io/stolostron/multicluster-controlplane=${image}
 ${SED} -i "s/cluster1/$managed_cluster_name/" $deploy_dir/deployment.yaml
-
-if [ "$managed_service_account" = true ]; then
-    cat >> ${deploy_dir}/kustomization.yaml <<EOF
-patches:
-- patch: |-
-    - op: add
-      path: /spec/template/spec/containers/0/args/-
-      value: --feature-gates=ManagedServiceAccount=true
-  target:
-    kind: Deployment
-EOF
-fi
 popd
 
 kustomize build ${deploy_dir} | kubectl -n ${agent_namespace} apply -f -

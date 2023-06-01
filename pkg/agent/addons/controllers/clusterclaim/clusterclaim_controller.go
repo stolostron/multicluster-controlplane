@@ -122,7 +122,8 @@ func (r *ClusterClaimReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return err
 	}
 
-	if err := c.Watch(&source.Kind{Type: &clusterv1beta1.ManagedClusterInfo{}}, &handler.EnqueueRequestForObject{}); err != nil {
+	if err := c.Watch(source.Kind(mgr.GetCache(), &clusterv1beta1.ManagedClusterInfo{}),
+		&handler.EnqueueRequestForObject{}); err != nil {
 		return err
 	}
 
@@ -148,13 +149,13 @@ func (s *clusterClaimSource) Start(ctx context.Context, handler handler.EventHan
 	// all predicates are ignored
 	s.claimInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
-			handler.Create(event.CreateEvent{}, queue)
+			handler.Create(ctx, event.CreateEvent{}, queue)
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
-			handler.Update(event.UpdateEvent{}, queue)
+			handler.Update(ctx, event.UpdateEvent{}, queue)
 		},
 		DeleteFunc: func(obj interface{}) {
-			handler.Delete(event.DeleteEvent{}, queue)
+			handler.Delete(ctx, event.DeleteEvent{}, queue)
 		},
 	})
 
@@ -173,18 +174,22 @@ type ClusterClaimEventHandler struct{}
 
 var _ handler.EventHandler = &ClusterClaimEventHandler{}
 
-func (e *ClusterClaimEventHandler) Create(evt event.CreateEvent, q workqueue.RateLimitingInterface) {
+func (e *ClusterClaimEventHandler) Create(ctx context.Context, evt event.CreateEvent,
+	q workqueue.RateLimitingInterface) {
 	q.Add(reconcile.Request{})
 }
 
-func (e *ClusterClaimEventHandler) Update(evt event.UpdateEvent, q workqueue.RateLimitingInterface) {
+func (e *ClusterClaimEventHandler) Update(ctx context.Context, evt event.UpdateEvent,
+	q workqueue.RateLimitingInterface) {
 	q.Add(reconcile.Request{})
 }
 
-func (e *ClusterClaimEventHandler) Delete(evt event.DeleteEvent, q workqueue.RateLimitingInterface) {
+func (e *ClusterClaimEventHandler) Delete(ctx context.Context, evt event.DeleteEvent,
+	q workqueue.RateLimitingInterface) {
 	q.Add(reconcile.Request{})
 }
 
-func (e *ClusterClaimEventHandler) Generic(evt event.GenericEvent, q workqueue.RateLimitingInterface) {
+func (e *ClusterClaimEventHandler) Generic(ctx context.Context, evt event.GenericEvent,
+	q workqueue.RateLimitingInterface) {
 	q.Add(reconcile.Request{})
 }
