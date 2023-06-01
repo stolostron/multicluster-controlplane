@@ -215,7 +215,7 @@ func containStr(ss []string, s string) bool {
 }
 
 func removeStr(ss []string, s string) []string {
-	var res []string
+	res := make([]string, len(ss))
 	for _, v := range ss {
 		if v == s {
 			continue

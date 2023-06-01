@@ -40,8 +40,8 @@ type ssarController struct {
 }
 
 type klusterletLocker struct {
-	sync.RWMutex
 	klusterletInChecking map[string]struct{}
+	sync.RWMutex
 }
 
 const (
@@ -185,8 +185,8 @@ func (c *ssarController) sync(ctx context.Context, controllerContext factory.Syn
 }
 
 type klusterletAgent struct {
-	namespace  string
 	klusterlet *operatorapiv1.Klusterlet
+	namespace  string
 }
 
 func checkAgentDegradedCondition(
