@@ -2,6 +2,7 @@ package hostedcluster
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	hyperv1beta1 "github.com/openshift/hypershift/api/v1beta1"
@@ -19,6 +20,8 @@ import (
 	operatorclient "open-cluster-management.io/api/client/operator/clientset/versioned"
 	"open-cluster-management.io/multicluster-controlplane/pkg/util"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/stolostron/multicluster-controlplane/pkg/controllers/hostedcluster/controller"
 )
@@ -73,6 +76,17 @@ func InstallControllers(stopCh <-chan struct{}, aggregatorConfig *aggregatorapis
 		mgr, err := ctrl.NewManager(restConfig, ctrl.Options{
 			Scheme:             scheme,
 			MetricsBindAddress: "0", //TODO think about the mertics later
+			NewCache: cache.BuilderWithOptions(cache.Options{
+				// remove unused fields beforing pushing to cache to optimize memory usage
+				DefaultTransform: func(obj interface{}) (interface{}, error) {
+					k8sObj, ok := obj.(client.Object)
+					if !ok {
+						return nil, fmt.Errorf("invalid type")
+					}
+					k8sObj.SetManagedFields(nil)
+					return k8sObj, nil
+				},
+			}),
 		})
 		if err != nil {
 			klog.Fatalf("unable to start manager %v", err)
