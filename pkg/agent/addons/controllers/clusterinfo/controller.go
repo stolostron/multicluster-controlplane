@@ -32,7 +32,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/stolostron/multicluster-controlplane/pkg/agent/addons/controllers/clusterclaim"
-	agentaddons "github.com/stolostron/multicluster-controlplane/pkg/agent/addons/server"
 	"github.com/stolostron/multicluster-controlplane/pkg/helpers"
 )
 
@@ -49,12 +48,6 @@ type ClusterInfoReconciler struct {
 	RouteV1Client           routev1.Interface
 	ConfigV1Client          openshiftclientset.Interface
 	ClusterName             string
-	AgentName               string
-	AgentNamespace          string
-	AgentPort               int32
-	Agent                   *agentaddons.Agent
-	// logging info syncer is used for search-ui only to get pod logs
-	DisableLoggingInfoSyncer bool
 }
 
 type clusterInfoStatusSyncer interface {
@@ -84,18 +77,6 @@ func (r *ClusterInfoReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			managedClusterClient: r.ManagedClusterClient,
 			claimLister:          r.ClaimLister,
 		},
-	}
-	if !r.DisableLoggingInfoSyncer {
-		syncers = append(syncers, &loggingInfoSyncer{
-			clusterName:             r.ClusterName,
-			agentName:               r.AgentName,
-			agentNamespace:          r.AgentNamespace,
-			agentPort:               r.AgentPort,
-			agent:                   r.Agent,
-			managementClusterClient: r.ManagementClusterClient,
-			routeV1Client:           r.RouteV1Client,
-			configV1Client:          r.ConfigV1Client,
-		})
 	}
 	var errs []error
 	for _, s := range syncers {

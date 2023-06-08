@@ -3,7 +3,6 @@ module github.com/stolostron/multicluster-controlplane
 go 1.19
 
 require (
-	github.com/emicklei/go-restful v2.16.0+incompatible
 	github.com/go-logr/logr v1.2.4
 	github.com/onsi/ginkgo/v2 v2.9.4
 	github.com/onsi/gomega v1.27.6

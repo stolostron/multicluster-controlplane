@@ -37,16 +37,15 @@ func StartManagedClusterInfoAgent(
 	clusterInformerFactory := clusterinformers.NewSharedInformerFactory(clusterClient, 10*time.Minute)
 
 	clusterInfoReconciler := clusterinfoctl.ClusterInfoReconciler{
-		Client:                   mgr.GetClient(),
-		Log:                      ctrl.Log.WithName("controllers").WithName("ManagedClusterInfo"),
-		Scheme:                   mgr.GetScheme(),
-		NodeInformer:             kubeInformerFactory.Core().V1().Nodes(),
-		ClaimInformer:            clusterInformerFactory.Cluster().V1alpha1().ClusterClaims(),
-		ClaimLister:              clusterInformerFactory.Cluster().V1alpha1().ClusterClaims().Lister(),
-		ManagedClusterClient:     kubeClient,
-		ClusterName:              clusterName,
-		ConfigV1Client:           ocpClient,
-		DisableLoggingInfoSyncer: true,
+		Client:               mgr.GetClient(),
+		Log:                  ctrl.Log.WithName("controllers").WithName("ManagedClusterInfo"),
+		Scheme:               mgr.GetScheme(),
+		NodeInformer:         kubeInformerFactory.Core().V1().Nodes(),
+		ClaimInformer:        clusterInformerFactory.Cluster().V1alpha1().ClusterClaims(),
+		ClaimLister:          clusterInformerFactory.Cluster().V1alpha1().ClusterClaims().Lister(),
+		ManagedClusterClient: kubeClient,
+		ClusterName:          clusterName,
+		ConfigV1Client:       ocpClient,
 	}
 
 	clusterClaimer := clusterclaimctl.ClusterClaimer{
