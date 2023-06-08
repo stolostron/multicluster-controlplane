@@ -7,9 +7,6 @@ import (
 	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
 	openshiftoauthclientset "github.com/openshift/client-go/oauth/clientset/versioned"
 
-	clusterclaimctl "github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/clusterclaim"
-	clusterinfoctl "github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/clusterinfo"
-
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/informers"
@@ -21,6 +18,9 @@ import (
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	clusterclaimctl "github.com/stolostron/multicluster-controlplane/pkg/agent/addons/controllers/clusterclaim"
+	clusterinfoctl "github.com/stolostron/multicluster-controlplane/pkg/agent/addons/controllers/clusterinfo"
 )
 
 func StartManagedClusterInfoAgent(

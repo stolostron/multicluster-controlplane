@@ -3,6 +3,7 @@ module github.com/stolostron/multicluster-controlplane
 go 1.19
 
 require (
+	github.com/emicklei/go-restful v2.16.0+incompatible
 	github.com/go-logr/logr v1.2.4
 	github.com/onsi/ginkgo/v2 v2.9.4
 	github.com/onsi/gomega v1.27.6
@@ -13,14 +14,15 @@ require (
 	github.com/spf13/cobra v1.7.0
 	github.com/stolostron/cluster-lifecycle-api v0.0.0-20230510064049-824d580bc143
 	github.com/stolostron/kubernetes-dependency-watches v0.2.0
-	github.com/stolostron/multicloud-operators-foundation v0.0.0-20230515064036-8fdf17323dd0
 	go.uber.org/zap v1.24.0
+	golang.org/x/net v0.9.0
 	k8s.io/api v0.26.3
 	k8s.io/apiextensions-apiserver v0.26.3
 	k8s.io/apimachinery v0.26.3
 	k8s.io/apiserver v0.26.3
 	k8s.io/client-go v12.0.0+incompatible
 	k8s.io/component-base v0.26.3
+	k8s.io/klog v1.0.0
 	k8s.io/klog/v2 v2.100.1
 	k8s.io/kube-aggregator v0.26.2
 	k8s.io/utils v0.0.0-20230313181309-38a27ef9d749
@@ -162,7 +164,6 @@ require (
 	github.com/antlr/antlr4/runtime/Go/antlr/v4 v4.0.0-20230321174746-8dcc6526cfb1 // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/cenkalti/backoff/v4 v4.1.3 // indirect
-	github.com/emicklei/go-restful v2.16.0+incompatible // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-logr/zapr v1.2.3 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
@@ -196,13 +197,11 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.8.0 // indirect
 	golang.org/x/exp v0.0.0-20230321023759-10a507213a29 // indirect
-	golang.org/x/net v0.9.0 // indirect
 	golang.org/x/sys v0.7.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	golang.org/x/tools v0.8.0 // indirect
 	k8s.io/cluster-bootstrap v0.25.4 // indirect
 	k8s.io/controller-manager v0.26.1 // indirect
-	k8s.io/klog v1.0.0 // indirect
 	k8s.io/kms v0.26.3 // indirect
 	k8s.io/kube-controller-manager v0.0.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20230327201221-f5883ff37f0c // indirect
