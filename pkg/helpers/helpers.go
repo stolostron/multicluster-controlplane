@@ -4,6 +4,7 @@ package helpers
 import (
 	"context"
 	"embed"
+	"io/ioutil"
 	"time"
 
 	"github.com/openshift/library-go/pkg/assets"
@@ -12,11 +13,14 @@ import (
 	"k8s.io/apiextensions-apiserver/pkg/apihelpers"
 	crdv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
+	clusterapiv1 "open-cluster-management.io/api/cluster/v1"
 
 	"open-cluster-management.io/multicluster-controlplane/pkg/util"
 )
@@ -74,4 +78,35 @@ func EnsureCRDs(ctx context.Context, client apiextensionsclient.Interface, fs em
 
 		return true, nil
 	})
+}
+
+func ContainsString(slice []string, s string) bool {
+	for _, item := range slice {
+		if item == s {
+			return true
+		}
+	}
+	return false
+}
+
+func RemoveString(slice []string, s string) (result []string) {
+	for _, item := range slice {
+		if item == s {
+			continue
+		}
+		result = append(result, item)
+	}
+	return
+}
+
+func GetComponentNamespace() (string, error) {
+	nsBytes, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	if err != nil {
+		return "open-cluster-management-agent-addon", err
+	}
+	return string(nsBytes), nil
+}
+
+func ClusterIsOffLine(conditions []metav1.Condition) bool {
+	return meta.IsStatusConditionPresentAndEqual(conditions, clusterapiv1.ManagedClusterConditionAvailable, metav1.ConditionUnknown)
 }
