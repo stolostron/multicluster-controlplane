@@ -31,7 +31,6 @@ import (
 	configcommon "open-cluster-management.io/config-policy-controller/pkg/common"
 	"open-cluster-management.io/governance-policy-framework-addon/controllers/secretsync"
 	policyv1 "open-cluster-management.io/governance-policy-propagator/api/v1"
-	msav1alpha1 "open-cluster-management.io/managed-serviceaccount/api/v1alpha1"
 	"open-cluster-management.io/multicluster-controlplane/pkg/agent"
 	"open-cluster-management.io/multicluster-controlplane/pkg/features"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -56,7 +55,6 @@ func init() {
 	utilruntime.Must(policyv1.AddToScheme(scheme))
 	utilruntime.Must(configpolicyv1.AddToScheme(scheme))
 	utilruntime.Must(apiextensionsv1.AddToScheme(scheme))
-	utilruntime.Must(msav1alpha1.AddToScheme(scheme))
 	utilruntime.Must(gktemplatesv1.AddToScheme(scheme))
 	utilruntime.Must(gktemplatesv1beta1.AddToScheme(scheme))
 }
@@ -175,7 +173,11 @@ func (a *AgentOptions) RunAddOns(ctx context.Context) error {
 			return err
 		}
 
-		restMapper, err := apiutil.NewDynamicRESTMapper(spokeKubeConfig, apiutil.WithLazyDiscovery)
+		httpClient, err := rest.HTTPClientFor(spokeKubeConfig)
+		if err != nil {
+			return err
+		}
+		restMapper, err := apiutil.NewDynamicRESTMapper(spokeKubeConfig, httpClient)
 		if err != nil {
 			return err
 		}
@@ -209,15 +211,6 @@ func (a *AgentOptions) RunAddOns(ctx context.Context) error {
 			a.PolicyAgentConfig,
 		); err != nil {
 			klog.Fatalf("failed to setup policy addon, %v", err)
-		}
-
-		startCtrlMgr = true
-	}
-
-	if features.DefaultAgentMutableFeatureGate.Enabled(feature.ManagedServiceAccount) {
-		klog.Info("starting managed serviceaccount addon agent")
-		if err := addons.StartManagedServiceAccountAgent(ctx, hubManager, clusterName); err != nil {
-			klog.Fatalf("failed to setup managed serviceaccount addon, %v", err)
 		}
 
 		startCtrlMgr = true
@@ -258,7 +251,7 @@ func (a *AgentOptions) newHubManager(clusterName string) (manager.Manager, error
 		}
 	}
 
-	cacheSelectors := cache.SelectorsByObject{
+	cacheSelectors := map[client.Object]cache.ByObject{
 		&corev1.Secret{}: {
 			Field: fields.SelectorFromSet(fields.Set{"metadata.name": secretsync.SecretName}),
 		},
@@ -274,42 +267,34 @@ func (a *AgentOptions) newHubManager(clusterName string) (manager.Manager, error
 	}
 
 	if watchNamespace != "" {
-		cacheSelectors[&policyv1.Policy{}] = cache.ObjectSelector{
+		cacheSelectors[&policyv1.Policy{}] = cache.ByObject{
+			Field: fields.SelectorFromSet(fields.Set{
+				"metadata.namespace": watchNamespace,
+			}),
+			Transform: func(i interface{}) (interface{}, error) {
+				// remove unused fields beforing pushing to cache to optimize memory usage
+				k8sObj, ok := i.(client.Object)
+				if !ok {
+					return nil, fmt.Errorf("invalid type")
+				}
+				k8sObj.SetManagedFields(nil)
+				return k8sObj, nil
+			},
+		}
+		cacheSelectors[&corev1.Event{}] = cache.ByObject{
 			Field: fields.SelectorFromSet(fields.Set{
 				"metadata.namespace": watchNamespace,
 			}),
 		}
-		cacheSelectors[&corev1.Event{}] = cache.ObjectSelector{
-			Field: fields.SelectorFromSet(fields.Set{
-				"metadata.namespace": watchNamespace,
-			}),
-		}
-	}
-
-	// remove unused fields beforing pushing to cache to optimize memory usage
-	transformer := func(obj interface{}) (interface{}, error) {
-		k8sObj, ok := obj.(client.Object)
-		if !ok {
-			return nil, fmt.Errorf("invalid type")
-		}
-		k8sObj.SetManagedFields(nil)
-		return k8sObj, nil
-	}
-	cacheTransformers := cache.TransformByObject{
-		&policyv1.Policy{}: transformer,
 	}
 
 	mgr, err := ctrl.NewManager(hubKubeConfig, ctrl.Options{
 		Scheme:             scheme,
 		Namespace:          clusterName,
 		MetricsBindAddress: "0", //TODO think about the mertics later
-		NewCache: cache.BuilderWithOptions(
-			cache.Options{
-				Scheme:            scheme, // added to workaround "no kind is registered for the type "v1.Policy" for scheme error
-				SelectorsByObject: cacheSelectors,
-				TransformByObject: cacheTransformers,
-			},
-		),
+		Cache: cache.Options{
+			ByObject: cacheSelectors,
+		},
 		// Override the EventBroadcaster so that the spam filter will not ignore events for the policy but with
 		// different messages if a large amount of events for that policy are sent in a short time.
 		EventBroadcaster: record.NewBroadcasterWithCorrelatorOptions(
@@ -350,7 +335,7 @@ func (a *AgentOptions) newHostingManager() (manager.Manager, error) {
 		return nil, err
 	}
 
-	cacheSelectors := cache.SelectorsByObject{
+	cacheSelectors := map[client.Object]cache.ByObject{
 		&apiextensionsv1.CustomResourceDefinition{}: {
 			Field: fields.SelectorFromSet(fields.Set{"metadata.name": controllers.CRDName}),
 		},
@@ -361,7 +346,7 @@ func (a *AgentOptions) newHostingManager() (manager.Manager, error) {
 		return nil, err
 	}
 
-	cacheSelectors[&appsv1.Deployment{}] = cache.ObjectSelector{
+	cacheSelectors[&appsv1.Deployment{}] = cache.ByObject{
 		Field: fields.SelectorFromSet(fields.Set{
 			"metadata.namespace": ctrlKey.Namespace,
 			"metadata.name":      ctrlKey.Name,
@@ -377,24 +362,6 @@ func (a *AgentOptions) newHostingManager() (manager.Manager, error) {
 		return nil, fmt.Errorf("multiple watched namespaces are not allowed for this controller")
 	}
 
-	if watchNamespace != "" {
-		cacheSelectors[&configpolicyv1.ConfigurationPolicy{}] = cache.ObjectSelector{
-			Field: fields.SelectorFromSet(fields.Set{
-				"metadata.namespace": watchNamespace,
-			}),
-		}
-		cacheSelectors[&policyv1.Policy{}] = cache.ObjectSelector{
-			Field: fields.SelectorFromSet(fields.Set{
-				"metadata.namespace": watchNamespace,
-			}),
-		}
-		cacheSelectors[&corev1.Event{}] = cache.ObjectSelector{
-			Field: fields.SelectorFromSet(fields.Set{
-				"metadata.namespace": watchNamespace,
-			}),
-		}
-	}
-
 	// remove unused fields beforing pushing to cache to optimize memory usage
 	transformer := func(obj interface{}) (interface{}, error) {
 		k8sObj, ok := obj.(client.Object)
@@ -404,21 +371,33 @@ func (a *AgentOptions) newHostingManager() (manager.Manager, error) {
 		k8sObj.SetManagedFields(nil)
 		return k8sObj, nil
 	}
-	cacheTransformers := cache.TransformByObject{
-		&policyv1.Policy{}:                    transformer,
-		&configpolicyv1.ConfigurationPolicy{}: transformer,
+
+	if watchNamespace != "" {
+		cacheSelectors[&configpolicyv1.ConfigurationPolicy{}] = cache.ByObject{
+			Field: fields.SelectorFromSet(fields.Set{
+				"metadata.namespace": watchNamespace,
+			}),
+			Transform: transformer,
+		}
+		cacheSelectors[&policyv1.Policy{}] = cache.ByObject{
+			Field: fields.SelectorFromSet(fields.Set{
+				"metadata.namespace": watchNamespace,
+			}),
+			Transform: transformer,
+		}
+		cacheSelectors[&corev1.Event{}] = cache.ByObject{
+			Field: fields.SelectorFromSet(fields.Set{
+				"metadata.namespace": watchNamespace,
+			}),
+		}
 	}
 
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme:             scheme,
 		MetricsBindAddress: "0", //TODO think about the mertics later
-		NewCache: cache.BuilderWithOptions(
-			cache.Options{
-				Scheme:            scheme, // added to workaround "no kind is registered for the type "v1.Policy" for scheme error
-				SelectorsByObject: cacheSelectors,
-				TransformByObject: cacheTransformers,
-			},
-		),
+		Cache: cache.Options{
+			ByObject: cacheSelectors,
+		},
 		ClientDisableCacheFor: []client.Object{&corev1.Secret{}},
 		// Override the EventBroadcaster so that the spam filter will not ignore events for the policy but with
 		// different messages if a large amount of events for that policy are sent in a short time.

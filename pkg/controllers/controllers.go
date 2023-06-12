@@ -1,4 +1,4 @@
-package controller
+package controllers
 
 import (
 	"fmt"
@@ -23,7 +23,6 @@ import (
 	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
 	policyv1 "open-cluster-management.io/governance-policy-propagator/api/v1"
 	policyv1beta1 "open-cluster-management.io/governance-policy-propagator/api/v1beta1"
-	authv1alpha1 "open-cluster-management.io/managed-serviceaccount/api/v1alpha1"
 	placementrulev1 "open-cluster-management.io/multicloud-operators-subscription/pkg/apis/apps/placementrule/v1"
 	"open-cluster-management.io/multicluster-controlplane/pkg/features"
 	"open-cluster-management.io/multicluster-controlplane/pkg/util"
@@ -40,7 +39,6 @@ import (
 
 var requiredCRDs = []string{
 	"crds/apps.open-cluster-management.io_placementrules.crd.yaml",
-	"crds/authentication.open-cluster-management.io_managedserviceaccounts.crd.yaml",
 	"crds/internal.open-cluster-management.io_managedclusterinfos.crd.yaml",
 	"crds/policy.open-cluster-management.io_placementbindings.crd.yaml",
 	"crds/operator.open-cluster-management.io_klusterlets.crd.yaml",
@@ -53,7 +51,6 @@ var scheme = runtime.NewScheme()
 
 func init() {
 	utilruntime.Must(kubescheme.AddToScheme(scheme))
-	utilruntime.Must(authv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(clusterv1.AddToScheme(scheme))
 	utilruntime.Must(clusterv1beta1.AddToScheme(scheme))
 	utilruntime.Must(policyv1.AddToScheme(scheme))
@@ -91,20 +88,20 @@ func InstallControllers(stopCh <-chan struct{}, aggregatorConfig *aggregatorapis
 		mgr, err := ctrl.NewManager(loopbackRestConfig, ctrl.Options{
 			Scheme:             scheme,
 			MetricsBindAddress: "0", //TODO think about the mertics later
-			NewCache: cache.BuilderWithOptions(cache.Options{
-				Scheme: scheme, // added to workaround "no kind is registered for the type "v1.Policy" for scheme error
-				// remove unused fields beforing pushing to cache to optimize memory usage
-				TransformByObject: cache.TransformByObject{
-					&policyv1.Policy{}: func(obj interface{}) (interface{}, error) {
-						k8sObj, ok := obj.(client.Object)
-						if !ok {
-							return nil, fmt.Errorf("invalid type")
-						}
-						k8sObj.SetManagedFields(nil)
-						return k8sObj, nil
+			Cache: cache.Options{
+				ByObject: map[client.Object]cache.ByObject{
+					&policyv1.Policy{}: {
+						Transform: func(obj interface{}) (interface{}, error) {
+							k8sObj, ok := obj.(client.Object)
+							if !ok {
+								return nil, fmt.Errorf("invalid type")
+							}
+							k8sObj.SetManagedFields(nil)
+							return k8sObj, nil
+						},
 					},
 				},
-			}),
+			},
 		})
 		if err != nil {
 			klog.Fatalf("unable to start manager %v", err)
@@ -127,13 +124,6 @@ func InstallControllers(stopCh <-chan struct{}, aggregatorConfig *aggregatorapis
 				controlplaneDynamicClient,
 			); err != nil {
 				klog.Fatalf("failed to setup policy controller %v", err)
-			}
-		}
-
-		if features.DefaultControlplaneMutableFeatureGate.Enabled(feature.ManagedServiceAccount) {
-			klog.Info("starting managed serviceaccount addon")
-			if err := addons.SetupManagedServiceAccountWithManager(ctx, mgr); err != nil {
-				klog.Fatalf("failed to setup managedserviceaccount controller %v", err)
 			}
 		}
 

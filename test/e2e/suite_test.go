@@ -19,7 +19,6 @@ import (
 	clusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	operatorv1client "open-cluster-management.io/api/client/operator/clientset/versioned/typed/operator/v1"
 	workclient "open-cluster-management.io/api/client/work/clientset/versioned"
-	saclient "open-cluster-management.io/managed-serviceaccount/pkg/generated/clientset/versioned"
 )
 
 const (
@@ -39,7 +38,6 @@ type clients struct {
 	clusterClient    clusterclient.Interface
 	workClient       workclient.Interface
 	klusterletClient operatorv1client.KlusterletInterface
-	saClient         saclient.Interface
 }
 
 var ctx = context.TODO()
@@ -140,11 +138,6 @@ func initClinents(configEnv string) (*clients, error) {
 		return nil, err
 	}
 
-	saClient, err := saclient.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-
 	return &clients{
 		kubeClient:       kubeClient,
 		dynamicClient:    dynamicClient,
@@ -152,6 +145,5 @@ func initClinents(configEnv string) (*clients, error) {
 		clusterClient:    clusterClient,
 		workClient:       workClient,
 		klusterletClient: operatorClient.Klusterlets(),
-		saClient:         saClient,
 	}, nil
 }

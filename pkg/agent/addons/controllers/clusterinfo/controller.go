@@ -140,8 +140,8 @@ func (r *ClusterInfoReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	claimSource := clusterclaim.NewClusterClaimSource(r.ClaimInformer)
 	nodeSource := &nodeSource{nodeInformer: r.NodeInformer.Informer()}
 	return ctrl.NewControllerManagedBy(mgr).
-		Watches(claimSource, &clusterclaim.ClusterClaimEventHandler{}).
-		Watches(nodeSource, &nodeEventHandler{}).
+		WatchesRawSource(claimSource, &clusterclaim.ClusterClaimEventHandler{}).
+		WatchesRawSource(nodeSource, &nodeEventHandler{}).
 		For(&clusterv1beta1.ManagedClusterInfo{}).
 		Complete(r)
 }
@@ -158,13 +158,13 @@ func (s *nodeSource) Start(ctx context.Context, handler handler.EventHandler, qu
 	// all predicates are ignored
 	s.nodeInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
-			handler.Create(event.CreateEvent{}, queue)
+			handler.Create(ctx, event.CreateEvent{}, queue)
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
-			handler.Update(event.UpdateEvent{}, queue)
+			handler.Update(ctx, event.UpdateEvent{}, queue)
 		},
 		DeleteFunc: func(obj interface{}) {
-			handler.Delete(event.DeleteEvent{}, queue)
+			handler.Delete(ctx, event.DeleteEvent{}, queue)
 		},
 	})
 
@@ -183,18 +183,22 @@ type nodeEventHandler struct{}
 
 var _ handler.EventHandler = &nodeEventHandler{}
 
-func (e *nodeEventHandler) Create(evt event.CreateEvent, q workqueue.RateLimitingInterface) {
+func (e *nodeEventHandler) Create(ctx context.Context, evt event.CreateEvent,
+	q workqueue.RateLimitingInterface) {
 	q.Add(reconcile.Request{})
 }
 
-func (e *nodeEventHandler) Update(evt event.UpdateEvent, q workqueue.RateLimitingInterface) {
+func (e *nodeEventHandler) Update(ctx context.Context, evt event.UpdateEvent,
+	q workqueue.RateLimitingInterface) {
 	q.Add(reconcile.Request{})
 }
 
-func (e *nodeEventHandler) Delete(evt event.DeleteEvent, q workqueue.RateLimitingInterface) {
+func (e *nodeEventHandler) Delete(ctx context.Context, evt event.DeleteEvent,
+	q workqueue.RateLimitingInterface) {
 	q.Add(reconcile.Request{})
 }
 
-func (e *nodeEventHandler) Generic(evt event.GenericEvent, q workqueue.RateLimitingInterface) {
+func (e *nodeEventHandler) Generic(ctx context.Context, evt event.GenericEvent,
+	q workqueue.RateLimitingInterface) {
 	q.Add(reconcile.Request{})
 }

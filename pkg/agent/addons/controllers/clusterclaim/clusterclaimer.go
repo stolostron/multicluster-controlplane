@@ -266,6 +266,9 @@ func (c *ClusterClaimer) isOpenShift() (bool, error) {
 		if meta.IsNoMatchError(err) {
 			return false, nil
 		}
+		if strings.Contains(err.Error(), "the server could not find the requested resource") {
+			return false, nil
+		}
 		klog.Errorf("failed to mapping project:%v", err)
 		return false, err
 	}
@@ -279,6 +282,9 @@ func (c *ClusterClaimer) isOpenshiftDedicated() (bool, error) {
 	_, err := c.Mapper.RESTMapping(schema.GroupKind{Group: "managed.openshift.io", Kind: "SubjectPermission"}, "v1alpha1")
 	if err != nil {
 		if meta.IsNoMatchError(err) {
+			return false, nil
+		}
+		if strings.Contains(err.Error(), "the server could not find the requested resource") {
 			return false, nil
 		}
 		klog.Errorf("failed to mapping SubjectPermission:%v", err)
@@ -304,6 +310,9 @@ func (c *ClusterClaimer) isARO() (bool, error) {
 	_, err := c.Mapper.RESTMapping(schema.GroupKind{Group: "aro.openshift.io", Kind: "Cluster"}, "v1alpha1")
 	if err != nil {
 		if meta.IsNoMatchError(err) {
+			return false, nil
+		}
+		if strings.Contains(err.Error(), "the server could not find the requested resource") {
 			return false, nil
 		}
 		klog.Errorf("failed to mapping project:%v", err)

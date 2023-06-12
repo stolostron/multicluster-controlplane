@@ -1,5 +1,5 @@
 # Copyright Contributors to the Open Cluster Management project
-FROM registry.ci.openshift.org/stolostron/builder:go1.19-linux AS builder
+FROM registry.ci.openshift.org/stolostron/builder:go1.20-linux AS builder
 
 ARG OS=linux
 ARG ARCH=amd64
