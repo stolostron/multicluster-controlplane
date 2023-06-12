@@ -362,25 +362,28 @@ func (a *AgentOptions) newHostingManager() (manager.Manager, error) {
 		return nil, fmt.Errorf("multiple watched namespaces are not allowed for this controller")
 	}
 
+	// remove unused fields beforing pushing to cache to optimize memory usage
+	transformer := func(obj interface{}) (interface{}, error) {
+		k8sObj, ok := obj.(client.Object)
+		if !ok {
+			return nil, fmt.Errorf("invalid type")
+		}
+		k8sObj.SetManagedFields(nil)
+		return k8sObj, nil
+	}
+
 	if watchNamespace != "" {
 		cacheSelectors[&configpolicyv1.ConfigurationPolicy{}] = cache.ByObject{
 			Field: fields.SelectorFromSet(fields.Set{
 				"metadata.namespace": watchNamespace,
 			}),
+			Transform: transformer,
 		}
 		cacheSelectors[&policyv1.Policy{}] = cache.ByObject{
 			Field: fields.SelectorFromSet(fields.Set{
 				"metadata.namespace": watchNamespace,
 			}),
-			Transform: func(obj interface{}) (interface{}, error) {
-				// remove unused fields beforing pushing to cache to optimize memory usage
-				k8sObj, ok := obj.(client.Object)
-				if !ok {
-					return nil, fmt.Errorf("invalid type")
-				}
-				k8sObj.SetManagedFields(nil)
-				return k8sObj, nil
-			},
+			Transform: transformer,
 		}
 		cacheSelectors[&corev1.Event{}] = cache.ByObject{
 			Field: fields.SelectorFromSet(fields.Set{

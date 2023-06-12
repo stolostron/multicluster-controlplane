@@ -148,6 +148,8 @@ func StartPolicyAgent(
 		Config:           hostingManager.GetConfig(),
 		Recorder:         hostingManager.GetEventRecorderFor(templatesync.ControllerName),
 		ClusterNamespace: clusterName,
+		Clientset:        kubernetes.NewForConfigOrDie(hostingManager.GetConfig()),
+		InstanceName:     instanceName,
 	}
 	go func() {
 		err := watcher.Start(ctx)
