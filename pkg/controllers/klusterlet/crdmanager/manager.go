@@ -211,7 +211,7 @@ func (m *Manager[T]) applyOne(ctx context.Context, required T) error {
 	existing, err := m.client.Get(ctx, accessor.GetName(), metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		_, err := m.client.Create(ctx, required, metav1.CreateOptions{})
-		klog.Infof("crd %s is created", accessor.GetName())
+		klog.V(4).Infof("crd %s is created", accessor.GetName())
 		return err
 	}
 	if err != nil {
@@ -245,7 +245,7 @@ func (m *Manager[T]) applyOne(ctx context.Context, required T) error {
 		return err
 	}
 
-	klog.Infof("crd %s is updated to version %s", accessor.GetName(), m.version.String())
+	klog.V(4).Infof("crd %s is updated to version %s", accessor.GetName(), m.version.String())
 
 	return nil
 }

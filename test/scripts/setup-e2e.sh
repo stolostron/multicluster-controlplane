@@ -6,6 +6,8 @@ set -o nounset
 set -o pipefail
 set -o errexit
 
+echo "Controlplane number : $CONTROLPLANE_NUMBER"
+
 etcd_mod=${ETCD_MOD:-""}
 
 echo "##### Create a management cluster with kind ..."

@@ -9,7 +9,6 @@ import (
 	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -25,7 +24,7 @@ const (
 )
 
 func GetKubeAPIServerAddress(ctx context.Context, openshiftClient openshiftclientset.Interface) (string, error) {
-	infraConfig, err := openshiftClient.ConfigV1().Infrastructures().Get(ctx, infrastructureConfigName, v1.GetOptions{})
+	infraConfig, err := openshiftClient.ConfigV1().Infrastructures().Get(ctx, infrastructureConfigName, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -35,7 +34,7 @@ func GetKubeAPIServerAddress(ctx context.Context, openshiftClient openshiftclien
 // getKubeAPIServerSecretName iterate through all namespacedCertificates
 // returns the first one which has a name matches the given dnsName
 func getKubeAPIServerSecretName(ctx context.Context, ocpClient openshiftclientset.Interface, dnsName string) (string, error) {
-	apiserver, err := ocpClient.ConfigV1().APIServers().Get(ctx, ApiserverConfigName, v1.GetOptions{})
+	apiserver, err := ocpClient.ConfigV1().APIServers().Get(ctx, ApiserverConfigName, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -49,12 +48,12 @@ func getKubeAPIServerSecretName(ctx context.Context, ocpClient openshiftclientse
 		}
 	}
 
-	return "", fmt.Errorf("Failed to get ServingCerts match name: %v", dnsName)
+	return "", fmt.Errorf("failed to get ServingCerts match name: %v", dnsName)
 }
 
 // getKubeAPIServerCertificate looks for secret in openshift-config namespace, and returns tls.crt
 func getKubeAPIServerCertificate(ctx context.Context, kubeClient kubernetes.Interface, secretName string) ([]byte, error) {
-	secret, err := kubeClient.CoreV1().Secrets(OpenshiftConfigNamespace).Get(ctx, secretName, v1.GetOptions{})
+	secret, err := kubeClient.CoreV1().Secrets(OpenshiftConfigNamespace).Get(ctx, secretName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -103,12 +102,12 @@ func GetCAFromConfigMap(ctx context.Context, kubeClient kubernetes.Interface) ([
 }
 
 func GetCAFromServiceAccount(ctx context.Context, kubeClient kubernetes.Interface) ([]byte, error) {
-	defaultsa, err := kubeClient.CoreV1().ServiceAccounts(ServiceAccountNamespace).Get(ctx, ServiceAccountName, v1.GetOptions{})
+	defaultsa, err := kubeClient.CoreV1().ServiceAccounts(ServiceAccountNamespace).Get(ctx, ServiceAccountName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 	for _, objectRef := range defaultsa.Secrets {
-		defaultSecret, err := kubeClient.CoreV1().Secrets(ServiceAccountNamespace).Get(ctx, objectRef.Name, v1.GetOptions{})
+		defaultSecret, err := kubeClient.CoreV1().Secrets(ServiceAccountNamespace).Get(ctx, objectRef.Name, metav1.GetOptions{})
 		if err != nil || defaultSecret.Type != corev1.SecretTypeServiceAccountToken || defaultSecret == nil {
 			continue
 		}

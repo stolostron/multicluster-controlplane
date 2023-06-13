@@ -280,7 +280,7 @@ func (n *klusterletCleanupController) checkConnectivity(ctx context.Context,
 		}
 		evictionTime, perr := time.Parse(time.RFC3339, evictionTimeStr)
 		if perr != nil {
-			klog.Infof("Parse eviction time %v for klusterlet %s error %s", evictionTimeStr, klusterlet.Name, perr)
+			klog.Warningf("Parse eviction time %v for klusterlet %s error %s", evictionTimeStr, klusterlet.Name, perr)
 			klusterlet.Annotations[managedResourcesEvictionTimestampAnno] = time.Now().Format(time.RFC3339)
 			return true, err
 		}

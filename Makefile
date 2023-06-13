@@ -25,7 +25,8 @@ vendor:
 
 build: vendor
 	mkdir -p $(BINARYDIR)
-	go build -o bin/multicluster-controlplane cmd/main.go 
+	go build -ldflags="-s -w"  -o bin/multicluster-controlplane cmd/manager/manager.go
+	go build -ldflags="-s -w" -o bin/multicluster-agent cmd/agent/agent.go
 .PHONY: build
 
 build-image:
