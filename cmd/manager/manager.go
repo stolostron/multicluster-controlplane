@@ -1,35 +1,48 @@
 // Copyright Contributors to the Open Cluster Management project
 
-package manager
+package main
 
 import (
+	"os"
+
 	"github.com/spf13/cobra"
+
 	"go.uber.org/zap/zapcore"
+
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
+	"k8s.io/component-base/cli"
 	cliflag "k8s.io/component-base/cli/flag"
 	logsapi "k8s.io/component-base/logs/api/v1"
 	"k8s.io/component-base/version/verflag"
-	"open-cluster-management.io/multicluster-controlplane/pkg/servers"
-	"open-cluster-management.io/multicluster-controlplane/pkg/servers/options"
+
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	"open-cluster-management.io/multicluster-controlplane/pkg/features"
+	"open-cluster-management.io/multicluster-controlplane/pkg/servers"
+	"open-cluster-management.io/multicluster-controlplane/pkg/servers/options"
+
 	controller "github.com/stolostron/multicluster-controlplane/pkg/controllers"
 	"github.com/stolostron/multicluster-controlplane/pkg/controllers/selfmanagement"
+	"github.com/stolostron/multicluster-controlplane/pkg/feature"
 )
 
+var logLevel string
+
 func init() {
-	utilruntime.Must(logsapi.AddFeatureGates(utilfeature.DefaultMutableFeatureGate)) // register log to featuregate
+	// register log to featuregate
+	utilruntime.Must(logsapi.AddFeatureGates(utilfeature.DefaultMutableFeatureGate))
+	// init feature gates
+	utilruntime.Must(features.DefaultControlplaneMutableFeatureGate.Add(feature.DefaultControlPlaneFeatureGates))
 }
 
-func NewManager() *cobra.Command {
+func main() {
 	options := options.NewServerRunOptions()
-	var logLevel string
 	cmd := &cobra.Command{
-		Use:   "server",
-		Short: "Start a Multicluster Controlplane Server",
+		Use:   "multicluster-controlplane",
+		Short: "Start a multicluster controlplane",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			verflag.PrintAndExitIfRequested()
 			cliflag.PrintFlags(cmd.Flags())
@@ -70,5 +83,6 @@ func NewManager() *cobra.Command {
 		"Zap level to configure the verbosity of logging.",
 	)
 	options.AddFlags(flags)
-	return cmd
+
+	os.Exit(cli.Run(cmd))
 }

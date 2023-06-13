@@ -14,10 +14,12 @@ import (
 
 	clusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
+	"open-cluster-management.io/multicluster-controlplane/pkg/features"
 	"open-cluster-management.io/multicluster-controlplane/pkg/servers/options"
 	"open-cluster-management.io/multicluster-controlplane/pkg/util"
 
 	"github.com/stolostron/multicluster-controlplane/pkg/agent"
+	"github.com/stolostron/multicluster-controlplane/pkg/feature"
 )
 
 func InstallControllers(options *options.ServerRunOptions) func(<-chan struct{}, *aggregatorapiserver.Config) error {
@@ -56,9 +58,15 @@ func InstallControllers(options *options.ServerRunOptions) func(<-chan struct{},
 				klog.Fatalf("failed to set evn `WATCH_NAMESPACE`, %v", err)
 			}
 
+			// set agent feature gates
+			if err := features.DefaultAgentMutableFeatureGate.Add(feature.DefaultControlPlaneFeatureGates); err != nil {
+				klog.Fatalf("failed to set agent feature gates, %v", err)
+			}
+
 			agentOptions := agent.NewAgentOptions().
 				WithHubKubeConfig(hubRestConfig).
-				WithClusterName(clusterName)
+				WithClusterName(clusterName).
+				WithSelfManagementEnabled(true)
 
 			klog.Info("starting addon agents")
 			if err := agentOptions.RunAddOns(ctx); err != nil {
@@ -74,8 +82,8 @@ func InstallControllers(options *options.ServerRunOptions) func(<-chan struct{},
 
 func waitForClusterAvailable(ctx context.Context, clusterClient clusterclient.Interface, name string) (string, error) {
 	var clusterName string
-	if err := wait.PollImmediate(5*time.Second, 10*time.Minute, func() (bool, error) {
-		clusters, err := clusterClient.ClusterV1().ManagedClusters().List(context.TODO(), metav1.ListOptions{
+	if err := wait.PollUntilContextCancel(ctx, 5*time.Second, true, func(ctx context.Context) (bool, error) {
+		clusters, err := clusterClient.ClusterV1().ManagedClusters().List(ctx, metav1.ListOptions{
 			LabelSelector: "multicluster-controlplane.open-cluster-management.io/selfmanagement",
 		})
 

@@ -3,13 +3,11 @@ package agent
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	gktemplatesv1 "github.com/open-policy-agent/frameworks/constraint/pkg/apis/templates/v1"
 	gktemplatesv1beta1 "github.com/open-policy-agent/frameworks/constraint/pkg/apis/templates/v1beta1"
-	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
-	openshiftoauthclientset "github.com/openshift/client-go/oauth/clientset/versioned"
 	clusterinfov1beta1 "github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
+
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -17,14 +15,11 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes"
 	kubescheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
-	clusterclientset "open-cluster-management.io/api/client/cluster/clientset/versioned"
+
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	configpolicyv1 "open-cluster-management.io/config-policy-controller/api/v1"
 	"open-cluster-management.io/config-policy-controller/controllers"
@@ -33,12 +28,10 @@ import (
 	policyv1 "open-cluster-management.io/governance-policy-propagator/api/v1"
 	"open-cluster-management.io/multicluster-controlplane/pkg/agent"
 	"open-cluster-management.io/multicluster-controlplane/pkg/features"
-	ctrl "sigs.k8s.io/controller-runtime"
+
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"github.com/stolostron/multicluster-controlplane/pkg/agent/addons"
 	"github.com/stolostron/multicluster-controlplane/pkg/agent/addons/manifests"
@@ -72,8 +65,9 @@ var policyRequiredCRDFiles = []string{
 type AgentOptions struct {
 	*agent.AgentOptions
 	*addons.PolicyAgentConfig
-	hubKubeConfig *rest.Config
-	clusterName   string
+	hubKubeConfig         *rest.Config
+	selfManagementEnabled bool
+	clusterName           string
 }
 
 func NewAgentOptions() *AgentOptions {
@@ -98,9 +92,37 @@ func (a *AgentOptions) WithClusterName(clusterName string) *AgentOptions {
 	return a
 }
 
+func (a *AgentOptions) WithSelfManagementEnabled(enabled bool) *AgentOptions {
+	a.selfManagementEnabled = enabled
+	return a
+}
+
 func (a *AgentOptions) RunAddOns(ctx context.Context) error {
+	var err error
+
+	hubKubeConfig := a.hubKubeConfig
+	if hubKubeConfig == nil {
+		// TODO should use o.registrationAgent.HubKubeconfigDir + "/kubeconfig"
+		hubKubeConfig, err = clientcmd.BuildConfigFromFlags("", a.RegistrationAgent.BootstrapKubeconfig)
+		if err != nil {
+			return err
+		}
+	}
+
+	// in hosted mode, the hostingKubeConfig is for the management cluster.
+	// in default mode, the hostingKubeConfig is for the managed cluster.
+	hostingKubeConfig, err := rest.InClusterConfig()
+	if err != nil {
+		return err
+	}
+
 	// the spokeKubeConfig is always for the managed cluster.
-	spokeKubeConfig, err := clientcmd.BuildConfigFromFlags("", a.RegistrationAgent.SpokeKubeconfig)
+	spokeKubeConfig, err := clientcmd.BuildConfigFromFlags("", a.RegistrationAgent.AgentOptions.SpokeKubeconfigFile)
+	if err != nil {
+		return err
+	}
+
+	hostingCRDClient, err := apiextensionsclient.NewForConfig(hostingKubeConfig)
 	if err != nil {
 		return err
 	}
@@ -110,325 +132,186 @@ func (a *AgentOptions) RunAddOns(ctx context.Context) error {
 		return err
 	}
 
-	if err := helpers.EnsureCRDs(ctx, spokeCRDClient, manifests.AgentCRDFiles, agentRequiredCRDFiles...); err != nil {
+	if err := helpers.EnsureCRDs(ctx, scheme, spokeCRDClient, manifests.AgentCRDFiles, agentRequiredCRDFiles...); err != nil {
 		return err
 	}
 
-	// in hosted mode, the hostingKubeConfig is for the management cluster.
-	// in default mode, the hostingKubeConfig is for the managed cluster.
-	hostingKubeConfig, err := rest.InClusterConfig()
-	if err != nil {
-		return err
-	}
-	hostingCRDClient, err := apiextensionsclient.NewForConfig(hostingKubeConfig)
-	if err != nil {
-		return err
-	}
-	if err := helpers.EnsureCRDs(ctx, hostingCRDClient, manifests.AgentCRDFiles, policyRequiredCRDFiles...); err != nil {
+	if err := helpers.EnsureCRDs(ctx, scheme, hostingCRDClient, manifests.AgentCRDFiles, policyRequiredCRDFiles...); err != nil {
 		return err
 	}
 
 	clusterName := a.clusterName
 	if len(clusterName) == 0 {
-		clusterName = a.RegistrationAgent.ClusterName
+		clusterName = a.RegistrationAgent.AgentOptions.SpokeClusterName
 	}
-
-	hubManager, err := a.newHubManager(clusterName)
-	if err != nil {
-		return err
-	}
-
-	hostingManager, err := a.newHostingManager()
-	if err != nil {
-		return err
-	}
-
-	startCtrlMgr := false
 
 	if features.DefaultAgentMutableFeatureGate.Enabled(feature.ManagedClusterInfo) {
 		// start managed cluster info controller
 		klog.Info("starting managed cluster info addon agent")
-		kubeClient, err := kubernetes.NewForConfig(spokeKubeConfig)
-		if err != nil {
-			return err
-		}
-
-		dynamicClient, err := dynamic.NewForConfig(spokeKubeConfig)
-		if err != nil {
-			return err
-		}
-
-		clusterClient, err := clusterclientset.NewForConfig(spokeKubeConfig)
-		if err != nil {
-			return err
-		}
-
-		ocpClient, err := openshiftclientset.NewForConfig(spokeKubeConfig)
-		if err != nil {
-			return err
-		}
-
-		ocpOauthClient, err := openshiftoauthclientset.NewForConfig(spokeKubeConfig)
-		if err != nil {
-			return err
-		}
-
-		httpClient, err := rest.HTTPClientFor(spokeKubeConfig)
-		if err != nil {
-			return err
-		}
-		restMapper, err := apiutil.NewDynamicRESTMapper(spokeKubeConfig, httpClient)
-		if err != nil {
-			return err
-		}
 
 		if err := addons.StartManagedClusterInfoAgent(
 			ctx,
 			clusterName,
-			hubManager,
-			kubeClient,
-			dynamicClient,
-			clusterClient,
-			ocpClient,
-			ocpOauthClient,
-			restMapper,
+			a.selfManagementEnabled,
+			hubKubeConfig,
+			spokeKubeConfig,
+			a.SpokeRestMapper,
+			a.SpokeKubeInformerFactory,
+			a.SpokeClusterInformerFactory,
 		); err != nil {
 			return err
 		}
-
-		startCtrlMgr = true
 	}
 
 	if features.DefaultAgentMutableFeatureGate.Enabled(feature.ConfigurationPolicy) {
 		klog.Info("starting configuration policy addon agent")
 
-		if err := addons.StartPolicyAgent(
+		hubCache, hubClient, err := a.newHubCache(hubKubeConfig, clusterName)
+		if err != nil {
+			return err
+		}
+
+		hostingCache, hostingClient, err := a.newHostingCache(hostingKubeConfig, clusterName)
+		if err != nil {
+			return err
+		}
+
+		if err := addons.StartPolicyAgentWithCache(
 			ctx,
 			clusterName,
+			scheme,
+			hubKubeConfig,
+			hostingKubeConfig,
 			spokeKubeConfig,
-			hubManager,
-			hostingManager,
+			hubCache,
+			hostingCache,
+			hubClient,
+			hostingClient,
 			a.PolicyAgentConfig,
 		); err != nil {
 			klog.Fatalf("failed to setup policy addon, %v", err)
 		}
-
-		startCtrlMgr = true
 	}
-
-	if !startCtrlMgr {
-		klog.Info("no addons are enabled")
-		return nil
-	}
-
-	// start hub runtime manager
-	go func() {
-		klog.Info("starting the embedded hub controller-runtime manager in controlplane agent")
-		if err := hubManager.Start(ctx); err != nil {
-			klog.Fatalf("failed to start embedded hub controller-runtime manager, %v", err)
-		}
-	}()
-
-	go func() {
-		klog.Info("starting the embedded hosting controller-runtime manager in controlplane agent")
-		if err := hostingManager.Start(ctx); err != nil {
-			klog.Fatalf("failed to start embedded hosting controller-runtime manager, %v", err)
-		}
-	}()
 
 	return nil
 }
 
-func (a *AgentOptions) newHubManager(clusterName string) (manager.Manager, error) {
-
-	var err error
-	hubKubeConfig := a.hubKubeConfig
-	if hubKubeConfig == nil {
-		// TODO should use o.registrationAgent.HubKubeconfigDir + "/kubeconfig"
-		hubKubeConfig, err = clientcmd.BuildConfigFromFlags("", a.RegistrationAgent.BootstrapKubeconfig)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	cacheSelectors := map[client.Object]cache.ByObject{
-		&corev1.Secret{}: {
-			Field: fields.SelectorFromSet(fields.Set{"metadata.name": secretsync.SecretName}),
-		},
-	}
-
-	watchNamespace, err := configcommon.GetWatchNamespace()
+func (a *AgentOptions) newHubCache(hubKubeConfig *rest.Config, clusterName string) (cache.Cache, client.Client, error) {
+	httpClient, err := rest.HTTPClientFor(hubKubeConfig)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+	restMapper, err := apiutil.NewDynamicRESTMapper(hubKubeConfig, httpClient)
+	if err != nil {
+		return nil, nil, err
 	}
 
-	if strings.Contains(watchNamespace, ",") {
-		return nil, fmt.Errorf("multiple watched namespaces are not allowed for this controller")
-	}
-
-	if watchNamespace != "" {
-		cacheSelectors[&policyv1.Policy{}] = cache.ByObject{
-			Field: fields.SelectorFromSet(fields.Set{
-				"metadata.namespace": watchNamespace,
-			}),
-			Transform: func(i interface{}) (interface{}, error) {
-				// remove unused fields beforing pushing to cache to optimize memory usage
-				k8sObj, ok := i.(client.Object)
-				if !ok {
-					return nil, fmt.Errorf("invalid type")
-				}
-				k8sObj.SetManagedFields(nil)
-				return k8sObj, nil
+	hubCache, err := cache.New(hubKubeConfig, cache.Options{
+		Scheme:     scheme,
+		HTTPClient: httpClient,
+		Mapper:     restMapper,
+		ByObject: map[client.Object]cache.ByObject{
+			&corev1.Secret{}: {
+				Field: fields.SelectorFromSet(fields.Set{"metadata.name": secretsync.SecretName}),
 			},
-		}
-		cacheSelectors[&corev1.Event{}] = cache.ByObject{
-			Field: fields.SelectorFromSet(fields.Set{
-				"metadata.namespace": watchNamespace,
-			}),
-		}
-	}
-
-	mgr, err := ctrl.NewManager(hubKubeConfig, ctrl.Options{
-		Scheme:             scheme,
-		Namespace:          clusterName,
-		MetricsBindAddress: "0", //TODO think about the mertics later
-		Cache: cache.Options{
-			ByObject: cacheSelectors,
+			&policyv1.Policy{}: {
+				Field:     fields.SelectorFromSet(fields.Set{"metadata.namespace": clusterName}),
+				Transform: transformer,
+			},
+			&corev1.Event{}: {
+				Field: fields.SelectorFromSet(fields.Set{"metadata.namespace": clusterName}),
+			},
 		},
-		// Override the EventBroadcaster so that the spam filter will not ignore events for the policy but with
-		// different messages if a large amount of events for that policy are sent in a short time.
-		EventBroadcaster: record.NewBroadcasterWithCorrelatorOptions(
-			record.CorrelatorOptions{
-				// This essentially disables event aggregation of the same events but with different messages.
-				MaxIntervalInSeconds: 1,
-				// This is the default spam key function except it adds the reason and message as well.
-				// https://github.com/kubernetes/client-go/blob/v0.23.3/tools/record/events_cache.go#L70-L82
-				SpamKeyFunc: func(event *corev1.Event) string {
-					return strings.Join(
-						[]string{
-							event.Source.Component,
-							event.Source.Host,
-							event.InvolvedObject.Kind,
-							event.InvolvedObject.Namespace,
-							event.InvolvedObject.Name,
-							string(event.InvolvedObject.UID),
-							event.InvolvedObject.APIVersion,
-							event.Reason,
-							event.Message,
-						},
-						"",
-					)
-				},
-			},
-		),
+		Namespaces: []string{clusterName},
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return mgr, nil
+	hubClient, err := client.New(hubKubeConfig, client.Options{
+		Scheme:     scheme,
+		HTTPClient: httpClient,
+		Mapper:     restMapper,
+		Cache: &client.CacheOptions{
+			Reader: hubCache,
+		},
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return hubCache, hubClient, nil
 }
 
-func (a *AgentOptions) newHostingManager() (manager.Manager, error) {
-	cfg, err := config.GetConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	cacheSelectors := map[client.Object]cache.ByObject{
-		&apiextensionsv1.CustomResourceDefinition{}: {
-			Field: fields.SelectorFromSet(fields.Set{"metadata.name": controllers.CRDName}),
-		},
-	}
-
+func (a *AgentOptions) newHostingCache(hostingKubeConfig *rest.Config, clusterName string) (cache.Cache, client.Client, error) {
 	ctrlKey, err := configcommon.GetOperatorNamespacedName()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	cacheSelectors[&appsv1.Deployment{}] = cache.ByObject{
-		Field: fields.SelectorFromSet(fields.Set{
-			"metadata.namespace": ctrlKey.Namespace,
-			"metadata.name":      ctrlKey.Name,
-		}),
-	}
-
-	watchNamespace, err := configcommon.GetWatchNamespace()
+	httpClient, err := rest.HTTPClientFor(hostingKubeConfig)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+	restMapper, err := apiutil.NewDynamicRESTMapper(hostingKubeConfig, httpClient)
+	if err != nil {
+		return nil, nil, err
 	}
 
-	if strings.Contains(watchNamespace, ",") {
-		return nil, fmt.Errorf("multiple watched namespaces are not allowed for this controller")
-	}
-
-	// remove unused fields beforing pushing to cache to optimize memory usage
-	transformer := func(obj interface{}) (interface{}, error) {
-		k8sObj, ok := obj.(client.Object)
-		if !ok {
-			return nil, fmt.Errorf("invalid type")
-		}
-		k8sObj.SetManagedFields(nil)
-		return k8sObj, nil
-	}
-
-	if watchNamespace != "" {
-		cacheSelectors[&configpolicyv1.ConfigurationPolicy{}] = cache.ByObject{
-			Field: fields.SelectorFromSet(fields.Set{
-				"metadata.namespace": watchNamespace,
-			}),
-			Transform: transformer,
-		}
-		cacheSelectors[&policyv1.Policy{}] = cache.ByObject{
-			Field: fields.SelectorFromSet(fields.Set{
-				"metadata.namespace": watchNamespace,
-			}),
-			Transform: transformer,
-		}
-		cacheSelectors[&corev1.Event{}] = cache.ByObject{
-			Field: fields.SelectorFromSet(fields.Set{
-				"metadata.namespace": watchNamespace,
-			}),
-		}
-	}
-
-	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
-		Scheme:             scheme,
-		MetricsBindAddress: "0", //TODO think about the mertics later
-		Cache: cache.Options{
-			ByObject: cacheSelectors,
-		},
-		ClientDisableCacheFor: []client.Object{&corev1.Secret{}},
-		// Override the EventBroadcaster so that the spam filter will not ignore events for the policy but with
-		// different messages if a large amount of events for that policy are sent in a short time.
-		EventBroadcaster: record.NewBroadcasterWithCorrelatorOptions(
-			record.CorrelatorOptions{
-				// This essentially disables event aggregation of the same events but with different messages.
-				MaxIntervalInSeconds: 1,
-				// This is the default spam key function except it adds the reason and message as well.
-				// https://github.com/kubernetes/client-go/blob/v0.23.3/tools/record/events_cache.go#L70-L82
-				SpamKeyFunc: func(event *corev1.Event) string {
-					return strings.Join(
-						[]string{
-							event.Source.Component,
-							event.Source.Host,
-							event.InvolvedObject.Kind,
-							event.InvolvedObject.Namespace,
-							event.InvolvedObject.Name,
-							string(event.InvolvedObject.UID),
-							event.InvolvedObject.APIVersion,
-							event.Reason,
-							event.Message,
-						},
-						"",
-					)
-				},
+	hostingCache, err := cache.New(hostingKubeConfig, cache.Options{
+		Scheme:     scheme,
+		HTTPClient: httpClient,
+		Mapper:     restMapper,
+		ByObject: map[client.Object]cache.ByObject{
+			&apiextensionsv1.CustomResourceDefinition{}: {
+				Field: fields.SelectorFromSet(fields.Set{"metadata.name": controllers.CRDName}),
 			},
-		),
+			&appsv1.Deployment{}: {
+				Field: fields.SelectorFromSet(fields.Set{
+					"metadata.namespace": ctrlKey.Namespace,
+					"metadata.name":      ctrlKey.Name,
+				}),
+			},
+			&configpolicyv1.ConfigurationPolicy{}: {
+				Field:     fields.SelectorFromSet(fields.Set{"metadata.namespace": clusterName}),
+				Transform: transformer,
+			},
+			&policyv1.Policy{}: {
+				Field:     fields.SelectorFromSet(fields.Set{"metadata.namespace": clusterName}),
+				Transform: transformer,
+			},
+			&corev1.Event{}: {
+				Field: fields.SelectorFromSet(fields.Set{"metadata.namespace": clusterName}),
+			},
+		},
+		Namespaces: []string{ctrlKey.Namespace, clusterName},
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return mgr, nil
+	hostingClient, err := client.New(hostingKubeConfig, client.Options{
+		Scheme:     scheme,
+		HTTPClient: httpClient,
+		Mapper:     restMapper,
+		Cache: &client.CacheOptions{
+			Reader:     hostingCache,
+			DisableFor: []client.Object{&corev1.Secret{}},
+		},
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return hostingCache, hostingClient, nil
+}
+
+// remove unused fields beforing pushing to cache to optimize memory usage
+func transformer(obj interface{}) (interface{}, error) {
+	k8sObj, ok := obj.(client.Object)
+	if !ok {
+		return nil, fmt.Errorf("invalid type")
+	}
+	k8sObj.SetManagedFields(nil)
+	return k8sObj, nil
 }

@@ -3,7 +3,6 @@ module github.com/stolostron/multicluster-controlplane
 go 1.20
 
 require (
-	github.com/go-logr/logr v1.2.4
 	github.com/onsi/ginkgo/v2 v2.10.0
 	github.com/onsi/gomega v1.27.8
 	github.com/open-policy-agent/frameworks/constraint v0.0.0-20230411224310-3f237e2710fa
@@ -20,16 +19,15 @@ require (
 	k8s.io/apiserver v0.27.2
 	k8s.io/client-go v12.0.0+incompatible
 	k8s.io/component-base v0.27.2
-	k8s.io/klog v1.0.0
 	k8s.io/klog/v2 v2.100.1
 	k8s.io/kube-aggregator v0.27.2
 	k8s.io/utils v0.0.0-20230505201702-9f6742963106
-	open-cluster-management.io/api v0.11.0
+	open-cluster-management.io/api v0.11.1-0.20230609103311-088e8fe86139
 	open-cluster-management.io/config-policy-controller v0.11.1-0.20230601150037-7efe2d125208
 	open-cluster-management.io/governance-policy-framework-addon v0.11.1-0.20230609150423-d788045bf097
 	open-cluster-management.io/governance-policy-propagator v0.11.1-0.20230608150119-94b4daa84adb
 	open-cluster-management.io/multicloud-operators-subscription v0.11.0
-	open-cluster-management.io/multicluster-controlplane v0.2.1-0.20230607092144-a675d39cc726
+	open-cluster-management.io/multicluster-controlplane v0.2.1-0.20230615103335-6916afabb1aa
 	sigs.k8s.io/controller-runtime v0.15.0
 )
 
@@ -148,6 +146,7 @@ require (
 	cloud.google.com/go/compute v1.19.1 // indirect
 	github.com/antlr/antlr4/runtime/Go/antlr/v4 v4.0.0-20230321174746-8dcc6526cfb1 // indirect
 	github.com/cenkalti/backoff/v4 v4.2.0 // indirect
+	github.com/go-logr/logr v1.2.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-logr/zapr v1.2.4 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
@@ -186,11 +185,12 @@ require (
 	golang.org/x/tools v0.9.3 // indirect
 	k8s.io/cluster-bootstrap v0.27.2 // indirect
 	k8s.io/controller-manager v0.27.2 // indirect
+	k8s.io/klog v1.0.0 // indirect
 	k8s.io/kms v0.27.2 // indirect
 	k8s.io/kube-controller-manager v0.27.2 // indirect
 	k8s.io/kube-openapi v0.0.0-20230501164219-8b0f38b5fd1f // indirect
 	k8s.io/kubernetes v1.27.2 // indirect
-	open-cluster-management.io/ocm v0.0.0-20230606095507-6f21760b7e57 // indirect
+	open-cluster-management.io/ocm v0.0.0-20230614150343-ecfb6c08880e // indirect
 )
 
 // replace these repos because of imported k8s.io/kubernetes v1.27.2
