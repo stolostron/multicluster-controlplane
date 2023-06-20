@@ -27,7 +27,7 @@ require (
 	open-cluster-management.io/governance-policy-framework-addon v0.11.1-0.20230609150423-d788045bf097
 	open-cluster-management.io/governance-policy-propagator v0.11.1-0.20230608150119-94b4daa84adb
 	open-cluster-management.io/multicloud-operators-subscription v0.11.0
-	open-cluster-management.io/multicluster-controlplane v0.2.1-0.20230615103335-6916afabb1aa
+	open-cluster-management.io/multicluster-controlplane v0.2.1-0.20230620013050-12d2edb23043
 	sigs.k8s.io/controller-runtime v0.15.0
 )
 

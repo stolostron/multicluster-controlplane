@@ -1324,8 +1324,8 @@ open-cluster-management.io/governance-policy-propagator v0.11.1-0.20230608150119
 open-cluster-management.io/governance-policy-propagator v0.11.1-0.20230608150119-94b4daa84adb/go.mod h1:n+BgxbaWJO2MortqV2I0EMgmpbGUE5ze9eBPGVe4Npc=
 open-cluster-management.io/multicloud-operators-subscription v0.11.0 h1:OLpohu92lMEmWk4LriTyxD1SIJrzHOvuhS3UsnEOElk=
 open-cluster-management.io/multicloud-operators-subscription v0.11.0/go.mod h1:0YDADTwQiNoLc7ihyHhTaCNAxx9VSVvrTUQf3W+AyGk=
-open-cluster-management.io/multicluster-controlplane v0.2.1-0.20230615103335-6916afabb1aa h1:deBTT0nDGCOVfc1DjZcNWyBtByWghb1JCSSp6ziIIZ0=
-open-cluster-management.io/multicluster-controlplane v0.2.1-0.20230615103335-6916afabb1aa/go.mod h1:eitWOphtPJHGQ9+rbWjzgxBn2F7v1WQilG3ewGYu334=
+open-cluster-management.io/multicluster-controlplane v0.2.1-0.20230620013050-12d2edb23043 h1:Wm4634T1Q/2pCd1ecUU67TPRRHD2YeXo8i9mbnKOqOQ=
+open-cluster-management.io/multicluster-controlplane v0.2.1-0.20230620013050-12d2edb23043/go.mod h1:eitWOphtPJHGQ9+rbWjzgxBn2F7v1WQilG3ewGYu334=
 open-cluster-management.io/ocm v0.0.0-20230614150343-ecfb6c08880e h1:6YwGFXa85MO98ZEs3DjAwYDZi61n6yC8m1kGUNpRf2c=
 open-cluster-management.io/ocm v0.0.0-20230614150343-ecfb6c08880e/go.mod h1:Y0Spx83p5RserV8cOVD+ccZd+rYlmAjlUCZmzSoAuXc=
 rsc.io/binaryregexp v0.2.0/go.mod h1:qTv7/COck+e2FymRvadv62gMdZztPaShugOCi3I+8D8=

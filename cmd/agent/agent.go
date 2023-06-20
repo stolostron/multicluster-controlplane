@@ -113,7 +113,7 @@ func main() {
 	flags.StringVar(
 		&logLevel,
 		"log-level",
-		"info",
+		"error",
 		"Zap level to configure the verbosity of logging.",
 	)
 

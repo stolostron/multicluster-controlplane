@@ -2,6 +2,7 @@ package addons
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -240,21 +241,22 @@ func newPolicyController(
 
 func (c *policyController) sync(ctx context.Context, controllerContext factory.SyncContext) error {
 	queueKey := controllerContext.QueueKey()
-	// triggered by resync, requeue all objects
 	if queueKey == factory.DefaultQueueKey {
+		// triggered by resync, requeue all objects
 		policies := &policyv1.PolicyList{}
 		if err := c.hubCache.List(ctx, policies); err != nil {
 			return err
 		}
 
 		for _, policy := range policies.Items {
-			controllerContext.Queue().Add(policy.Namespace + "/" + policy.Name)
+			controllerContext.Queue().Add(fmt.Sprintf("%s/%s", policy.Namespace, policy.Name))
 		}
 		return nil
 	}
 
 	namespace, name, err := kubecache.SplitMetaNamespaceKey(queueKey)
 	utilruntime.HandleError(err)
+
 	namespacedName := types.NamespacedName{Namespace: namespace, Name: name}
 	_, err = c.policyReconciler.Reconcile(ctx, reconcile.Request{NamespacedName: namespacedName})
 	return err
@@ -300,14 +302,14 @@ func newSecretController(
 
 func (c *secretController) sync(ctx context.Context, controllerContext factory.SyncContext) error {
 	queueKey := controllerContext.QueueKey()
-	namespace, name, err := kubecache.SplitMetaNamespaceKey(queueKey)
-	utilruntime.HandleError(err)
-
-	// triggered by resync, requeue the object
 	if queueKey == factory.DefaultQueueKey {
-		controllerContext.Queue().Add(c.clusterName + "/" + secretsync.SecretName)
+		// triggered by resync, requeue the object
+		controllerContext.Queue().Add(fmt.Sprintf("%s/%s", c.clusterName, secretsync.SecretName))
 		return nil
 	}
+
+	namespace, name, err := kubecache.SplitMetaNamespaceKey(queueKey)
+	utilruntime.HandleError(err)
 
 	namespacedName := types.NamespacedName{Namespace: namespace, Name: name}
 	_, err = c.secretReconciler.Reconcile(ctx, reconcile.Request{NamespacedName: namespacedName})
@@ -341,21 +343,22 @@ func newConfigurationPolicyController(
 
 func (c *configurationPolicyController) sync(ctx context.Context, controllerContext factory.SyncContext) error {
 	queueKey := controllerContext.QueueKey()
-	namespace, name, err := kubecache.SplitMetaNamespaceKey(queueKey)
-	utilruntime.HandleError(err)
 
-	// triggered by resync, requeue all objects
 	if queueKey == factory.DefaultQueueKey {
+		// triggered by resync, requeue all objects
 		configpolicies := &configpolicyv1.ConfigurationPolicyList{}
 		if err := c.hostingCache.List(ctx, configpolicies); err != nil {
 			return err
 		}
 
 		for _, configpolicy := range configpolicies.Items {
-			controllerContext.Queue().Add(configpolicy.Namespace + "/" + configpolicy.Name)
+			controllerContext.Queue().Add(fmt.Sprintf("%s/%s", configpolicy.Namespace, configpolicy.Name))
 		}
 		return nil
 	}
+
+	namespace, name, err := kubecache.SplitMetaNamespaceKey(queueKey)
+	utilruntime.HandleError(err)
 
 	namespacedName := types.NamespacedName{Namespace: namespace, Name: name}
 	_, err = c.configurationPolicyReconciler.Reconcile(ctx, reconcile.Request{NamespacedName: namespacedName})
@@ -401,7 +404,7 @@ func newHostingPolicyController(ctx context.Context,
 				event.InvolvedObject.APIVersion != policiesv1APIVersion {
 				return
 			}
-			syncCtx.Queue().Add(event.InvolvedObject.Namespace + "/" + event.InvolvedObject.Name)
+			syncCtx.Queue().Add(fmt.Sprintf("%s/%s", event.InvolvedObject.Namespace, event.InvolvedObject.Name))
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			event, ok := newObj.(*corev1.Event)
@@ -414,7 +417,7 @@ func newHostingPolicyController(ctx context.Context,
 				return
 			}
 
-			syncCtx.Queue().Add(event.InvolvedObject.Namespace + "/" + event.InvolvedObject.Name)
+			syncCtx.Queue().Add(fmt.Sprintf("%s/%s", event.InvolvedObject.Namespace, event.InvolvedObject.Name))
 		},
 		DeleteFunc: func(obj interface{}) {
 			//do nothing
@@ -435,15 +438,15 @@ func newHostingPolicyController(ctx context.Context,
 
 func (c *hostingPolicyController) sync(ctx context.Context, controllerContext factory.SyncContext) error {
 	queueKey := controllerContext.QueueKey()
-	// triggered by resync, requeue all objects
 	if queueKey == factory.DefaultQueueKey {
+		// triggered by resync, requeue all objects
 		policies := &policyv1.PolicyList{}
 		if err := c.hostingCache.List(ctx, policies); err != nil {
 			return err
 		}
 
 		for _, policy := range policies.Items {
-			controllerContext.Queue().Add(policy.Namespace + "/" + policy.Name)
+			controllerContext.Queue().Add(fmt.Sprintf("%s/%s", policy.Namespace, policy.Name))
 		}
 		return nil
 	}
