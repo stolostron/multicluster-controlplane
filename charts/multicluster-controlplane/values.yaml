@@ -24,6 +24,7 @@ apiserver:
   cakey: ""
 etcd:
   mode: "embed"
+  snapshotCount: 5000
   servers: []
   ca: ""
   cert: "" 
