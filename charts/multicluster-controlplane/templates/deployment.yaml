@@ -35,6 +35,9 @@ spec:
         {{- if eq .Values.enableDelegatingAuthentication true }}
         - "--delegating-authentication"
         {{- end }}
+        env:
+        - name: ETCD_SNAPSHOT_COUNT
+          value: "{{ .Values.etcd.snapshotCount }}"
         resources:
         {{- toYaml .Values.resources | nindent 10 }}
         securityContext:

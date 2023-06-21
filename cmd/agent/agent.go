@@ -70,7 +70,7 @@ func NewAgent() *cobra.Command {
 	flags.UintVar(
 		&agentOptions.Frequency,
 		"update-frequency",
-		10,
+		60,
 		"The status update frequency (in seconds) of a mutation policy",
 	)
 
