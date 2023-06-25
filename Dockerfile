@@ -9,8 +9,7 @@ WORKDIR ${DIRPATH}
 COPY . .
 
 # RUN apt-get update && apt-get install net-tools && make vendor 
-RUN make vendor && \
-    GOOS=${OS} \
+RUN GOOS=${OS} \
     GOARCH=${ARCH} \
     make build
 
@@ -18,5 +17,6 @@ FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
 ENV USER_UID=10001
 
 COPY --from=builder /workspace/multicluster-controlplane/bin/multicluster-controlplane /
+COPY --from=builder /workspace/multicluster-controlplane/bin/multicluster-agent /
 
 USER ${USER_UID}

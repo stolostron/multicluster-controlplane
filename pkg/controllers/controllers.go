@@ -5,6 +5,7 @@ import (
 	"time"
 
 	clusterinfov1beta1 "github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -24,6 +25,7 @@ import (
 	policyv1 "open-cluster-management.io/governance-policy-propagator/api/v1"
 	policyv1beta1 "open-cluster-management.io/governance-policy-propagator/api/v1beta1"
 	placementrulev1 "open-cluster-management.io/multicloud-operators-subscription/pkg/apis/apps/placementrule/v1"
+	"open-cluster-management.io/multicluster-controlplane/pkg/controllers/bootstrap"
 	"open-cluster-management.io/multicluster-controlplane/pkg/features"
 	"open-cluster-management.io/multicluster-controlplane/pkg/util"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -57,6 +59,7 @@ func init() {
 	utilruntime.Must(policyv1beta1.AddToScheme(scheme))
 	utilruntime.Must(clusterinfov1beta1.AddToScheme(scheme))
 	utilruntime.Must(placementrulev1.AddToScheme(scheme))
+	utilruntime.Must(apiextensionsv1.AddToScheme(scheme))
 }
 
 // InstallControllers installs next-gen controlplane controllers in hub cluster
@@ -80,7 +83,11 @@ func InstallControllers(stopCh <-chan struct{}, aggregatorConfig *aggregatorapis
 		return err
 	}
 
-	if err := helpers.EnsureCRDs(ctx, controlplaneCRDClient, manifests.CRDFiles, requiredCRDs...); err != nil {
+	if ready := bootstrap.WaitFOROCMCRDsReady(ctx, controlplaneCRDClient); !ready {
+		return fmt.Errorf("the ocm required crds is not ready")
+	}
+
+	if err := helpers.EnsureCRDs(ctx, scheme, controlplaneCRDClient, manifests.CRDFiles, requiredCRDs...); err != nil {
 		return err
 	}
 

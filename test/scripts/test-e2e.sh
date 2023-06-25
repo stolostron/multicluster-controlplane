@@ -57,6 +57,10 @@ kubectl --kubeconfig $kubeconfig -n multicluster-controlplane get secrets multic
 
 wait_seconds="90"; until [[ $((wait_seconds--)) -eq 0 ]] || eval "kubectl --kubeconfig "${cluster_dir}"/controlplane.kubeconfig get crds policies.policy.open-cluster-management.io &> /dev/null" ; do sleep 1; done
 
+# waiting the self agent is started
+# TODO find a way to indicate this from controlplane
+sleep 60
+
 # prepare policies
 kubectl --kubeconfig "${cluster_dir}"/controlplane.kubeconfig apply -f $REPO_DIR/test/e2e/testdata/limitrange-policy-placement.yaml
 

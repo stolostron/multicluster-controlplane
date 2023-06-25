@@ -1,36 +1,40 @@
 // Copyright Contributors to the Open Cluster Management project
 
-package agent
+package main
 
 import (
 	"context"
+	"os"
 	"path"
 
 	"github.com/spf13/cobra"
-	"go.uber.org/zap/zapcore"
+
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	genericapiserver "k8s.io/apiserver/pkg/server"
+	"k8s.io/component-base/cli"
 	"k8s.io/klog/v2"
+
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+
+	"open-cluster-management.io/multicluster-controlplane/pkg/features"
 
 	"github.com/stolostron/multicluster-controlplane/pkg/agent"
+	"github.com/stolostron/multicluster-controlplane/pkg/feature"
 )
 
-func NewAgent() *cobra.Command {
+func init() {
+	utilruntime.Must(features.DefaultAgentMutableFeatureGate.Add(feature.DefaultControlPlaneFeatureGates))
+}
+
+func main() {
 	agentOptions := agent.NewAgentOptions()
-	var logLevel string
 	cmd := &cobra.Command{
-		Use:   "agent",
-		Short: "Start a Multicluster Controlplane Agent",
+		Use:   "multicluster-agent",
+		Short: "Start a multicluster agent",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			shutdownCtx, cancel := context.WithCancel(context.TODO())
 
-			level, _ := zapcore.ParseLevel(logLevel)
-			opts := &zap.Options{
-				Level: zapcore.Level(level),
-			}
-			// set log level to the controller-runtime logger
-			ctrl.SetLogger(zap.New(zap.UseFlagOptions(opts)))
+			ctrl.SetLogger(klog.NewKlogr())
 
 			shutdownHandler := genericapiserver.SetupSignalHandler()
 			go func() {
@@ -92,17 +96,11 @@ func NewAgent() *cobra.Command {
 	flags.BoolVar(
 		&agentOptions.EnableMetrics,
 		"enable-metrics",
-		true,
+		false,
 		"Disable custom metrics collection",
 	)
 
-	flags.StringVar(
-		&logLevel,
-		"log-level",
-		"info",
-		"Zap level to configure the verbosity of logging.",
-	)
-
 	agentOptions.AddFlags(flags)
-	return cmd
+
+	os.Exit(cli.Run(cmd))
 }

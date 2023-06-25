@@ -146,7 +146,7 @@ func SetupPolicyWithManager(ctx context.Context, mgr ctrl.Manager, kubeconfig *r
 		panic(err)
 	}
 
-	klog.Info("Waiting for the dynamic watcher to start")
+	klog.Info("Waiting for policy dynamic watcher to start")
 	// This is important to avoid adding watches before the dynamic watcher is ready
 	<-dynamicWatcher.Started()
 

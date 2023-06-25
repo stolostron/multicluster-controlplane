@@ -1314,8 +1314,8 @@ k8s.io/utils v0.0.0-20210802155522-efc7438f0176/go.mod h1:jPW/WVKK9YHAvNhRxK0md/
 k8s.io/utils v0.0.0-20230209194617-a36077c30491/go.mod h1:OLgZIPagt7ERELqWJFomSt595RzquPNLL48iOWgYOg0=
 k8s.io/utils v0.0.0-20230505201702-9f6742963106 h1:EObNQ3TW2D+WptiYXlApGNLVy0zm/JIBVY9i+M4wpAU=
 k8s.io/utils v0.0.0-20230505201702-9f6742963106/go.mod h1:OLgZIPagt7ERELqWJFomSt595RzquPNLL48iOWgYOg0=
-open-cluster-management.io/api v0.11.0 h1:zBxa33Co3wseLBF4HEJobhl0P6ygj+Drhe7Wrfo0/h8=
-open-cluster-management.io/api v0.11.0/go.mod h1:WgKUCJ7+Bf40DsOmH1Gdkpyj3joco+QLzrlM6Ak39zE=
+open-cluster-management.io/api v0.11.1-0.20230609103311-088e8fe86139 h1:nw/XSv4eDGqmg0ks2PHzrE2uosvjw+D314843G56xGY=
+open-cluster-management.io/api v0.11.1-0.20230609103311-088e8fe86139/go.mod h1:WgKUCJ7+Bf40DsOmH1Gdkpyj3joco+QLzrlM6Ak39zE=
 open-cluster-management.io/config-policy-controller v0.11.1-0.20230601150037-7efe2d125208 h1:2TeDRvAUTJ7F9LUZfuhuqcpp0pR0mYeKVEhajR/HBis=
 open-cluster-management.io/config-policy-controller v0.11.1-0.20230601150037-7efe2d125208/go.mod h1:q5DYBLgEHb0gjAOEzKZOEDarbjdSn2nVtNG96ETHmeU=
 open-cluster-management.io/governance-policy-framework-addon v0.11.1-0.20230609150423-d788045bf097 h1:twYhVK1ccqy9F4s2icAiAhSqmhGaOpUcSuzOJD65oy0=
@@ -1324,10 +1324,10 @@ open-cluster-management.io/governance-policy-propagator v0.11.1-0.20230608150119
 open-cluster-management.io/governance-policy-propagator v0.11.1-0.20230608150119-94b4daa84adb/go.mod h1:n+BgxbaWJO2MortqV2I0EMgmpbGUE5ze9eBPGVe4Npc=
 open-cluster-management.io/multicloud-operators-subscription v0.11.0 h1:OLpohu92lMEmWk4LriTyxD1SIJrzHOvuhS3UsnEOElk=
 open-cluster-management.io/multicloud-operators-subscription v0.11.0/go.mod h1:0YDADTwQiNoLc7ihyHhTaCNAxx9VSVvrTUQf3W+AyGk=
-open-cluster-management.io/multicluster-controlplane v0.2.1-0.20230607092144-a675d39cc726 h1:9W9M8eocKaqD6WFy5rhsFHH+vSJUbGDy4FHxG2CQ6qg=
-open-cluster-management.io/multicluster-controlplane v0.2.1-0.20230607092144-a675d39cc726/go.mod h1:f4aRH3IpDGZ7qCrUhlbSMTe+sOQgMH5eQFuNtzuSWdM=
-open-cluster-management.io/ocm v0.0.0-20230606095507-6f21760b7e57 h1:QXk9xX9oNrYSfzABD5tVheY9X+n0htRdQGk7c3Nggt4=
-open-cluster-management.io/ocm v0.0.0-20230606095507-6f21760b7e57/go.mod h1:d9nPyvcSqNsQTwaZqhmXDbQGNRawEy7uolHk2ZFshUI=
+open-cluster-management.io/multicluster-controlplane v0.2.1-0.20230620013050-12d2edb23043 h1:Wm4634T1Q/2pCd1ecUU67TPRRHD2YeXo8i9mbnKOqOQ=
+open-cluster-management.io/multicluster-controlplane v0.2.1-0.20230620013050-12d2edb23043/go.mod h1:eitWOphtPJHGQ9+rbWjzgxBn2F7v1WQilG3ewGYu334=
+open-cluster-management.io/ocm v0.0.0-20230614150343-ecfb6c08880e h1:6YwGFXa85MO98ZEs3DjAwYDZi61n6yC8m1kGUNpRf2c=
+open-cluster-management.io/ocm v0.0.0-20230614150343-ecfb6c08880e/go.mod h1:Y0Spx83p5RserV8cOVD+ccZd+rYlmAjlUCZmzSoAuXc=
 rsc.io/binaryregexp v0.2.0/go.mod h1:qTv7/COck+e2FymRvadv62gMdZztPaShugOCi3I+8D8=
 rsc.io/quote/v3 v3.1.0/go.mod h1:yEA65RcK8LyAZtP9Kv3t0HmxON59tX3rD+tICJqUlj0=
 rsc.io/sampler v1.3.0/go.mod h1:T1hPZKmBbMNahiBKFy5HrXp6adAjACjK9JXDnKaTXpA=

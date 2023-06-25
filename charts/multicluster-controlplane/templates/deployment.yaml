@@ -22,7 +22,6 @@ spec:
         imagePullPolicy: {{ .Values.imagePullPolicy }}
         args:
         - "/multicluster-controlplane"
-        - "server"
         {{- if .Values.features }}
         - "--feature-gates={{ .Values.features }}"
         {{- end }}

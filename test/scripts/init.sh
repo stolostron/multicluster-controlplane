@@ -26,5 +26,3 @@ management_cluster="management"
 kubeconfig="${cluster_dir}/${management_cluster}.kubeconfig"
 
 mkdir -p ${cluster_dir}
-
-echo "Controlplane number : $CONTROLPLANE_NUMBER"

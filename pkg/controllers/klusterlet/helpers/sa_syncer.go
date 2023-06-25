@@ -120,7 +120,7 @@ func clusterInfoNotChanged(secret *corev1.Secret, templateKubeconfig *rest.Confi
 	// check if the templateKubeconfig is changed
 	templateCluster, err := assembleClusterConfig(templateKubeconfig)
 	if err != nil {
-		klog.Infof("Assemble template cluster config error: %s", err)
+		klog.Warningf("Assemble template cluster config error: %s", err)
 		return false
 	}
 
@@ -130,25 +130,25 @@ func clusterInfoNotChanged(secret *corev1.Secret, templateKubeconfig *rest.Confi
 	}
 	kubeconfig, err := clientcmd.Load(saKubeconfig)
 	if err != nil {
-		klog.Infof("Load kubeconfig error: %s", err)
+		klog.Warningf("Load kubeconfig error: %s", err)
 		return false
 	}
 	cluster, ok := kubeconfig.Clusters["cluster"]
 	if !ok {
-		klog.Infof("Cluster not found")
+		klog.Warningf("Cluster not found")
 		return false
 	}
 
 	if cluster.Server != templateCluster.Server {
-		klog.Infof("Cluster host changed from %s to %s", cluster.Server, templateCluster.Server)
+		klog.Warningf("Cluster host changed from %s to %s", cluster.Server, templateCluster.Server)
 		return false
 	}
 	if !bytes.Equal(cluster.CertificateAuthorityData, templateCluster.CertificateAuthorityData) {
-		klog.Infof("Cluster certificate authority data changed")
+		klog.Warningf("Cluster certificate authority data changed")
 		return false
 	}
 	if cluster.InsecureSkipTLSVerify != templateCluster.InsecureSkipTLSVerify {
-		klog.Infof("Cluster insecureSkipTLSVerify changed from %v to %v",
+		klog.Warningf("Cluster insecureSkipTLSVerify changed from %v to %v",
 			cluster.InsecureSkipTLSVerify, templateCluster.InsecureSkipTLSVerify)
 		return false
 	}

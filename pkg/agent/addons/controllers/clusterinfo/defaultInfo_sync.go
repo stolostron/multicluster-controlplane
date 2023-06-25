@@ -1,7 +1,8 @@
-package controllers
+package clusterinfo
 
 import (
 	"fmt"
+
 	clusterv1beta1 "github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
 	"golang.org/x/net/context"
 	"k8s.io/apimachinery/pkg/labels"

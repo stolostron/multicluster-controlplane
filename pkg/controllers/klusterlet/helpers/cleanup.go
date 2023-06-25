@@ -63,7 +63,7 @@ func DeleteManagedCluster(ctx context.Context, clusterClient clusterclient.Inter
 		return err
 	}
 
-	klog.Infof("The managed cluster %s is deleted", clusterName)
+	klog.V(4).Infof("The managed cluster %s is deleted", clusterName)
 	return nil
 }
 
@@ -144,7 +144,7 @@ func forceDeleteManifestWork(ctx context.Context, workClient workclient.Interfac
 		}
 	}
 
-	klog.Infof("The manifest work %s/%s is force deleted", namespace, name)
+	klog.V(4).Infof("The manifest work %s/%s is force deleted", namespace, name)
 	return nil
 }
 
@@ -166,6 +166,6 @@ func deleteManifestWork(ctx context.Context, workClient workclient.Interface, na
 		return err
 	}
 
-	klog.Infof("The manifest work %s/%s is deleted", namespace, name)
+	klog.V(4).Infof("The manifest work %s/%s is deleted", namespace, name)
 	return nil
 }

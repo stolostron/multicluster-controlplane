@@ -21,8 +21,7 @@ spec:
         image: {{ .AgentImage }}
         imagePullPolicy: IfNotPresent
         args:
-          - "/multicluster-controlplane"
-          - "agent"
+          - "/multicluster-agent"
           - "--cluster-name={{ .ClusterName }}"
           - "--hub-kubeconfig-secret={{ .HubKubeConfigSecret }}"
           - "--work-agent-id={{ .AgentID }}"

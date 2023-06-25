@@ -8,21 +8,21 @@ import (
 	"strings"
 
 	clusterv1beta1 "github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/uuid"
 
 	configv1 "github.com/openshift/api/config/v1"
 	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
 	openshiftoauthclientset "github.com/openshift/client-go/oauth/clientset/versioned"
+	clusterv1beta1infolister "github.com/stolostron/cluster-lifecycle-api/client/clusterinfo/listers/clusterinfo/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	clusterv1alpha1 "open-cluster-management.io/api/cluster/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -100,7 +100,7 @@ var ProductOCPList = []string{
 }
 
 // internalLabels includes the labels managed by ACM.
-var internalLabels = sets.String{}
+var internalLabels = sets.Set[string]{}
 
 func init() {
 	internalLabels.Insert(clusterv1beta1.LabelClusterID,
@@ -115,6 +115,7 @@ type ClusterClaimer struct {
 	Product                         string
 	Platform                        string
 	HubClient                       client.Client
+	ManagedClusterInfoList          clusterv1beta1infolister.ManagedClusterInfoLister
 	KubeClient                      kubernetes.Interface
 	ConfigV1Client                  openshiftclientset.Interface
 	OauthV1Client                   openshiftoauthclientset.Interface
@@ -144,7 +145,7 @@ func (c *ClusterClaimer) getManagedClusterID() (string, error) {
 		if ocpID != "" {
 			return ocpID, nil
 		}
-		klog.V(2).Infof("use the uid of kube-system as clusterID in OCP 3.x")
+		klog.V(4).Infof("use the uid of kube-system as clusterID in OCP 3.x")
 	}
 
 	ns, err := c.KubeClient.CoreV1().Namespaces().Get(context.TODO(), "kube-system", metav1.GetOptions{})
@@ -263,14 +264,8 @@ func newClusterClaim(name, value string) *clusterv1alpha1.ClusterClaim {
 func (c *ClusterClaimer) isOpenShift() (bool, error) {
 	_, err := c.Mapper.RESTMapping(schema.GroupKind{Group: "project.openshift.io", Kind: "Project"}, "v1")
 	if err != nil {
-		if meta.IsNoMatchError(err) {
-			return false, nil
-		}
-		if strings.Contains(err.Error(), "the server could not find the requested resource") {
-			return false, nil
-		}
-		klog.Errorf("failed to mapping project:%v", err)
-		return false, err
+		klog.V(4).Infof("there is no OCP projects, %v", err)
+		return false, nil
 	}
 
 	return true, nil
@@ -281,14 +276,8 @@ func (c *ClusterClaimer) isOpenshiftDedicated() (bool, error) {
 	// defined in https://github.com/openshift/rbac-permissions-operator/blob/master/pkg/apis/managed/v1alpha1/subjectpermission_types.go
 	_, err := c.Mapper.RESTMapping(schema.GroupKind{Group: "managed.openshift.io", Kind: "SubjectPermission"}, "v1alpha1")
 	if err != nil {
-		if meta.IsNoMatchError(err) {
-			return false, nil
-		}
-		if strings.Contains(err.Error(), "the server could not find the requested resource") {
-			return false, nil
-		}
-		klog.Errorf("failed to mapping SubjectPermission:%v", err)
-		return false, err
+		klog.V(4).Infof("there is no dedicated OCP subjectpermissions, %v", err)
+		return false, nil
 	}
 	return true, nil
 }
@@ -309,14 +298,8 @@ func (c *ClusterClaimer) isROSA() (bool, error) {
 func (c *ClusterClaimer) isARO() (bool, error) {
 	_, err := c.Mapper.RESTMapping(schema.GroupKind{Group: "aro.openshift.io", Kind: "Cluster"}, "v1alpha1")
 	if err != nil {
-		if meta.IsNoMatchError(err) {
-			return false, nil
-		}
-		if strings.Contains(err.Error(), "the server could not find the requested resource") {
-			return false, nil
-		}
-		klog.Errorf("failed to mapping project:%v", err)
-		return false, err
+		klog.V(4).Infof("there is no mapping ARO cluster, %v", err)
+		return false, nil
 	}
 	return true, nil
 }
@@ -515,7 +498,7 @@ func (c *ClusterClaimer) getMasterAddressesFromConsoleConfig() ([]corev1.Endpoin
 		}
 	}
 	if eu != "" {
-		euArray := strings.Split(strings.Trim(eu, "https:/"), ":")
+		euArray := strings.Split(strings.TrimPrefix(eu, "https:/"), ":")
 		if len(euArray) == 2 {
 			masterAddresses = append(masterAddresses, corev1.EndpointAddress{IP: euArray[0]})
 			port, _ := strconv.ParseInt(euArray[1], 10, 32)
@@ -725,14 +708,9 @@ func (c *ClusterClaimer) getControlPlaneTopology() configv1.TopologyMode {
 
 func (c *ClusterClaimer) syncLabelsToClaims() ([]*clusterv1alpha1.ClusterClaim, error) {
 	var claims []*clusterv1alpha1.ClusterClaim
-	request := types.NamespacedName{Namespace: c.ClusterName, Name: c.ClusterName}
-	clusterInfo := &clusterv1beta1.ManagedClusterInfo{}
-	err := c.HubClient.Get(context.TODO(), request, clusterInfo)
+	clusterInfo, err := c.ManagedClusterInfoList.ManagedClusterInfos(c.ClusterName).Get(c.ClusterName)
 	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return claims, nil
-		}
-		return claims, err
+		return claims, client.IgnoreNotFound(err)
 	}
 
 	// do not create claim if the label is managed by ACM.

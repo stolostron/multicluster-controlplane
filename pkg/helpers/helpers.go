@@ -4,7 +4,7 @@ package helpers
 import (
 	"context"
 	"embed"
-	"io/ioutil"
+	"os"
 	"time"
 
 	"github.com/openshift/library-go/pkg/assets"
@@ -17,7 +17,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 	clusterapiv1 "open-cluster-management.io/api/cluster/v1"
@@ -25,35 +24,30 @@ import (
 	"open-cluster-management.io/multicluster-controlplane/pkg/util"
 )
 
-var (
-	genericScheme = runtime.NewScheme()
-	genericCodecs = serializer.NewCodecFactory(genericScheme)
-	genericCodec  = genericCodecs.UniversalDeserializer()
-)
-
-func init() {
-	utilruntime.Must(crdv1.AddToScheme(genericScheme))
-}
-
-func EnsureCRDs(ctx context.Context, client apiextensionsclient.Interface, fs embed.FS, crds ...string) error {
+func EnsureCRDs(ctx context.Context, scheme *runtime.Scheme, client apiextensionsclient.Interface, fs embed.FS, crds ...string) error {
 	crdMap := make(map[string]*crdv1.CustomResourceDefinition, len(crds))
 	for _, crdFileName := range crds {
-		klog.Infof("waiting for crd %s", crdFileName)
+		klog.V(4).Infof("waiting for crd %s", crdFileName)
 		template, err := fs.ReadFile(crdFileName)
-		utilruntime.Must(err)
+		if err != nil {
+			return err
+		}
 
 		objData := assets.MustCreateAssetFromTemplate(crdFileName, template, nil).Data
-		obj, _, err := genericCodec.Decode(objData, nil, nil)
-		utilruntime.Must(err)
+		obj, _, err := serializer.NewCodecFactory(scheme).UniversalDeserializer().Decode(objData, nil, nil)
+		if err != nil {
+			return err
+		}
 
 		switch required := obj.(type) {
 		case *crdv1.CustomResourceDefinition:
 			crdMap[crdFileName] = required
 		}
 	}
-	return wait.PollImmediate(1*time.Second, 5*time.Minute, func() (bool, error) {
+
+	return wait.PollUntilContextCancel(ctx, 1*time.Second, true, func(ctx context.Context) (bool, error) {
 		for _, crdFileName := range crds {
-			klog.Infof("waiting for crd %s", crdFileName)
+			klog.V(4).Infof("waiting for crd %s", crdFileName)
 			if crdObj, ok := crdMap[crdFileName]; ok && crdObj != nil {
 				crd, _, err := resourceapply.ApplyCustomResourceDefinitionV1(
 					ctx,
@@ -100,7 +94,7 @@ func RemoveString(slice []string, s string) (result []string) {
 }
 
 func GetComponentNamespace() (string, error) {
-	nsBytes, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	nsBytes, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
 	if err != nil {
 		return "open-cluster-management-agent-addon", err
 	}
