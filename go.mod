@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/onsi/ginkgo/v2 v2.10.0
 	github.com/onsi/gomega v1.27.8
-	github.com/open-policy-agent/frameworks/constraint v0.0.0-20230411224310-3f237e2710fa
+	github.com/open-policy-agent/frameworks/constraint a9c75a1a0823
 	github.com/openshift/client-go v0.0.0-20230503144108-75015d2347cb
 	github.com/openshift/library-go v0.0.0-20230503173034-95ca3c14e50a
 	github.com/spf13/cobra v1.7.0
