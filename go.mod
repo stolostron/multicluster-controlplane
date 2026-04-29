@@ -1,6 +1,6 @@
 module github.com/stolostron/multicluster-controlplane
 
-go 1.20
+go 1.25.0
 
 require (
 	github.com/onsi/ginkgo/v2 v2.10.0
@@ -160,7 +160,7 @@ require (
 	github.com/pquerna/cachecontrol v0.1.0 // indirect
 	github.com/prometheus/client_golang v1.15.1 // indirect
 	github.com/spf13/pflag v1.0.6-0.20210604193023-d5e0c0615ace // indirect
-	github.com/stolostron/go-log-utils v0.1.2 // indirect
+	github.com/stolostron/go-log-utils v0.1.5 // indirect
 	github.com/stolostron/go-template-utils/v3 v3.2.1 // indirect
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20220101234140-673ab2c3ae75 // indirect
 	go.etcd.io/etcd/server/v3 v3.5.7 // indirect
@@ -174,9 +174,8 @@ require (
 	go.opentelemetry.io/otel/sdk v1.14.0 // indirect
 	go.opentelemetry.io/otel/trace v1.14.0 // indirect
 	go.opentelemetry.io/proto/otlp v0.19.0 // indirect
-	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	go.uber.org/zap v1.24.0 // indirect
+	go.uber.org/zap v1.28.0 // indirect
 	golang.org/x/crypto v0.9.0 // indirect
 	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1 // indirect
 	golang.org/x/mod v0.10.0 // indirect
