@@ -161,7 +161,7 @@ require (
 	github.com/prometheus/client_golang v1.15.1 // indirect
 	github.com/spf13/pflag v1.0.6-0.20210604193023-d5e0c0615ace // indirect
 	github.com/stolostron/go-log-utils v0.1.2 // indirect
-	github.com/stolostron/go-template-utils/v3 v3.2.1 // indirect
+	github.com/stolostron/go-template-utils/v7 v7.3.0 // indirect
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20220101234140-673ab2c3ae75 // indirect
 	go.etcd.io/etcd/server/v3 v3.5.7 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.35.0 // indirect
