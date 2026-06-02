@@ -1,6 +1,6 @@
 module github.com/stolostron/multicluster-controlplane
 
-go 1.20
+go 1.22
 
 require (
 	github.com/onsi/ginkgo/v2 v2.10.0
@@ -84,7 +84,7 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
-	github.com/opencontainers/selinux v1.10.0 // indirect
+	github.com/opencontainers/selinux v1.15.1 // indirect
 	github.com/openshift/api v0.0.0-20230503133300-8bbcb7ca7183
 	github.com/pkg/profile v1.3.0 // indirect
 	github.com/prometheus/client_model v0.4.0 // indirect
@@ -145,6 +145,7 @@ require (
 	cloud.google.com/go/compute v1.19.1 // indirect
 	github.com/antlr/antlr4/runtime/Go/antlr/v4 v4.0.0-20230321174746-8dcc6526cfb1 // indirect
 	github.com/cenkalti/backoff/v4 v4.2.0 // indirect
+	github.com/cyphar/filepath-securejoin v0.5.1 // indirect
 	github.com/go-logr/logr v1.2.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-logr/zapr v1.2.4 // indirect
@@ -180,7 +181,7 @@ require (
 	golang.org/x/crypto v0.9.0 // indirect
 	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1 // indirect
 	golang.org/x/mod v0.10.0 // indirect
-	golang.org/x/sys v0.8.0 // indirect
+	golang.org/x/sys v0.26.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	golang.org/x/tools v0.9.3 // indirect
 	k8s.io/cluster-bootstrap v0.27.2 // indirect
