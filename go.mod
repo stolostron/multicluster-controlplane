@@ -9,7 +9,7 @@ require (
 	github.com/openshift/client-go v0.0.0-20230503144108-75015d2347cb
 	github.com/openshift/library-go v0.0.0-20230503173034-95ca3c14e50a
 	github.com/spf13/cobra v1.7.0
-	github.com/stolostron/cluster-lifecycle-api v0.0.0-20230510064049-824d580bc143
+	github.com/stolostron/cluster-lifecycle-api v0.0.0-20260330032750-43755d6ceb09
 	github.com/stolostron/kubernetes-dependency-watches v0.2.1
 	golang.org/x/net v0.10.0
 	k8s.io/api v0.27.2
