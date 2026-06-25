@@ -6,7 +6,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.10.0
 	github.com/onsi/gomega v1.27.8
 	github.com/open-policy-agent/frameworks/constraint v0.0.0-20230411224310-3f237e2710fa
-	github.com/openshift/client-go v0.0.0-20230503144108-75015d2347cb
+	github.com/openshift/client-go df412d4d283e
 	github.com/openshift/library-go v0.0.0-20230503173034-95ca3c14e50a
 	github.com/spf13/cobra v1.7.0
 	github.com/stolostron/cluster-lifecycle-api v0.0.0-20230510064049-824d580bc143
