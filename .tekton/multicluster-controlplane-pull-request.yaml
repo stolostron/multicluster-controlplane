@@ -330,7 +330,7 @@ spec:
       runAfter:
       - build-container
       taskRef:
-        bundle: quay.io/redhat-appstudio-tekton-catalog/task-sbom-json-check:0.1@sha256:3fe90c210a4df9c98d5a32a2eeeaa36ca4a5c8a199d56b512076ffca9d3db483
+        bundle: quay.io/konflux-ci/tekton-catalog/task-sbom-json-check:0.1@sha256:9c475babf202e0b04f587f301f020970829ecbe766fe20bbfd0b6ece7628ad7f
         name: sbom-json-check
       when:
       - input: $(params.skip-checks)
