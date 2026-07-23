@@ -124,7 +124,7 @@ require (
 	k8s.io/kubelet v0.0.0 // indirect
 	k8s.io/mount-utils v0.25.4 // indirect
 	k8s.io/pod-security-admission v0.23.5 // indirect
-	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.1.2 // indirect
+	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.36.0 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/kube-storage-version-migrator v0.0.5 // indirect
 	sigs.k8s.io/kustomize/api v0.13.4 // indirect
