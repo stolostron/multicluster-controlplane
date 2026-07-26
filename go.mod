@@ -115,7 +115,6 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/cli-runtime v0.27.2 // indirect
 	k8s.io/cloud-provider v0.27.2 // indirect
@@ -183,6 +182,7 @@ require (
 	golang.org/x/sys v0.8.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	golang.org/x/tools v0.9.3 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/cluster-bootstrap v0.27.2 // indirect
 	k8s.io/controller-manager v0.27.2 // indirect
 	k8s.io/klog v1.0.0 // indirect
