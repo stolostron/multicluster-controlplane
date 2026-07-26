@@ -163,7 +163,7 @@ require (
 	github.com/stolostron/go-log-utils v0.1.2 // indirect
 	github.com/stolostron/go-template-utils/v3 v3.2.1 // indirect
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20220101234140-673ab2c3ae75 // indirect
-	go.etcd.io/etcd/server/v3 v3.5.7 // indirect
+	go.etcd.io/etcd/server/v3 v3.7.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.35.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.37.0 // indirect
 	go.opentelemetry.io/otel v1.14.0 // indirect
