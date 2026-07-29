@@ -654,8 +654,8 @@ github.com/spf13/viper v1.3.2/go.mod h1:ZiWeW+zYFKm7srdB9IoDzzZXaJaI5eL9QjNiN/DM
 github.com/spf13/viper v1.4.0/go.mod h1:PTJ7Z/lr49W6bUbkmS1V3by4uWynFiR9p7+dSq/yZzE=
 github.com/spf13/viper v1.7.0/go.mod h1:8WkrPz2fc9jxqZNCJI/76HCieCp4Q8HaLFoCha5qpdg=
 github.com/stoewer/go-strcase v1.2.0/go.mod h1:IBiWB2sKIp3wVVQ3Y035++gc+knqhUQag1KpM8ahLw8=
-github.com/stoewer/go-strcase v1.3.0 h1:g0eASXYtp+yvN9fK8sH94oCIk0fau9uV1/ZdJ0AVEzs=
-github.com/stoewer/go-strcase v1.3.0/go.mod h1:fAH5hQ5pehh+j3nZfvwdk2RgEgQjAoM8wodgtPmh1xo=
+github.com/stoewer/go-strcase v1.3.1 h1:iS0MdW+kVTxgMoE1LAZyMiYJFKlOzLooE4MxjirtkAs=
+github.com/stoewer/go-strcase v1.3.1/go.mod h1:fAH5hQ5pehh+j3nZfvwdk2RgEgQjAoM8wodgtPmh1xo=
 github.com/stolostron/cluster-lifecycle-api v0.0.0-20230510064049-824d580bc143 h1:lPHc9Kaa3bZs4domKspWKyCZmN5uL4b0RWZXDhEiVgY=
 github.com/stolostron/cluster-lifecycle-api v0.0.0-20230510064049-824d580bc143/go.mod h1:pNeVzujoHsTHDloNHVfp1QPYlQy8MkXMuuZme96/x8M=
 github.com/stolostron/go-log-utils v0.1.2 h1:7l1aJWvBqU2+DUyimcslT5SJpdygVY/clRDmX5sO29c=

@@ -95,7 +95,7 @@ require (
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/soheilhy/cmux v0.1.5 // indirect
 	github.com/spf13/cast v1.5.1 // indirect
-	github.com/stoewer/go-strcase v1.3.0 // indirect
+	github.com/stoewer/go-strcase v1.3.1 // indirect
 	github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2 // indirect
 	github.com/xlab/treeprint v1.2.0 // indirect
 	go.etcd.io/bbolt v1.3.6 // indirect
