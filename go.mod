@@ -1,6 +1,6 @@
 module github.com/stolostron/multicluster-controlplane
 
-go 1.20
+go 1.23.0
 
 require (
 	github.com/onsi/ginkgo/v2 v2.10.0
@@ -106,7 +106,7 @@ require (
 	go.etcd.io/etcd/pkg/v3 v3.5.7 // indirect
 	go.etcd.io/etcd/raft/v3 v3.5.7 // indirect
 	go.starlark.net v0.0.0-20230302034142-4b1e35fe2254 // indirect
-	golang.org/x/sync v0.2.0 // indirect
+	golang.org/x/sync v0.16.0 // indirect
 	golang.org/x/term v0.8.0 // indirect
 	golang.org/x/text v0.9.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.3.0 // indirect
@@ -154,7 +154,7 @@ require (
 	github.com/google/pprof v0.0.0-20230502171905-255e3b9b56de // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.7.0 // indirect
-	github.com/jellydator/ttlcache/v3 v3.0.1 // indirect
+	github.com/jellydator/ttlcache/v3 v3.4.1 // indirect
 	github.com/jonboulle/clockwork v0.3.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pquerna/cachecontrol v0.1.0 // indirect
