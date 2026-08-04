@@ -1,6 +1,6 @@
 module github.com/stolostron/multicluster-controlplane
 
-go 1.20
+go 1.25
 
 require (
 	github.com/onsi/ginkgo/v2 v2.10.0
@@ -20,7 +20,7 @@ require (
 	k8s.io/component-base v0.27.2
 	k8s.io/klog/v2 v2.100.1
 	k8s.io/kube-aggregator v0.27.2
-	k8s.io/utils v0.0.0-20230505201702-9f6742963106
+	k8s.io/utils v0.0.0-20260707023825-cf1189d6abe3
 	open-cluster-management.io/api v0.11.1-0.20230609103311-088e8fe86139
 	open-cluster-management.io/config-policy-controller v0.11.1-0.20230601150037-7efe2d125208
 	open-cluster-management.io/governance-policy-framework-addon v0.11.1-0.20230609150423-d788045bf097
