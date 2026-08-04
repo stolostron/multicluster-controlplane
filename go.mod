@@ -1,6 +1,6 @@
 module github.com/stolostron/multicluster-controlplane
 
-go 1.20
+go 1.22
 
 require (
 	github.com/onsi/ginkgo/v2 v2.10.0
@@ -130,7 +130,7 @@ require (
 	sigs.k8s.io/kustomize/api v0.13.4 // indirect
 	sigs.k8s.io/kustomize/kyaml v0.14.2 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
-	sigs.k8s.io/yaml v1.3.0 // indirect
+	sigs.k8s.io/yaml v1.6.0 // indirect
 )
 
 require (
@@ -177,6 +177,7 @@ require (
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
+	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	golang.org/x/crypto v0.9.0 // indirect
 	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1 // indirect
 	golang.org/x/mod v0.10.0 // indirect
