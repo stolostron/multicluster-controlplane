@@ -1,6 +1,6 @@
 module github.com/stolostron/multicluster-controlplane
 
-go 1.20
+go 1.23
 
 require (
 	github.com/onsi/ginkgo/v2 v2.10.0
@@ -129,7 +129,6 @@ require (
 	sigs.k8s.io/kube-storage-version-migrator v0.0.5 // indirect
 	sigs.k8s.io/kustomize/api v0.13.4 // indirect
 	sigs.k8s.io/kustomize/kyaml v0.14.2 // indirect
-	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
 
@@ -191,6 +190,7 @@ require (
 	k8s.io/kube-openapi v0.0.0-20230501164219-8b0f38b5fd1f // indirect
 	k8s.io/kubernetes v1.27.2 // indirect
 	open-cluster-management.io/ocm v0.0.0-20230614150343-ecfb6c08880e // indirect
+	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 )
 
 // replace these repos because of imported k8s.io/kubernetes v1.27.2
