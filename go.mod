@@ -1,6 +1,6 @@
 module github.com/stolostron/multicluster-controlplane
 
-go 1.20
+go 1.21
 
 require (
 	github.com/onsi/ginkgo/v2 v2.10.0
@@ -18,7 +18,7 @@ require (
 	k8s.io/apiserver v0.27.2
 	k8s.io/client-go v12.0.0+incompatible
 	k8s.io/component-base v0.27.2
-	k8s.io/klog/v2 v2.100.1
+	k8s.io/klog/v2 v2.140.0
 	k8s.io/kube-aggregator v0.27.2
 	k8s.io/utils v0.0.0-20230505201702-9f6742963106
 	open-cluster-management.io/api v0.11.1-0.20230609103311-088e8fe86139
@@ -145,7 +145,7 @@ require (
 	cloud.google.com/go/compute v1.19.1 // indirect
 	github.com/antlr/antlr4/runtime/Go/antlr/v4 v4.0.0-20230321174746-8dcc6526cfb1 // indirect
 	github.com/cenkalti/backoff/v4 v4.2.0 // indirect
-	github.com/go-logr/logr v1.2.4 // indirect
+	github.com/go-logr/logr v1.4.1 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-logr/zapr v1.2.4 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
