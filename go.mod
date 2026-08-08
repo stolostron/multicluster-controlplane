@@ -153,7 +153,7 @@ require (
 	github.com/google/cel-go v0.15.1 // indirect
 	github.com/google/pprof v0.0.0-20230502171905-255e3b9b56de // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.7.0 // indirect
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.30.0 // indirect
 	github.com/jellydator/ttlcache/v3 v3.0.1 // indirect
 	github.com/jonboulle/clockwork v0.3.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
