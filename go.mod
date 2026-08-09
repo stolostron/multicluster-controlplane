@@ -149,7 +149,7 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-logr/zapr v1.2.4 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
-	github.com/google/btree v1.1.2 // indirect
+	github.com/google/btree v1.1.3 // indirect
 	github.com/google/cel-go v0.15.1 // indirect
 	github.com/google/pprof v0.0.0-20230502171905-255e3b9b56de // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
