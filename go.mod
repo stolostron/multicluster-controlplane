@@ -185,7 +185,7 @@ require (
 	golang.org/x/tools v0.9.3 // indirect
 	k8s.io/cluster-bootstrap v0.27.2 // indirect
 	k8s.io/controller-manager v0.27.2 // indirect
-	k8s.io/klog v1.0.0 // indirect
+	k8s.io/klog/v2 v2.140.0 // indirect
 	k8s.io/kms v0.27.2 // indirect
 	k8s.io/kube-controller-manager v0.27.2 // indirect
 	k8s.io/kube-openapi v0.0.0-20230501164219-8b0f38b5fd1f // indirect
