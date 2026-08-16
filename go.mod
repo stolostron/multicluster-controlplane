@@ -8,7 +8,7 @@ require (
 	github.com/open-policy-agent/frameworks/constraint v0.0.0-20230411224310-3f237e2710fa
 	github.com/openshift/client-go v0.0.0-20230503144108-75015d2347cb
 	github.com/openshift/library-go v0.0.0-20230503173034-95ca3c14e50a
-	github.com/spf13/cobra v1.7.0
+	github.com/spf13/cobra v1.10.2
 	github.com/stolostron/cluster-lifecycle-api v0.0.0-20230510064049-824d580bc143
 	github.com/stolostron/kubernetes-dependency-watches v0.2.1
 	golang.org/x/net v0.10.0
@@ -159,7 +159,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pquerna/cachecontrol v0.1.0 // indirect
 	github.com/prometheus/client_golang v1.15.1 // indirect
-	github.com/spf13/pflag v1.0.6-0.20210604193023-d5e0c0615ace // indirect
+	github.com/spf13/pflag v1.0.9 // indirect
 	github.com/stolostron/go-log-utils v0.1.2 // indirect
 	github.com/stolostron/go-template-utils/v3 v3.2.1 // indirect
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20220101234140-673ab2c3ae75 // indirect
