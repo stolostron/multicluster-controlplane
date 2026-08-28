@@ -86,7 +86,7 @@ require (
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/selinux v1.10.0 // indirect
 	github.com/openshift/api v0.0.0-20230503133300-8bbcb7ca7183
-	github.com/pkg/profile v1.3.0 // indirect
+	github.com/pkg/profile v1.7.0 // indirect
 	github.com/prometheus/client_model v0.4.0 // indirect
 	github.com/prometheus/common v0.43.0 // indirect
 	github.com/prometheus/procfs v0.9.0 // indirect
@@ -145,6 +145,7 @@ require (
 	cloud.google.com/go/compute v1.19.1 // indirect
 	github.com/antlr/antlr4/runtime/Go/antlr/v4 v4.0.0-20230321174746-8dcc6526cfb1 // indirect
 	github.com/cenkalti/backoff/v4 v4.2.0 // indirect
+	github.com/felixge/fgprof v0.9.3 // indirect
 	github.com/go-logr/logr v1.2.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-logr/zapr v1.2.4 // indirect
