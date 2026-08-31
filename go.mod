@@ -7,7 +7,7 @@ require (
 	github.com/onsi/gomega v1.27.8
 	github.com/open-policy-agent/frameworks/constraint v0.0.0-20230411224310-3f237e2710fa
 	github.com/openshift/client-go v0.0.0-20230503144108-75015d2347cb
-	github.com/openshift/library-go v0.0.0-20230503173034-95ca3c14e50a
+	github.com/openshift/library-go v0.0.0-20260827165743-93f90ac5198f
 	github.com/spf13/cobra v1.7.0
 	github.com/stolostron/cluster-lifecycle-api v0.0.0-20230510064049-824d580bc143
 	github.com/stolostron/kubernetes-dependency-watches v0.2.1
