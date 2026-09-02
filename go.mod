@@ -23,7 +23,7 @@ require (
 	k8s.io/utils v0.0.0-20230505201702-9f6742963106
 	open-cluster-management.io/api v0.11.1-0.20230609103311-088e8fe86139
 	open-cluster-management.io/config-policy-controller v0.11.1-0.20230601150037-7efe2d125208
-	open-cluster-management.io/governance-policy-framework-addon v0.11.1-0.20230609150423-d788045bf097
+	open-cluster-management.io/governance-policy-framework-addon v0.20.0
 	open-cluster-management.io/governance-policy-propagator v0.11.1-0.20230608150119-94b4daa84adb
 	open-cluster-management.io/multicloud-operators-subscription v0.11.0
 	open-cluster-management.io/multicluster-controlplane v0.2.1-0.20230620013050-12d2edb23043
