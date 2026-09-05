@@ -128,7 +128,7 @@ spec:
       - name: pipelinerun-uid
         value: $(context.pipelineRun.uid)
       taskRef:
-        bundle: quay.io/redhat-appstudio-tekton-catalog/task-init:0.1@sha256:8c06b307b7f74622503b80ff0b81ffda63129959f52f8ed8f753d8ab98f38411
+        bundle: quay.io/redhat-appstudio-tekton-catalog/task-init:0.1@sha256:60e0a74b7f4b1166cb62672d6b6f262b4284b20ade9157a387b4a52283ccada8
         name: init
     - name: clone-repository
       params:
