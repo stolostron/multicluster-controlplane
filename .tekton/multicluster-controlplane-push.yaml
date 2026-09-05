@@ -184,7 +184,7 @@ spec:
       runAfter:
       - prefetch-dependencies
       taskRef:
-        bundle: quay.io/redhat-appstudio-tekton-catalog/task-buildah:0.1@sha256:0852e61c1018d7f7a47ac2bd63fbda1d3d2247392624c2176ec341e343386b7c
+        bundle: quay.io/redhat-appstudio-tekton-catalog/task-buildah:0.1@sha256:73628c0497b9d1fb068dffb997cf7bea57ed6dfa04e892abf1d6fc7f6828050a
         name: buildah
       when:
       - input: $(tasks.init.results.build)
