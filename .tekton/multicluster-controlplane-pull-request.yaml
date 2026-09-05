@@ -208,7 +208,7 @@ spec:
       runAfter:
       - build-container
       taskRef:
-        bundle: quay.io/redhat-appstudio-tekton-catalog/task-inspect-image:0.1@sha256:f7f3f86256f12d151463133d6c4ffc667087a87281ff2bc67c53c29f6463cd99
+        bundle: quay.io/redhat-appstudio-tekton-catalog/task-inspect-image:0.2@sha256:01f4a7ac0ff27ef5d220b6d1e1057d2da6e8c1ba70b45262b14cf55bbf004098
         name: inspect-image
       when:
       - input: $(params.skip-checks)
