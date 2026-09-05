@@ -189,7 +189,7 @@ require (
 	k8s.io/kms v0.27.2 // indirect
 	k8s.io/kube-controller-manager v0.27.2 // indirect
 	k8s.io/kube-openapi v0.0.0-20230501164219-8b0f38b5fd1f // indirect
-	k8s.io/kubernetes v1.27.2 // indirect
+	k8s.io/kubernetes v1.37.0 // indirect
 	open-cluster-management.io/ocm v0.0.0-20230614150343-ecfb6c08880e // indirect
 )
 
