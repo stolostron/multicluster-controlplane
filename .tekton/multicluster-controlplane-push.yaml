@@ -272,7 +272,7 @@ spec:
       runAfter:
       - build-container
       taskRef:
-        bundle: quay.io/redhat-appstudio-tekton-catalog/task-clair-scan:0.1@sha256:e654ebb13c0b6d98cde388dfd33e258b7368eea5a5a37f3b2edfef7a3e23ffc2
+        bundle: quay.io/redhat-appstudio-tekton-catalog/task-clair-scan:0.3@sha256:d146c60b93f8f06262dbb74f248a72657b42f951e3943840b303e9abdb3f6140
         name: clair-scan
       when:
       - input: $(params.skip-checks)
